@@ -184,4 +184,3 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave }: Reci
     </Dialog>
   )
 }
-

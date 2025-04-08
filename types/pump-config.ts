@@ -4,4 +4,3 @@ export interface PumpConfig {
   ingredient: string
   flowRate: number // ml pro Sekunde
 }
-

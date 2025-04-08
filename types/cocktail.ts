@@ -10,4 +10,3 @@ export interface Cocktail {
     amount: number // in ml
   }[]
 }
-
