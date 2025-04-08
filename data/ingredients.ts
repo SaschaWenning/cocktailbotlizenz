@@ -27,3 +27,4 @@ export const ingredients: Ingredient[] = [
   { id: "blue-curacao", name: "Blue Curacao", alcoholic: true },
   { id: "triple-sec", name: "Triple Sec", alcoholic: true },
 ]
+

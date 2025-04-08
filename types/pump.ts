@@ -10,3 +10,4 @@ export interface Ingredient {
   name: string
   alcoholic: boolean
 }
+

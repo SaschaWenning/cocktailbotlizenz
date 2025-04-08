@@ -4,3 +4,4 @@ export interface IngredientLevel {
   capacity: number // in ml
   lastRefill: Date
 }
+

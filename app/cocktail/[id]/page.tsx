@@ -13,3 +13,4 @@ export default function CocktailPage({ params }: { params: { id: string } }) {
   // Leite zur Hauptseite weiter, da wir die Detailansicht jetzt dort integriert haben
   redirect("/")
 }
+
