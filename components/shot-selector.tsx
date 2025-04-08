@@ -219,4 +219,3 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
     </div>
   )
 }
-

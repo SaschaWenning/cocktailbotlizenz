@@ -253,4 +253,3 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     </Dialog>
   )
 }
-

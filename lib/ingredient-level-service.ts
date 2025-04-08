@@ -196,4 +196,3 @@ export async function resetIngredientLevels(): Promise<IngredientLevel[]> {
   ingredientLevels = [...initialIngredientLevels]
   return ingredientLevels
 }
-

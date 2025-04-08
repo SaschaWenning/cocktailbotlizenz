@@ -61,4 +61,3 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
     </Card>
   )
 }
-

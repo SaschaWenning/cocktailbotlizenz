@@ -1,14 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import type { PumpConfig } from "@/types/pump"
-import { savePumpConfig, calibratePump } from "@/lib/cocktail-machine"
+import { savePumpConfig, calibratePump, getPumpConfig } from "@/lib/cocktail-machine"
 import { ingredients } from "@/data/ingredients"
-import { Loader2, Beaker, Save } from "lucide-react"
+import { Loader2, Beaker, Save, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface PumpCalibrationProps {
@@ -23,6 +23,24 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
   const [calibrationStep, setCalibrationStep] = useState<"idle" | "measuring" | "input">("idle")
   const [currentPumpId, setCurrentPumpId] = useState<number | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  // Lade die gespeicherte Konfiguration beim ersten Rendern
+  useEffect(() => {
+    loadPumpConfig()
+  }, [])
+
+  const loadPumpConfig = async () => {
+    try {
+      setLoading(true)
+      const config = await getPumpConfig()
+      setPumpConfig(config)
+    } catch (error) {
+      console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleIngredientChange = (pumpId: number, ingredient: string) => {
     setPumpConfig((prev) => prev.map((pump) => (pump.id === pumpId ? { ...pump, ingredient } : pump)))
@@ -35,7 +53,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
     } catch (error) {
-      // Fehler-Handling hier
+      console.error("Fehler beim Speichern der Pumpenkonfiguration:", error)
     } finally {
       setSaving(false)
     }
@@ -51,7 +69,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
       await calibratePump(pumpId, 2000)
       setCalibrationStep("input")
     } catch (error) {
-      // Fehler-Handling hier
+      console.error("Fehler bei der Kalibrierung:", error)
       setCalibrationStep("idle")
     } finally {
       setCalibrating(null)
@@ -65,7 +83,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
     }
   }
 
-  const saveCalibration = () => {
+  const saveCalibration = async () => {
     if (currentPumpId === null || measuredAmount === "") return
 
     const amount = Number.parseFloat(measuredAmount)
@@ -74,7 +92,24 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
     // Berechne die Durchflussrate (ml/s) basierend auf der gemessenen Menge und 2 Sekunden Laufzeit
     const flowRate = amount / 2
 
-    setPumpConfig((prev) => prev.map((pump) => (pump.id === currentPumpId ? { ...pump, flowRate } : pump)))
+    // Aktualisiere die lokale Konfiguration
+    const updatedConfig = pumpConfig.map((pump) => (pump.id === currentPumpId ? { ...pump, flowRate } : pump))
+
+    setPumpConfig(updatedConfig)
+
+    // Speichere die Konfiguration sofort
+    setSaving(true)
+    try {
+      await savePumpConfig(updatedConfig)
+
+      // Zeige Erfolgsmeldung
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 3000)
+    } catch (error) {
+      console.error("Fehler beim Speichern der Kalibrierung:", error)
+    } finally {
+      setSaving(false)
+    }
 
     // Zurücksetzen
     setMeasuredAmount("")
@@ -88,6 +123,14 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
     setCurrentPumpId(null)
   }
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--cocktail-primary))]" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <Card className="bg-white border-[hsl(var(--cocktail-card-border))]">
@@ -99,6 +142,19 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadPumpConfig}
+              disabled={loading || saving}
+              className="flex items-center gap-1"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Konfiguration neu laden
+            </Button>
+          </div>
+
           {calibrationStep === "measuring" && (
             <Alert className="mb-4 bg-[hsl(var(--cocktail-accent))]/10 border-[hsl(var(--cocktail-accent))]/30">
               <Beaker className="h-4 w-4 text-[hsl(var(--cocktail-accent))]" />
@@ -122,6 +178,11 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
                     onChange={(e) => handleMeasuredAmountChange(e.target.value)}
                     placeholder="Menge in ml"
                     className="w-full"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        saveCalibration()
+                      }
+                    }}
                   />
                 </div>
                 <Button
@@ -217,4 +278,3 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
     </div>
   )
 }
-

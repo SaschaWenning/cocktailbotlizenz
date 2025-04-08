@@ -13,4 +13,3 @@ export const initialIngredientLevels: IngredientLevel[] = ingredients
     capacity: 1000, // Standard-Kapazität
     lastRefill: new Date(),
   }))
-

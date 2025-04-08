@@ -17,4 +17,3 @@ export const pumpConfig: PumpConfig[] = [
   { id: 14, pin: 16, ingredient: "passion-fruit-juice", flowRate: 1.8 },
   { id: 15, pin: 20, ingredient: "soda-water", flowRate: 2.0 },
 ]
-

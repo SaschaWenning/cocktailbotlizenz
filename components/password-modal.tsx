@@ -69,4 +69,3 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
     </Dialog>
   )
 }
-

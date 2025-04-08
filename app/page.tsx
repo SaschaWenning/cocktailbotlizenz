@@ -4,13 +4,13 @@ import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { pumpConfig } from "@/data/pump-config"
+import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
 import CocktailCard from "@/components/cocktail-card"
 import PumpCalibration from "@/components/pump-calibration"
 import PumpCleaning from "@/components/pump-cleaning"
 import IngredientLevels from "@/components/ingredient-levels"
 import ShotSelector from "@/components/shot-selector"
-import { makeCocktail } from "@/lib/cocktail-machine"
+import { makeCocktail, getPumpConfig } from "@/lib/cocktail-machine"
 import {
   AlertCircle,
   Settings,
@@ -35,6 +35,7 @@ import { cocktails } from "@/data/cocktails"
 import { getIngredientLevels } from "@/lib/ingredient-level-service"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
+import type { PumpConfig } from "@/types/pump"
 
 export default function Home() {
   const [selectedCocktail, setSelectedCocktail] = useState<string | null>(null)
@@ -52,15 +53,37 @@ export default function Home() {
   const [ingredientLevels, setIngredientLevels] = useState<IngredientLevel[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [lowIngredients, setLowIngredients] = useState<string[]>([])
+  const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
+  const [loading, setLoading] = useState(true)
 
   // Filtere Cocktails nach alkoholisch und nicht-alkoholisch
   const alcoholicCocktails = cocktailsData.filter((cocktail) => cocktail.alcoholic)
   const virginCocktails = cocktailsData.filter((cocktail) => !cocktail.alcoholic)
 
-  // Lade Füllstände beim ersten Rendern
+  // Lade Füllstände und Pumpenkonfiguration beim ersten Rendern
   useEffect(() => {
-    loadIngredientLevels()
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        await Promise.all([loadIngredientLevels(), loadPumpConfig()])
+      } catch (error) {
+        console.error("Fehler beim Laden der Daten:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
+
+  const loadPumpConfig = async () => {
+    try {
+      const config = await getPumpConfig()
+      setPumpConfig(config)
+    } catch (error) {
+      console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
+    }
+  }
 
   const loadIngredientLevels = async () => {
     try {
@@ -449,4 +472,3 @@ export default function Home() {
     </div>
   )
 }
-

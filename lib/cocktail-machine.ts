@@ -3,6 +3,8 @@
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
 import { updateLevelsAfterCocktail, updateLevelAfterShot } from "@/lib/ingredient-level-service"
+import fs from "fs"
+import path from "path"
 
 // Skaliert die Zutatenmengen proportional zur gewünschten Gesamtmenge
 function scaleRecipe(cocktail: Cocktail, targetSize: number) {
@@ -100,7 +102,7 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
   }
 
   // Finde die Pumpe für diese Zutat
-  const pumpConfig = await import("@/data/pump-config").then((module) => module.pumpConfig)
+  const pumpConfig = await getPumpConfig()
   const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
 
   if (!pump) {
@@ -205,15 +207,48 @@ export async function cleanPump(pumpId: number, durationMs: number) {
   }
 }
 
+// Pfad zur JSON-Datei für die Pumpenkonfiguration
+const PUMP_CONFIG_PATH = path.join(process.cwd(), "data", "pump-config.json")
+
+// Funktion zum Laden der Pumpenkonfiguration
+export async function getPumpConfig(): Promise<PumpConfig[]> {
+  try {
+    // Prüfe, ob die Datei existiert
+    if (fs.existsSync(PUMP_CONFIG_PATH)) {
+      // Lese die Datei
+      const data = fs.readFileSync(PUMP_CONFIG_PATH, "utf8")
+      return JSON.parse(data)
+    } else {
+      // Wenn die Datei nicht existiert, lade die Standardkonfiguration
+      const { pumpConfig } = await import("@/data/pump-config")
+
+      // Speichere die Standardkonfiguration in der JSON-Datei
+      fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
+      fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+
+      return pumpConfig
+    }
+  } catch (error) {
+    console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
+
+    // Fallback: Lade die Standardkonfiguration
+    const { pumpConfig } = await import("@/data/pump-config")
+    return pumpConfig
+  }
+}
+
 // Funktion zum Speichern der Pumpen-Konfiguration
 export async function savePumpConfig(pumpConfig: PumpConfig[]) {
   try {
-    // In einer echten Implementierung würden wir hier die Konfiguration in einer Datei oder Datenbank speichern
     console.log("Speichere Pumpen-Konfiguration:", pumpConfig)
 
-    // Simuliere eine kurze Verzögerung
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Stelle sicher, dass das Verzeichnis existiert
+    fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
 
+    // Speichere die Konfiguration in der JSON-Datei
+    fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+
+    console.log("Pumpen-Konfiguration erfolgreich gespeichert")
     return { success: true }
   } catch (error) {
     console.error("Fehler beim Speichern der Pumpen-Konfiguration:", error)
@@ -235,4 +270,3 @@ export async function saveRecipe(cocktail: Cocktail) {
     throw error
   }
 }
-

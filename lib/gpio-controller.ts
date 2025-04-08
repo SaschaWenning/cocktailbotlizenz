@@ -35,4 +35,3 @@ export function cleanupGPIO() {
   // In einer echten Implementierung:
   // rpio.exit();
 }
-

@@ -249,4 +249,3 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
     </div>
   )
 }
-
