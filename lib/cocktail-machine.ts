@@ -527,7 +527,8 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     // Füge zuerst die Standard-Cocktails hinzu und ersetze "rum" durch "brauner rum"
     for (const cocktail of defaultCocktails) {
       // Überspringe den ursprünglichen Malibu Ananas, da wir eine aktualisierte Version haben
-      if (cocktail.id === "malibu-ananas") continue
+      // Überspringe auch Gin Tonic und Cuba Libre
+      if (cocktail.id === "malibu-ananas" || cocktail.id === "gin-tonic" || cocktail.id === "cuba-libre") continue
 
       // Erstelle eine Kopie des Cocktails
       const updatedCocktail = { ...cocktail }
