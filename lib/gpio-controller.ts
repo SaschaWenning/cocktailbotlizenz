@@ -1,37 +1,72 @@
-// Diese Datei würde in einer echten Implementierung die GPIO-Pins des Raspberry Pi steuern
-// Für diese Demo ist sie nur ein Platzhalter
+// Diese Datei steuert die GPIO-Pins des Raspberry Pi
 
-// In einer echten Implementierung würden wir hier die rpio oder onoff Bibliothek importieren
-// import * as rpio from 'rpio';
+// Importiere die rpio Bibliothek
+import * as rpio from "rpio"
+import { pumpConfig } from "@/data/pump-config"
 
 export function setupGPIO() {
   // Initialisiere die GPIO-Pins
   console.log("GPIO-Pins werden initialisiert")
 
-  // In einer echten Implementierung würden wir hier die GPIO-Pins konfigurieren
-  // rpio.init({mapping: 'gpio'});
-}
+  try {
+    //  {
+  // Initialisiere die GPIO-Pins
+  console.log("GPIO-Pins werden initialisiert")
 
+  try {
+    // Initialisiere die rpio Bibliothek
+    rpio.init({ mapping: 'gpio' });
+
+    // Konfiguriere alle Pins aus der Pumpenkonfiguration
+    for (const pump of pumpConfig) {
+      // Setze den Pin als Ausgang und initialisiere ihn mit HIGH (Pumpe aus)
+      // Da wir ein active-low Relais verwenden, bedeutet HIGH = Pumpe aus
+      rpio.open(pump.pin, rpio.OUTPUT, rpio.HIGH);
+      console.log(`Pin ${pump.pin} für Pumpe ${pump.id} konfiguriert (Zutat: ${pump.ingredient})`);
+    }
+
+    console.log("GPIO-Pins erfolgreich initialisiert");
+  } catch (error) {
+    console.error("Fehler bei der Initialisierung der GPIO-Pins:", error);
+  }
+}
+\
 export function setPinHigh(pin: number) {
   // Setze den Pin auf HIGH (3.3V)
-  console.log(`Setze Pin ${pin} auf HIGH`)
+  console.log(`Setze Pin ${pin} auf HIGH`);
 
-  // In einer echten Implementierung:
-  // rpio.open(pin, rpio.OUTPUT, rpio.HIGH);
+  try {
+    rpio.write(pin, rpio.HIGH);
+  } catch (error) {
+    console.error(`Fehler beim Setzen von Pin ${pin} auf HIGH:`, error);
+  }
 }
 
 export function setPinLow(pin: number) {
   // Setze den Pin auf LOW (0V)
-  console.log(`Setze Pin ${pin} auf LOW`)
+  console.log(`Setze Pin ${pin} auf LOW`);
 
-  // In einer echten Implementierung:
-  // rpio.open(pin, rpio.OUTPUT, rpio.LOW);
+  try {
+    rpio.write(pin, rpio.LOW);
+  } catch (error) {
+    console.error(`Fehler beim Setzen von Pin ${pin} auf LOW:`, error);
+  }
 }
 
 export function cleanupGPIO() {
   // Bereinige die GPIO-Pins
-  console.log("GPIO-Pins werden bereinigt")
+  console.log("GPIO-Pins werden bereinigt");
 
-  // In einer echten Implementierung:
-  // rpio.exit();
+  try {
+    // Setze alle Pins zurück auf HIGH (Pumpen aus)
+    for (const pump of pumpConfig) {
+      rpio.write(pump.pin, rpio.HIGH);
+    }
+    
+    // Schließe die rpio Bibliothek
+    rpio.exit();
+    console.log("GPIO-Pins erfolgreich bereinigt");
+  } catch (error) {
+    console.error("Fehler bei der Bereinigung der GPIO-Pins:", error);
+  }
 }

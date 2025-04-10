@@ -120,20 +120,22 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
   return { success: true }
 }
 
-// Diese Funktion würde die GPIO-Pins des Raspberry Pi steuern
+// Diese Funktion steuert die GPIO-Pins des Raspberry Pi
 async function activatePump(pin: number, durationMs: number) {
   try {
-    // In einer echten Implementierung würden wir hier die GPIO-Pins steuern
-    // Für diese Demo simulieren wir nur die Verzögerung
+    // Importiere die GPIO-Controller-Funktionen
+    const { setPinHigh, setPinLow } = await import("@/lib/gpio-controller")
 
-    // Simuliere das Einschalten der Pumpe
-    console.log(`GPIO Pin ${pin} eingeschaltet`)
+    // Aktiviere den Pin (für active-low Relais setzen wir den Pin auf LOW)
+    setPinLow(pin)
+    console.log(`GPIO Pin ${pin} aktiviert (LOW)`)
 
     // Warte für die angegebene Dauer
     await new Promise((resolve) => setTimeout(resolve, durationMs))
 
-    // Simuliere das Ausschalten der Pumpe
-    console.log(`GPIO Pin ${pin} ausgeschaltet`)
+    // Deaktiviere den Pin (für active-low Relais setzen wir den Pin auf HIGH)
+    setPinHigh(pin)
+    console.log(`GPIO Pin ${pin} deaktiviert (HIGH)`)
 
     return true
   } catch (error) {

@@ -68,6 +68,10 @@ export default function Home() {
     const loadData = async () => {
       setLoading(true)
       try {
+        // Initialisiere GPIO-Pins
+        const { setupGPIO } = await import("@/lib/gpio-controller")
+        setupGPIO()
+
         await Promise.all([loadIngredientLevels(), loadPumpConfig(), loadCocktails()])
       } catch (error) {
         console.error("Fehler beim Laden der Daten:", error)
@@ -77,6 +81,16 @@ export default function Home() {
     }
 
     loadData()
+
+    // Cleanup beim Unmount
+    return async () => {
+      try {
+        const { cleanupGPIO } = await import("@/lib/gpio-controller")
+        cleanupGPIO()
+      } catch (error) {
+        console.error("Fehler beim Bereinigen der GPIO-Pins:", error)
+      }
+    }
   }, [])
 
   const loadCocktails = async () => {
