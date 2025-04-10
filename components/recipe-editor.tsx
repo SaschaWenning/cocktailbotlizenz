@@ -9,16 +9,17 @@ import { Textarea } from "@/components/ui/textarea"
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, Image } from "lucide-react"
+import { Loader2, ImageIcon, Trash2 } from "lucide-react"
 
 interface RecipeEditorProps {
   isOpen: boolean
   onClose: () => void
   cocktail: Cocktail | null
   onSave: (updatedCocktail: Cocktail) => void
+  onRequestDelete: (cocktailId: string) => void
 }
 
-export default function RecipeEditor({ isOpen, onClose, cocktail, onSave }: RecipeEditorProps) {
+export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequestDelete }: RecipeEditorProps) {
   const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([])
   const [imageUrl, setImageUrl] = useState("")
   const [description, setDescription] = useState("")
@@ -98,10 +99,18 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave }: Reci
     }
   }
 
+  const handleDeleteRequest = () => {
+    if (!cocktail) return
+    onRequestDelete(cocktail.id)
+  }
+
   const getIngredientName = (id: string) => {
     const ingredient = ingredients.find((i) => i.id === id)
     return ingredient ? ingredient.name : id
   }
+
+  // Prüfe, ob es sich um ein benutzerdefiniertes Rezept handelt
+  const isCustomRecipe = cocktail.id.startsWith("custom-")
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -125,7 +134,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave }: Reci
 
           <div className="space-y-2">
             <Label htmlFor="imageUrl" className="flex items-center gap-2">
-              <Image className="h-4 w-4" />
+              <ImageIcon className="h-4 w-4" />
               Bild-URL (optional)
             </Label>
             <Input
@@ -165,20 +174,28 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave }: Reci
           ))}
         </div>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Abbrechen
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Speichern...
-              </>
-            ) : (
-              "Speichern"
-            )}
-          </Button>
+        <DialogFooter className="flex justify-between items-center">
+          {isCustomRecipe && (
+            <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Löschen
+            </Button>
+          )}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Abbrechen
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Speichern...
+                </>
+              ) : (
+                "Speichern"
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -10,7 +10,7 @@ import PumpCalibration from "@/components/pump-calibration"
 import PumpCleaning from "@/components/pump-cleaning"
 import IngredientLevels from "@/components/ingredient-levels"
 import ShotSelector from "@/components/shot-selector"
-import { makeCocktail, getPumpConfig } from "@/lib/cocktail-machine"
+import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
 import {
   AlertCircle,
   Settings,
@@ -30,8 +30,9 @@ import { Label } from "@/components/ui/label"
 import PasswordModal from "@/components/password-modal"
 import RecipeEditor from "@/components/recipe-editor"
 import RecipeCreator from "@/components/recipe-creator"
+import DeleteConfirmation from "@/components/delete-confirmation"
 import type { Cocktail } from "@/types/cocktail"
-import { cocktails } from "@/data/cocktails"
+import { cocktails as defaultCocktails } from "@/data/cocktails"
 import { getIngredientLevels } from "@/lib/ingredient-level-service"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
@@ -48,8 +49,10 @@ export default function Home() {
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showRecipeEditor, setShowRecipeEditor] = useState(false)
   const [showRecipeCreator, setShowRecipeCreator] = useState(false)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [cocktailToEdit, setCocktailToEdit] = useState<string | null>(null)
-  const [cocktailsData, setCocktailsData] = useState(cocktails)
+  const [cocktailToDelete, setCocktailToDelete] = useState<Cocktail | null>(null)
+  const [cocktailsData, setCocktailsData] = useState<Cocktail[]>(defaultCocktails)
   const [ingredientLevels, setIngredientLevels] = useState<IngredientLevel[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [lowIngredients, setLowIngredients] = useState<string[]>([])
@@ -60,12 +63,12 @@ export default function Home() {
   const alcoholicCocktails = cocktailsData.filter((cocktail) => cocktail.alcoholic)
   const virginCocktails = cocktailsData.filter((cocktail) => !cocktail.alcoholic)
 
-  // Lade Füllstände und Pumpenkonfiguration beim ersten Rendern
+  // Lade Füllstände, Pumpenkonfiguration und Cocktails beim ersten Rendern
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
       try {
-        await Promise.all([loadIngredientLevels(), loadPumpConfig()])
+        await Promise.all([loadIngredientLevels(), loadPumpConfig(), loadCocktails()])
       } catch (error) {
         console.error("Fehler beim Laden der Daten:", error)
       } finally {
@@ -75,6 +78,15 @@ export default function Home() {
 
     loadData()
   }, [])
+
+  const loadCocktails = async () => {
+    try {
+      const cocktails = await getAllCocktails()
+      setCocktailsData(cocktails)
+    } catch (error) {
+      console.error("Fehler beim Laden der Cocktails:", error)
+    }
+  }
 
   const loadPumpConfig = async () => {
     try {
@@ -108,12 +120,56 @@ export default function Home() {
     setShowRecipeEditor(true)
   }
 
-  const handleRecipeSave = (updatedCocktail: Cocktail) => {
-    setCocktailsData((prev) => prev.map((c) => (c.id === updatedCocktail.id ? updatedCocktail : c)))
+  const handleRecipeSave = async (updatedCocktail: Cocktail) => {
+    try {
+      await saveRecipe(updatedCocktail)
+
+      // Aktualisiere die lokale Liste
+      setCocktailsData((prev) => prev.map((c) => (c.id === updatedCocktail.id ? updatedCocktail : c)))
+    } catch (error) {
+      console.error("Fehler beim Speichern des Rezepts:", error)
+    }
   }
 
-  const handleNewRecipeSave = (newCocktail: Cocktail) => {
-    setCocktailsData((prev) => [...prev, newCocktail])
+  const handleNewRecipeSave = async (newCocktail: Cocktail) => {
+    try {
+      await saveRecipe(newCocktail)
+
+      // Füge den neuen Cocktail zur lokalen Liste hinzu
+      setCocktailsData((prev) => [...prev, newCocktail])
+    } catch (error) {
+      console.error("Fehler beim Speichern des neuen Rezepts:", error)
+    }
+  }
+
+  const handleRequestDelete = (cocktailId: string) => {
+    const cocktail = cocktailsData.find((c) => c.id === cocktailId)
+    if (cocktail) {
+      setCocktailToDelete(cocktail)
+      setShowRecipeEditor(false)
+      setShowDeleteConfirmation(true)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!cocktailToDelete) return
+
+    try {
+      await deleteRecipe(cocktailToDelete.id)
+
+      // Aktualisiere die lokale Liste
+      setCocktailsData((prev) => prev.filter((c) => c.id !== cocktailToDelete.id))
+
+      // Wenn der gelöschte Cocktail ausgewählt war, setze die Auswahl zurück
+      if (selectedCocktail === cocktailToDelete.id) {
+        setSelectedCocktail(null)
+      }
+
+      setCocktailToDelete(null)
+    } catch (error) {
+      console.error("Fehler beim Löschen des Cocktails:", error)
+      throw error
+    }
   }
 
   const handleMakeCocktail = async () => {
@@ -461,6 +517,7 @@ export default function Home() {
         onClose={() => setShowRecipeEditor(false)}
         cocktail={cocktailToEdit ? cocktailsData.find((c) => c.id === cocktailToEdit) || null : null}
         onSave={handleRecipeSave}
+        onRequestDelete={handleRequestDelete}
       />
 
       {/* Rezept-Creator */}
@@ -468,6 +525,14 @@ export default function Home() {
         isOpen={showRecipeCreator}
         onClose={() => setShowRecipeCreator(false)}
         onSave={handleNewRecipeSave}
+      />
+
+      {/* Löschen-Bestätigung */}
+      <DeleteConfirmation
+        isOpen={showDeleteConfirmation}
+        onClose={() => setShowDeleteConfirmation(false)}
+        onConfirm={handleDeleteConfirm}
+        cocktailName={cocktailToDelete?.name || ""}
       />
     </div>
   )
