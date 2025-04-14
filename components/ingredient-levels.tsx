@@ -12,6 +12,7 @@ import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
 import { getIngredientLevels, refillIngredient, refillAllIngredients } from "@/lib/ingredient-level-service"
 import type { PumpConfig } from "@/types/pump-config"
+import VirtualKeyboard from "./virtual-keyboard"
 
 interface IngredientLevelsProps {
   pumpConfig: PumpConfig[]
@@ -24,6 +25,8 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
   const [activeTab, setActiveTab] = useState("all")
   const [refillAmounts, setRefillAmounts] = useState<Record<string, string>>({})
   const [showSuccess, setShowSuccess] = useState(false)
+  const [activeInput, setActiveInput] = useState<string | null>(null)
+  const [showKeyboard, setShowKeyboard] = useState(false)
 
   // Lade Füllstände beim ersten Rendern
   useEffect(() => {
@@ -52,6 +55,41 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
     }
   }
 
+  const handleKeyPress = (key: string) => {
+    if (!activeInput) return
+
+    // Nur Zahlen erlauben für Füllstände
+    if (/^\d$/.test(key)) {
+      setRefillAmounts((prev) => ({
+        ...prev,
+        [activeInput]: (prev[activeInput] || "") + key,
+      }))
+    }
+  }
+
+  const handleBackspace = () => {
+    if (!activeInput) return
+
+    setRefillAmounts((prev) => ({
+      ...prev,
+      [activeInput]: (prev[activeInput] || "").slice(0, -1),
+    }))
+  }
+
+  const handleClear = () => {
+    if (!activeInput) return
+
+    setRefillAmounts((prev) => ({
+      ...prev,
+      [activeInput]: "",
+    }))
+  }
+
+  const handleInputFocus = (ingredientId: string) => {
+    setActiveInput(ingredientId)
+    setShowKeyboard(true)
+  }
+
   const handleRefill = async (ingredientId: string) => {
     const amountStr = refillAmounts[ingredientId]
     if (!amountStr) return
@@ -78,6 +116,8 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
       console.error("Fehler beim Nachfüllen:", error)
     } finally {
       setSaving(false)
+      setShowKeyboard(false)
+      setActiveInput(null)
     }
   }
 
@@ -202,7 +242,9 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                             placeholder="Menge in ml"
                             value={refillAmounts[level.ingredientId] || ""}
                             onChange={(e) => handleRefillAmountChange(level.ingredientId, e.target.value)}
-                            className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))]"
+                            className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-center text-lg"
+                            onFocus={() => handleInputFocus(level.ingredientId)}
+                            readOnly
                           />
                           <Button
                             variant="outline"
@@ -218,6 +260,30 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                   })
                 )}
               </div>
+
+              {showKeyboard && activeInput && (
+                <div className="mt-6 border-t border-[hsl(var(--cocktail-card-border))] pt-4">
+                  <VirtualKeyboard
+                    onKeyPress={handleKeyPress}
+                    onBackspace={handleBackspace}
+                    onClear={handleClear}
+                    onConfirm={() => handleRefill(activeInput)}
+                    allowDecimal={false}
+                  />
+
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      onClick={() => {
+                        setShowKeyboard(false)
+                        setActiveInput(null)
+                      }}
+                      variant="ghost"
+                    >
+                      Abbrechen
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-6 pt-4 border-t border-[hsl(var(--cocktail-card-border))]">
                 <Button onClick={handleRefillAll} className="w-full" disabled={saving}>

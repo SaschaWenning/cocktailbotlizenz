@@ -11,19 +11,8 @@ import PumpCleaning from "@/components/pump-cleaning"
 import IngredientLevels from "@/components/ingredient-levels"
 import ShotSelector from "@/components/shot-selector"
 import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import {
-  AlertCircle,
-  Settings,
-  Check,
-  Edit,
-  Droplets,
-  Plus,
-  Gauge,
-  AlertTriangle,
-  GlassWater,
-  Wine,
-} from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle, Check, Edit, Plus, AlertTriangle, GlassWater, Wine } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
@@ -390,7 +379,7 @@ export default function Home() {
                 </Alert>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 {cocktails.map((cocktail) => (
                   <CocktailCard
                     key={cocktail.id}
@@ -408,38 +397,13 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))]">
-      <header className="p-4 border-b border-[hsl(var(--cocktail-card-border))] flex justify-between items-center bg-white shadow-sm">
+      <header className="p-4 border-b border-[hsl(var(--cocktail-card-border))] flex justify-center items-center bg-white shadow-sm">
         <h1 className="text-2xl font-bold text-[hsl(var(--cocktail-primary))]">CocktailBot</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setActiveTab("levels")}
-            className={activeTab === "levels" ? "text-[hsl(var(--cocktail-primary))]" : ""}
-          >
-            <Gauge className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setActiveTab("cleaning")}
-            className={activeTab === "cleaning" ? "text-[hsl(var(--cocktail-accent))]" : ""}
-          >
-            <Droplets className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setActiveTab(activeTab === "cocktails" ? "calibration" : "cocktails")}
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
-        </div>
       </header>
 
       <main className="flex-1 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="mx-4 mt-2 justify-start bg-white border border-[hsl(var(--cocktail-card-border))]">
+          <TabsList className="mx-4 mt-2 justify-start bg-white border border-[hsl(var(--cocktail-card-border))] tabs-list">
             <TabsTrigger value="cocktails" className="flex items-center gap-1">
               <Wine className="h-4 w-4" />
               Cocktails
@@ -454,15 +418,15 @@ export default function Home() {
             <TabsTrigger value="cleaning">Reinigung</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="cocktails" className="flex-1 overflow-auto p-4 space-y-4">
+          <TabsContent value="cocktails" className="flex-1 overflow-auto p-4 space-y-4 touch-pan-y">
             <CocktailDisplay cocktails={alcoholicCocktails} />
           </TabsContent>
 
-          <TabsContent value="virgin-cocktails" className="flex-1 overflow-auto p-4 space-y-4">
+          <TabsContent value="virgin-cocktails" className="flex-1 overflow-auto p-4 space-y-4 touch-pan-y">
             <CocktailDisplay cocktails={virginCocktails} />
           </TabsContent>
 
-          <TabsContent value="shots" className="flex-1 overflow-auto p-4 space-y-4">
+          <TabsContent value="shots" className="flex-1 overflow-auto p-4 space-y-4 touch-pan-y">
             <Card className="border-[hsl(var(--cocktail-card-border))] bg-white mb-4">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -482,27 +446,19 @@ export default function Home() {
             />
           </TabsContent>
 
-          <TabsContent value="levels" className="flex-1 overflow-auto p-4">
+          <TabsContent value="levels" className="flex-1 overflow-auto p-4 touch-pan-y">
             <IngredientLevels pumpConfig={pumpConfig} />
           </TabsContent>
 
-          <TabsContent value="calibration" className="flex-1 overflow-auto p-4">
+          <TabsContent value="calibration" className="flex-1 overflow-auto p-4 touch-pan-y">
             <PumpCalibration pumpConfig={pumpConfig} />
           </TabsContent>
 
-          <TabsContent value="cleaning" className="flex-1 overflow-auto p-4">
+          <TabsContent value="cleaning" className="flex-1 overflow-auto p-4 touch-pan-y">
             <PumpCleaning pumpConfig={pumpConfig} />
           </TabsContent>
         </Tabs>
       </main>
-
-      <Alert variant="destructive" className="mx-4 mb-4 bg-white border-[hsl(var(--cocktail-card-border))]">
-        <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-        <AlertTitle className="text-[hsl(var(--cocktail-text))]">Hinweis</AlertTitle>
-        <AlertDescription className="text-[hsl(var(--cocktail-text-muted))]">
-          Stelle sicher, dass alle Pumpen korrekt angeschlossen sind und genügend Flüssigkeit vorhanden ist.
-        </AlertDescription>
-      </Alert>
 
       {/* Passwort-Modal */}
       <PasswordModal

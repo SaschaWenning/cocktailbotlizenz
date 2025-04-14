@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -10,6 +10,7 @@ import { savePumpConfig, calibratePump, getPumpConfig } from "@/lib/cocktail-mac
 import { ingredients } from "@/data/ingredients"
 import { Loader2, Beaker, Save, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import VirtualKeyboard from "./virtual-keyboard"
 
 interface PumpCalibrationProps {
   pumpConfig: PumpConfig[]
@@ -24,6 +25,8 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
   const [currentPumpId, setCurrentPumpId] = useState<number | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Lade die gespeicherte Konfiguration beim ersten Rendern
   useEffect(() => {
@@ -68,6 +71,11 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
       // Pumpe für genau 2 Sekunden laufen lassen
       await calibratePump(pumpId, 2000)
       setCalibrationStep("input")
+      setMeasuredAmount("")
+      setShowKeyboard(true)
+      if (inputRef.current) {
+        inputRef.current.focus()
+      }
     } catch (error) {
       console.error("Fehler bei der Kalibrierung:", error)
       setCalibrationStep("idle")
@@ -81,6 +89,22 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
     if (/^\d*\.?\d*$/.test(value) || value === "") {
       setMeasuredAmount(value)
     }
+  }
+
+  const handleKeyPress = (key: string) => {
+    // Verhindere mehrere Dezimalpunkte
+    if (key === "." && measuredAmount.includes(".")) {
+      return
+    }
+    setMeasuredAmount((prev) => prev + key)
+  }
+
+  const handleBackspace = () => {
+    setMeasuredAmount((prev) => prev.slice(0, -1))
+  }
+
+  const handleClear = () => {
+    setMeasuredAmount("")
   }
 
   const saveCalibration = async () => {
@@ -115,12 +139,14 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
     setMeasuredAmount("")
     setCalibrationStep("idle")
     setCurrentPumpId(null)
+    setShowKeyboard(false)
   }
 
   const cancelCalibration = () => {
     setMeasuredAmount("")
     setCalibrationStep("idle")
     setCurrentPumpId(null)
+    setShowKeyboard(false)
   }
 
   if (loading) {
@@ -170,32 +196,38 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
               <h3 className="text-sm font-medium mb-2 text-[hsl(var(--cocktail-text))]">
                 Gemessene Menge für Pumpe {currentPumpId} eintragen:
               </h3>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-4">
                 <div className="flex-1">
                   <Input
+                    ref={inputRef}
                     type="text"
                     value={measuredAmount}
                     onChange={(e) => handleMeasuredAmountChange(e.target.value)}
                     placeholder="Menge in ml"
-                    className="w-full"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        saveCalibration()
-                      }
-                    }}
+                    className="w-full text-xl h-12 text-center"
+                    onFocus={() => setShowKeyboard(true)}
+                    readOnly
                   />
                 </div>
-                <Button
-                  onClick={saveCalibration}
-                  variant="outline"
-                  className="bg-[hsl(var(--cocktail-accent))]/10 border-[hsl(var(--cocktail-accent))]/30"
-                >
-                  Speichern
-                </Button>
-                <Button onClick={cancelCalibration} variant="ghost">
-                  Abbrechen
-                </Button>
               </div>
+
+              {showKeyboard && (
+                <div className="mt-4">
+                  <VirtualKeyboard
+                    onKeyPress={handleKeyPress}
+                    onBackspace={handleBackspace}
+                    onClear={handleClear}
+                    onConfirm={saveCalibration}
+                    allowDecimal={true}
+                  />
+
+                  <div className="mt-4 flex justify-end">
+                    <Button onClick={cancelCalibration} variant="ghost">
+                      Abbrechen
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

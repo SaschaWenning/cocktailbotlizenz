@@ -23,7 +23,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
       } bg-white border-[hsl(var(--cocktail-card-border))]`}
       onClick={onClick}
     >
-      <div className="relative h-32 w-full">
+      <div className="relative h-40 w-full">
         <Image
           src={imageSrc || "/placeholder.svg"}
           alt={cocktail.name}

@@ -72,3 +72,46 @@
   --cocktail-warning: 38 92% 50%;
   --cocktail-error: 0 84% 60%;
 }
+
+/* Verbesserte Touch-Scrolling-Funktionalität */
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* Anpassungen für Touch-Geräte */
+@media (pointer: coarse) {
+  /* Größere Scrollbars für Touch-Geräte */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  /* Verbesserte Scrolling-Bereiche */
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    touch-action: pan-y;
+    cursor: grab;
+  }
+
+  /* Größere Klickbereiche für Tabs */
+  .tabs-list button {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+}
