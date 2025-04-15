@@ -14,8 +14,14 @@ interface CocktailCardProps {
 
 export default function CocktailCard({ cocktail, selected = false, onClick }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
-  const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
-  const imageSrc = imageError ? placeholderImage : cocktail.image || placeholderImage
+
+  // Verbesserte Bildpfad-Logik
+  let imageSrc = cocktail.image
+
+  // Wenn das Bild mit "/placeholder" beginnt oder ein Fehler auftritt, verwenden wir ein Platzhalterbild
+  if (imageError || imageSrc?.startsWith("/placeholder")) {
+    imageSrc = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+  }
 
   return (
     <Card

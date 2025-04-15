@@ -265,6 +265,8 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     // Lade die Standard-Cocktails
     const { cocktails: defaultCocktails } = await import("@/data/cocktails")
 
+    // Suche nach dem Abschnitt mit den zusätzlichen Cocktails und aktualisiere die Bildpfade
+
     // Definiere die zusätzlichen Cocktails
     const additionalCocktails: Cocktail[] = [
       // Long Island Iced Tea
@@ -272,7 +274,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "long-island-iced-tea",
         name: "Long Island Iced Tea",
         description: "Klassischer, starker Cocktail mit fünf verschiedenen Spirituosen und Cola",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/images/cocktails/long_island_iced_tea.jpg", // Aktualisierter Bildpfad
         alcoholic: true,
         ingredients: [
           "15ml Brauner Rum",
@@ -297,7 +299,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "bahama-mama",
         name: "Bahama Mama",
         description: "Tropischer Cocktail mit Braunem Rum, Malibu und Fruchtsäften",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/images/cocktails/bahama_mama.jpg", // Aktualisierter Bildpfad
         alcoholic: true,
         ingredients: [
           "50ml Brauner Rum",
@@ -322,7 +324,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "malibu-ananas-updated",
         name: "Malibu Ananas",
         description: "Süßer Kokoslikör mit Ananassaft",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/images/cocktails/malibu_ananas.jpg", // Aktualisierter Bildpfad
         alcoholic: true,
         ingredients: ["80ml Malibu", "220ml Ananassaft"],
         recipe: [
@@ -336,7 +338,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "swimmingpool",
         name: "Swimmingpool",
         description: "Blauer, tropischer Cocktail mit Vodka und Ananassaft",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/images/cocktails/swimmingpool.jpg", // Aktualisierter Bildpfad
         alcoholic: true,
         ingredients: [
           "60ml Vodka",
@@ -357,7 +359,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "tequila-sunrise",
         name: "Tequila Sunrise",
         description: "Klassischer Cocktail mit Tequila, Orangensaft und Grenadine",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/images/cocktails/tequila_sunrise.jpg", // Aktualisierter Bildpfad
         alcoholic: true,
         ingredients: ["60ml Tequila", "220ml Orangensaft", "20ml Grenadine"],
         recipe: [
@@ -372,7 +374,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "touch-down",
         name: "Touch Down",
         description: "Fruchtiger Cocktail mit Braunem Rum, Triple Sec und Maracujasaft",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/images/cocktails/touch_down.jpg", // Aktualisierter Bildpfad
         alcoholic: true,
         ingredients: [
           "60ml Brauner Rum",
@@ -395,7 +397,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "zombie",
         name: "Zombie",
         description: "Starker, fruchtiger Cocktail mit Braunem Rum und verschiedenen Fruchtsäften",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/images/cocktails/zombie.jpg", // Aktualisierter Bildpfad
         alcoholic: true,
         ingredients: [
           "40ml Brauner Rum",
