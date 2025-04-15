@@ -80,27 +80,20 @@
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   overscroll-behavior: contain;
+  touch-action: pan-y;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Verstecke Scrollbars aber behalte Funktionalität */
+.overflow-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
 }
 
 /* Anpassungen für Touch-Geräte */
 @media (pointer: coarse) {
-  /* Größere Scrollbars für Touch-Geräte */
-  ::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-    border: 3px solid transparent;
-    background-clip: padding-box;
-  }
-
-  ::-webkit-scrollbar-track {
-    background-color: transparent;
-  }
-
   /* Verbesserte Scrolling-Bereiche */
   .overflow-auto,
   .overflow-y-auto,

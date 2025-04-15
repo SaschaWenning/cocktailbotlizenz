@@ -14,7 +14,8 @@ interface CocktailCardProps {
 
 export default function CocktailCard({ cocktail, selected = false, onClick }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
-  const imageSrc = imageError || !cocktail.image ? "/placeholder.svg?height=200&width=400" : cocktail.image
+  const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+  const imageSrc = imageError ? placeholderImage : cocktail.image || placeholderImage
 
   return (
     <Card
@@ -23,13 +24,15 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
       } bg-white border-[hsl(var(--cocktail-card-border))]`}
       onClick={onClick}
     >
-      <div className="relative h-40 w-full">
+      <div className="relative aspect-square w-full">
         <Image
           src={imageSrc || "/placeholder.svg"}
           alt={cocktail.name}
           fill
           className="object-cover"
           onError={() => setImageError(true)}
+          sizes="(max-width: 768px) 100vw, 33vw"
+          priority={selected}
         />
       </div>
       <CardContent className="p-3">

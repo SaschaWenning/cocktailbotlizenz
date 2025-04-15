@@ -5,7 +5,7 @@ export const cocktails: Cocktail[] = [
     id: "big-john",
     name: "Big John",
     description: "Fruchtiger Cocktail mit Rum, Ananas und Maracuja",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/big_john.jpg",
     alcoholic: true,
     ingredients: ["60ml Rum", "120ml Ananassaft", "120ml Maracujasaft", "10ml Limettensaft"],
     recipe: [
@@ -19,7 +19,7 @@ export const cocktails: Cocktail[] = [
     id: "malibu-ananas",
     name: "Malibu Ananas",
     description: "Süßer Kokoslikör mit Ananassaft",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/malibu_ananas.jpg",
     alcoholic: true,
     ingredients: ["80ml Malibu", "220ml Ananassaft"],
     recipe: [
@@ -31,7 +31,7 @@ export const cocktails: Cocktail[] = [
     id: "malibu-sunrise",
     name: "Malibu Sunrise",
     description: "Kokoslikör mit Orangensaft und Grenadine",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/malibu_sunrise.jpg",
     alcoholic: true,
     ingredients: ["80ml Malibu", "200ml Orangensaft", "10ml Limettensaft", "10ml Grenadine"],
     recipe: [
@@ -45,7 +45,7 @@ export const cocktails: Cocktail[] = [
     id: "malibu-colada",
     name: "Malibu Colada",
     description: "Cremiger Cocktail mit Malibu und Ananas",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/malibu_colada.jpg",
     alcoholic: true,
     ingredients: ["80ml Malibu", "150ml Ananassaft", "50ml Cream of Coconut (selbst hinzufügen)"],
     recipe: [
@@ -58,7 +58,7 @@ export const cocktails: Cocktail[] = [
     id: "peaches-cream",
     name: "Peaches Cream",
     description: "Fruchtiger Cocktail mit Pfirsichlikör und Vodka",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/peaches_cream.jpg",
     alcoholic: true,
     ingredients: ["50ml Pfirsich Likör", "40ml Vodka", "200ml Orangensaft", "20ml Grenadine"],
     recipe: [
@@ -72,7 +72,7 @@ export const cocktails: Cocktail[] = [
     id: "planters-punch",
     name: "Planters Punch",
     description: "Klassischer Rum-Cocktail mit Fruchtsäften",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/planters_punch.jpg",
     alcoholic: true,
     ingredients: ["60ml Rum", "100ml Orangensaft", "20ml Limettensaft", "10ml Grenadine", "100ml Ananassaft"],
     recipe: [
@@ -87,7 +87,7 @@ export const cocktails: Cocktail[] = [
     id: "solero",
     name: "Solero",
     description: "Erfrischender Cocktail mit Maracuja und Vanille",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/solero.jpg",
     alcoholic: true,
     ingredients: ["100ml Maracujasaft", "80ml Orangensaft", "20ml Limettensaft", "20ml Vanillesirup", "60ml Vodka"],
     recipe: [
@@ -102,7 +102,7 @@ export const cocktails: Cocktail[] = [
     id: "sex-on-the-beach",
     name: "Sex on the Beach",
     description: "Beliebter Cocktail mit Vodka und Pfirsichlikör",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/sex_on_the_beach.jpg",
     alcoholic: true,
     ingredients: [
       "50ml Vodka",
@@ -125,7 +125,7 @@ export const cocktails: Cocktail[] = [
     id: "mojito",
     name: "Mojito",
     description: "Klassischer Cocktail mit Rum, Limette und Minze",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/mojito.jpg",
     alcoholic: true,
     ingredients: [
       "60ml Rum",
@@ -146,7 +146,7 @@ export const cocktails: Cocktail[] = [
     id: "passion-colada",
     name: "Passion Colada",
     description: "Exotischer Cocktail mit Rum, Malibu und Maracuja",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/passion_colada.jpg",
     alcoholic: true,
     ingredients: ["40ml Rum", "40ml Malibu", "200ml Maracujasaft"],
     recipe: [
@@ -159,7 +159,7 @@ export const cocktails: Cocktail[] = [
     id: "gin-tonic",
     name: "Gin & Tonic",
     description: "Klassischer Longdrink mit Gin und Tonic Water",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/gin_tonic.jpg",
     alcoholic: true,
     ingredients: ["50ml Gin", "150ml Tonic Water", "Limettenscheibe"],
     recipe: [
@@ -171,7 +171,7 @@ export const cocktails: Cocktail[] = [
     id: "cuba-libre",
     name: "Cuba Libre",
     description: "Rum-Cola mit einem Spritzer Limette",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/cuba_libre.jpg",
     alcoholic: true,
     ingredients: ["50ml brauner Rum", "150ml Cola", "10ml Limettensaft"],
     recipe: [
@@ -184,7 +184,7 @@ export const cocktails: Cocktail[] = [
     id: "virgin-colada",
     name: "Virgin Colada",
     description: "Alkoholfreie Version der Piña Colada",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/virgin_colada.jpg",
     alcoholic: false,
     ingredients: ["100ml Ananassaft", "50ml Kokosmilch", "15ml Zuckersirup"],
     recipe: [
@@ -197,7 +197,7 @@ export const cocktails: Cocktail[] = [
     id: "shirley-temple",
     name: "Shirley Temple",
     description: "Süßer alkoholfreier Cocktail mit Ginger Ale und Grenadine",
-    image: "/placeholder.svg?height=200&width=400",
+    image: "/images/cocktails/shirley_temple.jpg",
     alcoholic: false,
     ingredients: ["150ml Ginger Ale", "15ml Grenadine", "15ml Limettensaft"],
     recipe: [
