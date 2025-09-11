@@ -1020,7 +1020,7 @@ export default function Home() {
 
       <div className="mb-8">
         <nav className="tabs-list">
-          <div className="flex overflow-x-auto space-x-3 pb-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-2">
             {tabConfig &&
               mainTabs
                 .filter((tabId) => tabId !== "service")
