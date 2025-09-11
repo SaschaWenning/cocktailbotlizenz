@@ -27,10 +27,10 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
       }
 
       const strategies = [
-        // 1. Originaler Pfad
+        // 1. Über Image API (für echte Dateien)
+        `/api/image?path=${encodeURIComponent(cocktail.image)}`,
+        // 2. Direkter Pfad (für statische Dateien)
         cocktail.image,
-        // 2. Fallback für alkoholfreie Cocktails (ohne /images/cocktails/)
-        cocktail.image.replace("/images/cocktails/", "/"),
         // 3. Platzhalter
         `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`,
       ]
