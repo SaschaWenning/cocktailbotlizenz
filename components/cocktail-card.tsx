@@ -12,64 +12,30 @@ interface CocktailCardProps {
 
 export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
   const [imageSrc, setImageSrc] = useState<string>("")
-  const [imageStatus, setImageStatus] = useState<"loading" | "success" | "error">("loading")
+  const [imageLoaded, setImageLoaded] = useState<boolean>(false)
 
   useEffect(() => {
-    const loadImage = async () => {
-      console.log(`[v0] Loading image for ${cocktail.name}: ${cocktail.image}`)
-      setImageStatus("loading")
-
-      if (!cocktail.image) {
-        const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
-        setImageSrc(placeholder)
-        setImageStatus("success")
-        return
-      }
-
-      const strategies = [
-        // 1. Über Image API (für echte Dateien)
-        `/api/image?path=${encodeURIComponent(cocktail.image)}`,
-        // 2. Direkter Pfad (für statische Dateien)
-        cocktail.image,
-        // 3. Platzhalter
-        `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`,
-      ]
-
-      for (let i = 0; i < strategies.length; i++) {
-        const testPath = strategies[i]
-        console.log(`[v0] Testing image path ${i + 1}/${strategies.length} for ${cocktail.name}: ${testPath}`)
-
-        try {
-          const success = await testImagePath(testPath)
-          if (success) {
-            console.log(`[v0] ✅ Image loaded successfully for ${cocktail.name}: ${testPath}`)
-            setImageSrc(testPath)
-            setImageStatus("success")
-            return
-          }
-        } catch (error) {
-          console.log(`[v0] ❌ Image failed for ${cocktail.name}: ${testPath}`)
-        }
-      }
-
-      // Fallback auf Platzhalter
-      console.log(`[v0] ❌ No working image found for ${cocktail.name}, using placeholder`)
+    if (!cocktail.image) {
       const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
       setImageSrc(placeholder)
-      setImageStatus("error")
+      setImageLoaded(true)
+      return
     }
 
-    loadImage()
+    // Direkte Bildpfade verwenden
+    setImageSrc(cocktail.image)
+    setImageLoaded(true)
+    console.log(`[v0] Loading image for ${cocktail.name}: ${cocktail.image}`)
   }, [cocktail.image, cocktail.name])
 
-  const testImagePath = (src: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image()
-      img.crossOrigin = "anonymous"
-      img.onload = () => resolve(true)
-      img.onerror = () => resolve(false)
-      img.src = src
-    })
+  const handleImageError = () => {
+    console.log(`[v0] ❌ Image failed for ${cocktail.name}: ${cocktail.image}`)
+    const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+    setImageSrc(placeholder)
+  }
+
+  const handleImageLoad = () => {
+    console.log(`[v0] ✅ Image loaded successfully for ${cocktail.name}: ${cocktail.image}`)
   }
 
   return (
@@ -82,7 +48,8 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
           src={imageSrc || "/placeholder.svg"}
           alt={cocktail.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          crossOrigin="anonymous"
+          onError={handleImageError}
+          onLoad={handleImageLoad}
         />
 
         {/* Gradient Overlay */}
@@ -93,12 +60,10 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
           {cocktail.alcoholic ? "Alkoholisch" : "Alkoholfrei"}
         </Badge>
 
-        {/* Debug Info (nur in Development) */}
+        {/* Debug Info */}
         {process.env.NODE_ENV === "development" && (
           <div className="absolute bottom-2 left-2 text-xs bg-black/70 text-white p-1 rounded">
-            {imageStatus === "loading" && "🔄"}
-            {imageStatus === "success" && "✅"}
-            {imageStatus === "error" && "❌"}
+            {imageLoaded ? "✅" : "🔄"}
           </div>
         )}
       </div>
