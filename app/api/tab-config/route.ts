@@ -1,7 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { type AppConfig, defaultTabConfig } from "@/lib/tab-config"
+import { promises as fs } from "fs"
+import path from "path"
 
 export const dynamic = "force-dynamic"
+
+const CONFIG_FILE_PATH = path.join(process.cwd(), "data", "tab-config.json")
 
 function validateAndUpdateConfig(storedConfig: AppConfig): AppConfig {
   const requiredTabIds = defaultTabConfig.tabs.map((tab) => tab.id)
@@ -30,34 +34,41 @@ function validateAndUpdateConfig(storedConfig: AppConfig): AppConfig {
   return storedConfig
 }
 
-function getStoredConfig(): AppConfig {
-  if (typeof window !== "undefined") {
-    try {
-      const stored = localStorage.getItem("tab-config")
-      if (stored) {
-        const parsedConfig = JSON.parse(stored)
-        return validateAndUpdateConfig(parsedConfig)
-      }
-    } catch (error) {
-      console.error("[v0] Error reading tab config from localStorage:", error)
-    }
+async function getStoredConfig(): Promise<AppConfig> {
+  try {
+    // Stelle sicher, dass das data-Verzeichnis existiert
+    const dataDir = path.dirname(CONFIG_FILE_PATH)
+    await fs.mkdir(dataDir, { recursive: true })
+
+    const data = await fs.readFile(CONFIG_FILE_PATH, "utf-8")
+    const parsedConfig = JSON.parse(data)
+    console.log("[v0] Tab config loaded from file:", parsedConfig)
+    return validateAndUpdateConfig(parsedConfig)
+  } catch (error) {
+    console.log("[v0] No existing tab config file found, using default config")
+    // Speichere die Standard-Konfiguration
+    await saveStoredConfig(defaultTabConfig)
+    return defaultTabConfig
   }
-  return defaultTabConfig
 }
 
-function saveStoredConfig(config: AppConfig): void {
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem("tab-config", JSON.stringify(config))
-    } catch (error) {
-      console.error("[v0] Error saving tab config to localStorage:", error)
-    }
+async function saveStoredConfig(config: AppConfig): Promise<void> {
+  try {
+    // Stelle sicher, dass das data-Verzeichnis existiert
+    const dataDir = path.dirname(CONFIG_FILE_PATH)
+    await fs.mkdir(dataDir, { recursive: true })
+
+    await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2))
+    console.log("[v0] Tab config saved to file:", CONFIG_FILE_PATH)
+  } catch (error) {
+    console.error("[v0] Error saving tab config to file:", error)
+    throw error
   }
 }
 
 export async function GET() {
   try {
-    const config = getStoredConfig()
+    const config = await getStoredConfig()
     console.log("[v0] Returning tab config:", config)
     return NextResponse.json(config)
   } catch (error) {
@@ -71,7 +82,7 @@ export async function POST(request: NextRequest) {
     const config: AppConfig = await request.json()
     console.log("[v0] Updating tab config:", config)
 
-    saveStoredConfig(config)
+    await saveStoredConfig(config)
     console.log("[v0] Tab config updated successfully")
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -85,7 +96,7 @@ export async function PATCH(request: NextRequest) {
     const { tabId, newLocation } = await request.json()
     console.log("[v0] Updating tab location:", tabId, "to", newLocation)
 
-    const currentConfig = getStoredConfig()
+    const currentConfig = await getStoredConfig()
     const tab = currentConfig.tabs.find((t) => t.id === tabId)
     if (!tab) {
       return NextResponse.json({ error: `Tab with id ${tabId} not found` }, { status: 404 })
@@ -96,7 +107,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     tab.location = newLocation
-    saveStoredConfig(currentConfig)
+    await saveStoredConfig(currentConfig)
     console.log("[v0] Tab location updated successfully")
 
     return NextResponse.json({ success: true })
