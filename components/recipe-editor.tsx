@@ -5,87 +5,257 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Cocktail } from "@/types/cocktail"
-import { ingredients } from "@/data/ingredients"
+import { getAllIngredients } from "@/lib/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, ImageIcon, Trash2 } from "lucide-react"
-
-interface RecipeEditorProps {
-  isOpen: boolean
-  onClose: () => void
-  cocktail: Cocktail | null
-  onSave: (updatedCocktail: Cocktail) => void
-  onRequestDelete: (cocktailId: string) => void
-}
+import { Loader2, ImageIcon, Trash2, Plus, Minus, FolderOpen, ArrowLeft, X, Check, ArrowUp, Lock } from "lucide-react"
+import FileBrowser from "./file-browser"
+import type { RecipeEditorProps } from "@/types/recipe-editor"
 
 export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequestDelete }: RecipeEditorProps) {
-  const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([])
-  const [imageUrl, setImageUrl] = useState("")
+  const [name, setName] = useState("")
   const [description, setDescription] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+  const [alcoholic, setAlcoholic] = useState(true)
+  const [recipe, setRecipe] = useState<
+    { ingredientId: string; amount: number; type: "automatic" | "manual"; instruction?: string }[]
+  >([])
+  const [sizes, setSizes] = useState<number[]>([200, 300, 400])
   const [saving, setSaving] = useState(false)
-  const [errors, setErrors] = useState<{
-    imageUrl?: string
-  }>({})
+  const [ingredients, setIngredients] = useState(getAllIngredients())
+
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [keyboardMode, setKeyboardMode] = useState("")
+  const [keyboardValue, setKeyboardValue] = useState("")
+  const [isNumericKeyboard, setIsNumericKeyboard] = useState(false)
+  const [isShiftActive, setIsShiftActive] = useState(false)
+  const [isCapsLockActive, setIsCapsLockActive] = useState(false)
+  const [showFileBrowser, setShowFileBrowser] = useState(false)
+  const [newSizeInput, setNewSizeInput] = useState("")
 
   useEffect(() => {
-    if (cocktail) {
-      setRecipe([...cocktail.recipe])
-      setImageUrl(cocktail.image.startsWith("/placeholder") ? "" : cocktail.image)
-      setDescription(cocktail.description)
+    if (isOpen) {
+      setIngredients(getAllIngredients())
     }
-  }, [cocktail])
+  }, [isOpen])
 
-  if (!cocktail) return null
+  useEffect(() => {
+    if (cocktail && isOpen) {
+      setName(cocktail.name)
+      setDescription(cocktail.description)
+      setAlcoholic(cocktail.alcoholic)
+      setSizes(cocktail.sizes || [200, 300, 400])
+      setRecipe(
+        cocktail.recipe.map((item) => ({
+          ...item,
+          type: item.type || "automatic",
+          instruction: item.instruction || "",
+        })),
+      )
 
-  const handleAmountChange = (index: number, value: string) => {
-    const amount = Number.parseFloat(value)
+      let imagePath = cocktail.image || ""
+      if (imagePath.startsWith("/placeholder")) {
+        setImageUrl("")
+      } else {
+        if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
+          imagePath = `/${imagePath}`
+        }
+        imagePath = imagePath.split("?")[0]
+        setImageUrl(imagePath)
+      }
 
-    if (isNaN(amount) || amount < 0) return
+      setShowKeyboard(false)
+      setKeyboardMode("")
+      setKeyboardValue("")
 
+      console.log(`Editor loaded for ${cocktail.name}:`, {
+        name: cocktail.name,
+        description: cocktail.description,
+        image: imagePath,
+        alcoholic: cocktail.alcoholic,
+        recipe: cocktail.recipe,
+        sizes: cocktail.sizes,
+      })
+    }
+  }, [cocktail, isOpen])
+
+  const openKeyboard = (
+    mode: "name" | "description" | "imageUrl" | "instruction" | "newSize" | string,
+    currentValue: string,
+    numeric = false,
+  ) => {
+    setKeyboardMode(mode)
+    setKeyboardValue(currentValue)
+    setIsNumericKeyboard(numeric)
+    setShowKeyboard(true)
+    setIsShiftActive(false)
+    setIsCapsLockActive(false)
+  }
+
+  const openInstructionKeyboard = (index: number, currentValue: string) => {
+    setKeyboardMode(`instruction-${index}`)
+    setKeyboardValue(currentValue || "")
+    setIsNumericKeyboard(false)
+    setShowKeyboard(true)
+    setIsShiftActive(false)
+    setIsCapsLockActive(false)
+  }
+
+  const addSize = (value: number) => {
+    if (value > 0 && !sizes.includes(value)) {
+      setSizes([...sizes, value].sort((a, b) => a - b))
+    }
+  }
+
+  const removeSize = (size: number) => {
+    setSizes(sizes.filter((s) => s !== size))
+  }
+
+  const handleKeyPress = (key: string) => {
+    let newValue = keyboardValue
+    if (key === "Backspace") {
+      newValue = newValue.slice(0, -1)
+    } else {
+      let processedKey = key
+      if (key.length === 1 && key.match(/[A-Za-z]/)) {
+        const shouldShowUppercase = (isShiftActive && !isCapsLockActive) || (!isShiftActive && isCapsLockActive)
+        processedKey = shouldShowUppercase ? key.toUpperCase() : key.toLowerCase()
+      }
+      newValue += processedKey
+    }
+    setKeyboardValue(newValue)
+
+    if (isShiftActive && !isCapsLockActive) {
+      setIsShiftActive(false)
+    }
+  }
+
+  const handleShift = () => {
+    setIsShiftActive(!isShiftActive)
+  }
+
+  const handleCapsLock = () => {
+    setIsCapsLockActive(!isCapsLockActive)
+  }
+
+  const handleBackspace = () => {
+    setKeyboardValue(keyboardValue.slice(0, -1))
+  }
+
+  const handleClear = () => {
+    setKeyboardValue("")
+  }
+
+  const handleKeyboardCancel = () => {
+    setShowKeyboard(false)
+  }
+
+  const handleKeyboardConfirm = () => {
+    switch (keyboardMode) {
+      case "name":
+        setName(keyboardValue)
+        break
+      case "description":
+        setDescription(keyboardValue)
+        break
+      case "imageUrl":
+        setImageUrl(keyboardValue)
+        break
+      case "newSize":
+        setNewSizeInput(keyboardValue)
+        break
+      default:
+        if (keyboardMode.startsWith("amount-")) {
+          const index = Number.parseInt(keyboardMode.split("-")[1])
+          const updatedRecipe = recipe.map((item, i) => {
+            if (i === index) {
+              return { ...item, amount: Number.parseFloat(keyboardValue) }
+            }
+            return item
+          })
+          setRecipe(updatedRecipe)
+        } else if (keyboardMode.startsWith("instruction-")) {
+          const index = Number.parseInt(keyboardMode.split("-")[1])
+          const updatedRecipe = recipe.map((item, i) => {
+            if (i === index) {
+              return { ...item, instruction: keyboardValue }
+            }
+            return item
+          })
+          setRecipe(updatedRecipe)
+        }
+        break
+    }
+    setShowKeyboard(false)
+  }
+
+  const handleAmountChange = (index: number, amount: number) => {
     const updatedRecipe = [...recipe]
     updatedRecipe[index] = { ...updatedRecipe[index], amount }
     setRecipe(updatedRecipe)
   }
 
-  const isValidUrl = (url: string) => {
-    if (!url) return true // Leere URL ist erlaubt
-    try {
-      new URL(url)
-      return true
-    } catch (e) {
-      return false
+  const handleIngredientChange = (index: number, ingredientId: string) => {
+    const updatedRecipe = [...recipe]
+    updatedRecipe[index] = { ...updatedRecipe[index], ingredientId }
+    setRecipe(updatedRecipe)
+  }
+
+  const handleTypeChange = (index: number, type: "automatic" | "manual") => {
+    const updatedRecipe = [...recipe]
+    updatedRecipe[index] = { ...updatedRecipe[index], type }
+    setRecipe(updatedRecipe)
+  }
+
+  const handleInstructionChange = (index: number, instruction: string) => {
+    const updatedRecipe = [...recipe]
+    updatedRecipe[index] = { ...updatedRecipe[index], instruction }
+    setRecipe(updatedRecipe)
+  }
+
+  const addIngredient = () => {
+    const availableIngredients = ingredients.filter(
+      (ingredient) => !recipe.some((item) => item.ingredientId === ingredient.id),
+    )
+
+    if (availableIngredients.length > 0) {
+      setRecipe([
+        ...recipe,
+        { ingredientId: availableIngredients[0].id, amount: 30, type: "automatic", instruction: "" },
+      ])
     }
   }
 
-  const validateForm = () => {
-    const newErrors: { imageUrl?: string } = {}
-
-    if (imageUrl && !isValidUrl(imageUrl)) {
-      newErrors.imageUrl = "Bitte gib eine gültige URL ein"
+  const removeIngredient = (index: number) => {
+    if (recipe.length > 1) {
+      const updatedRecipe = recipe.filter((_, i) => i !== index)
+      setRecipe(updatedRecipe)
     }
+  }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  const handleSelectImageFromBrowser = (imagePath: string) => {
+    setImageUrl(imagePath)
+    setShowFileBrowser(false)
   }
 
   const handleSave = async () => {
-    if (!cocktail || !validateForm()) return
+    if (!cocktail || !name.trim() || recipe.length === 0) return
 
     setSaving(true)
     try {
-      // Berechne das Gesamtvolumen des Rezepts
-      const totalVolume = recipe.reduce((sum, item) => sum + item.amount, 0)
-
-      const updatedCocktail = {
+      const updatedCocktail: Cocktail = {
         ...cocktail,
-        description: description,
+        name: name.trim(),
+        description: description.trim(),
         image: imageUrl || "/placeholder.svg?height=200&width=400",
+        alcoholic,
         recipe: recipe,
-        // Aktualisiere auch die Zutaten-Textliste
+        sizes: sizes.length > 0 ? sizes : [200, 300, 400],
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
-          return `${item.amount}ml ${ingredient?.name || item.ingredientId}`
+          const ingredientName = ingredient?.name || item.ingredientId.replace(/^custom-\d+-/, "")
+          return `${item.amount}ml ${ingredientName} ${item.type === "manual" ? "(manuell)" : ""}`
         }),
       }
 
@@ -106,98 +276,397 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const getIngredientName = (id: string) => {
     const ingredient = ingredients.find((i) => i.id === id)
-    return ingredient ? ingredient.name : id
+    return ingredient ? ingredient.name : id.replace(/^custom-\d+-/, "")
   }
 
-  // Prüfe, ob es sich um ein benutzerdefiniertes Rezept handelt
-  const isCustomRecipe = cocktail.id.startsWith("custom-")
+  const alphaKeys = [
+    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+    ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p"],
+    ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+    ["y", "x", "c", "v", "b", "n", "m"],
+    ["ä", "ö", "ü", "ß"],
+    [" ", "-", "_", ".", "/"],
+  ]
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Rezept bearbeiten: {cocktail.name}</DialogTitle>
-        </DialogHeader>
+  const numericKeys = [
+    ["1", "2", "3"],
+    ["4", "5", "6"],
+    ["7", "8", "9"],
+    ["0", "00", "."],
+  ]
 
-        <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
-          <div className="space-y-2">
-            <Label htmlFor="description">Beschreibung</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))]"
-              placeholder="Beschreibe deinen Cocktail..."
-              rows={2}
-            />
-          </div>
+  const keys = isNumericKeyboard ? numericKeys : alphaKeys
 
-          <div className="space-y-2">
-            <Label htmlFor="imageUrl" className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4" />
-              Bild-URL (optional)
-            </Label>
-            <Input
-              id="imageUrl"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
-              placeholder="https://beispiel.com/mein-cocktail.jpg"
-            />
-            {errors.imageUrl && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.imageUrl}</p>}
-            <p className="text-xs text-[hsl(var(--cocktail-text-muted))]">
-              Gib die URL zu einem Bild deines Cocktails ein. Leer lassen für ein Platzhalterbild.
-            </p>
-          </div>
+  const renderFormView = () => (
+    <div className="space-y-6 my-4 max-h-[60vh] overflow-y-auto pr-2">
+      <div className="space-y-2">
+        <Label htmlFor="name" className="text-white">
+          Name des Cocktails
+        </Label>
+        <Input
+          id="name"
+          value={name}
+          onClick={() => openKeyboard("name", name)}
+          readOnly
+          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+          placeholder="z.B. Mein Cocktail"
+        />
+      </div>
 
-          <div className="pt-2">
-            <Label>Zutaten</Label>
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-white">
+          Beschreibung
+        </Label>
+        <Input
+          id="description"
+          value={description}
+          onClick={() => openKeyboard("description", description)}
+          readOnly
+          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+          placeholder="Beschreibe deinen Cocktail..."
+        />
+      </div>
 
-          {recipe.map((item, index) => (
-            <div key={index} className="grid grid-cols-12 gap-2 items-center">
-              <div className="col-span-7">
-                <Label>{getIngredientName(item.ingredientId)}</Label>
+      <div className="space-y-2">
+        <Label className="text-white">Typ</Label>
+        <Select
+          value={alcoholic ? "alcoholic" : "virgin"}
+          onValueChange={(value) => setAlcoholic(value === "alcoholic")}
+        >
+          <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
+            <SelectItem value="alcoholic" className="text-black hover:bg-gray-100 cursor-pointer">
+              Mit Alkohol
+            </SelectItem>
+            <SelectItem value="virgin" className="text-black hover:bg-gray-100 cursor-pointer">
+              Alkoholfrei
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2 text-white">
+          <ImageIcon className="h-4 w-4" />
+          Bild (optional)
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            value={imageUrl}
+            onClick={() => openKeyboard("imageUrl", imageUrl)}
+            readOnly
+            className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer flex-1"
+            placeholder="Bild-URL oder aus Galerie wählen"
+          />
+          <Button
+            type="button"
+            onClick={() => setShowFileBrowser(true)}
+            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+          >
+            <FolderOpen className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-white">Cocktailgrößen für dieses Rezept</Label>
+        <div className="flex gap-2">
+          <Input
+            value={newSizeInput}
+            onClick={() => openKeyboard("newSize", newSizeInput, true)}
+            readOnly
+            className="bg-white border-[hsl(var(--cocktail-card-border))] text-black h-10 flex-1 cursor-pointer"
+            placeholder="ml eingeben"
+          />
+          <Button
+            type="button"
+            onClick={() => {
+              const value = Number.parseInt(newSizeInput)
+              if (value > 0) {
+                addSize(value)
+                setNewSizeInput("")
+              }
+            }}
+            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))] h-10"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        {sizes.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {sizes.map((size) => (
+              <div
+                key={size}
+                className="flex items-center gap-1 bg-[hsl(var(--cocktail-card-bg))] px-3 py-1 rounded border border-[hsl(var(--cocktail-card-border))]"
+              >
+                <span className="text-white text-sm">{size}ml</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => removeSize(size)}
+                  className="h-4 w-4 p-0 text-red-400 hover:text-red-300"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
               </div>
-              <div className="col-span-3">
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <Label className="text-white">Zutaten</Label>
+          <Button
+            type="button"
+            size="sm"
+            onClick={addIngredient}
+            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+            disabled={recipe.length >= ingredients.length}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Zutat hinzufügen
+          </Button>
+        </div>
+
+        {recipe.map((item, index) => (
+          <div
+            key={index}
+            className="grid grid-cols-12 gap-2 items-center p-3 bg-[hsl(var(--cocktail-card-bg))] rounded-lg border border-[hsl(var(--cocktail-card-border))]"
+          >
+            <div className="col-span-4">
+              <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
+                <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))] max-h-48 overflow-y-auto">
+                  {ingredients.map((ingredient) => (
+                    <SelectItem
+                      key={ingredient.id}
+                      value={ingredient.id}
+                      className="text-black hover:bg-gray-100 cursor-pointer"
+                    >
+                      {ingredient.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <Input
+                type="text"
+                value={item.amount}
+                onClick={() => openKeyboard(`amount-${index}`, item.amount.toString(), true)}
+                readOnly
+                className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
+              />
+            </div>
+            <div className="col-span-1 text-sm text-white">ml</div>
+            <div className="col-span-3">
+              <Select
+                value={item.type}
+                onValueChange={(value: "automatic" | "manual") => handleTypeChange(index, value)}
+              >
+                <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
+                  <SelectItem value="automatic" className="text-black hover:bg-gray-100 cursor-pointer">
+                    Automatisch
+                  </SelectItem>
+                  <SelectItem value="manual" className="text-black hover:bg-gray-100 cursor-pointer">
+                    Manuell
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                onClick={() => removeIngredient(index)}
+                disabled={recipe.length <= 1}
+                className="h-8 w-8 p-0"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+            </div>
+            {item.type === "manual" && (
+              <div className="col-span-12 mt-2">
                 <Input
-                  type="number"
-                  value={item.amount}
-                  onChange={(e) => handleAmountChange(index, e.target.value)}
-                  min="0"
-                  step="1"
-                  className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))]"
+                  value={item.instruction || ""}
+                  onClick={() => openInstructionKeyboard(index, item.instruction || "")}
+                  readOnly
+                  className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+                  placeholder="Anleitung (z.B. 'mit Eiswürfeln auffüllen')"
                 />
               </div>
-              <div className="col-span-2 text-sm text-[hsl(var(--cocktail-text-muted))]">ml</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const renderKeyboardView = () => (
+    <div className="flex gap-3 my-2 h-[80vh]">
+      <div className="flex-1 flex flex-col">
+        <div className="text-center mb-2">
+          <h3 className="text-base font-semibold text-white mb-1">
+            {keyboardMode === "name" && "Name eingeben"}
+            {keyboardMode === "description" && "Beschreibung eingeben"}
+            {keyboardMode === "imageUrl" && "Bild-URL eingeben"}
+            {keyboardMode === "newSize" && "Neue Cocktailgröße eingeben (ml)"}
+            {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
+            {keyboardMode.startsWith("instruction-") && "Anleitung eingeben"}
+          </h3>
+          <div className="bg-white text-black text-base p-2 rounded mb-2 min-h-[40px] break-all">
+            {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col gap-2">
+          {keys.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex gap-1 justify-center flex-1">
+              {row.map((key) => {
+                let displayKey = key
+                if (key.length === 1 && key.match(/[a-z]/)) {
+                  const shouldShowUppercase =
+                    (isShiftActive && !isCapsLockActive) || (!isShiftActive && isCapsLockActive)
+                  displayKey = shouldShowUppercase ? key.toUpperCase() : key.toLowerCase()
+                }
+
+                return (
+                  <Button
+                    key={key}
+                    type="button"
+                    onClick={() => handleKeyPress(key)}
+                    className="flex-1 text-lg bg-gray-700 hover:bg-gray-600 text-white min-h-0 h-full"
+                  >
+                    {displayKey}
+                  </Button>
+                )
+              })}
             </div>
           ))}
         </div>
+      </div>
 
-        <DialogFooter className="flex justify-between items-center">
-          {isCustomRecipe && (
-            <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Löschen
+      <div className="flex flex-col gap-2 w-24">
+        {!isNumericKeyboard && (
+          <>
+            <Button
+              type="button"
+              onClick={handleShift}
+              className={`h-16 text-white flex flex-col items-center justify-center ${
+                isShiftActive ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"
+              }`}
+            >
+              <ArrowUp className="h-4 w-4" />
+              <span className="text-xs">Shift</span>
             </Button>
+            <Button
+              type="button"
+              onClick={handleCapsLock}
+              className={`h-16 text-white flex flex-col items-center justify-center ${
+                isCapsLockActive ? "bg-orange-600 hover:bg-orange-700" : "bg-gray-700 hover:bg-gray-600"
+              }`}
+            >
+              <Lock className="h-4 w-4" />
+              <span className="text-xs">Caps</span>
+            </Button>
+          </>
+        )}
+
+        <Button
+          type="button"
+          onClick={handleBackspace}
+          className="h-16 bg-red-700 hover:bg-red-600 text-white flex flex-col items-center justify-center"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="text-xs">Back</span>
+        </Button>
+        <Button
+          type="button"
+          onClick={handleClear}
+          className="h-16 bg-yellow-700 hover:bg-yellow-600 text-white flex flex-col items-center justify-center"
+        >
+          <X className="h-4 w-4" />
+          <span className="text-xs">Clear</span>
+        </Button>
+        <Button
+          type="button"
+          onClick={handleKeyboardCancel}
+          className="h-16 bg-gray-700 hover:bg-gray-600 text-white flex flex-col items-center justify-center"
+        >
+          <span className="text-xs">Cancel</span>
+        </Button>
+        <Button
+          type="button"
+          onClick={handleKeyboardConfirm}
+          className="h-16 bg-green-700 hover:bg-green-600 text-white flex flex-col items-center justify-center"
+        >
+          <Check className="h-4 w-4" />
+          <span className="text-xs">OK</span>
+        </Button>
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white w-[95vw] h-[95vh] max-w-none max-h-none overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Rezept bearbeiten: {cocktail?.name}</DialogTitle>
+          </DialogHeader>
+
+          {!showKeyboard ? renderFormView() : renderKeyboardView()}
+
+          {!showKeyboard && (
+            <DialogFooter className="flex justify-between items-center">
+              <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Löschen
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={saving || !name.trim() || recipe.length === 0}
+                  className="bg-[#00ff00] text-black hover:bg-[#00cc00]"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Speichern...
+                    </>
+                  ) : (
+                    "Speichern"
+                  )}
+                </Button>
+              </div>
+            </DialogFooter>
           )}
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Abbrechen
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Speichern...
-                </>
-              ) : (
-                "Speichern"
-              )}
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <FileBrowser
+        isOpen={showFileBrowser}
+        onClose={() => setShowFileBrowser(false)}
+        onSelectImage={handleSelectImageFromBrowser}
+      />
+    </>
   )
 }

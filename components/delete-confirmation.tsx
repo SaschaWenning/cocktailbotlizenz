@@ -2,13 +2,14 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Loader2, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import AlphaKeyboard from "./alpha-keyboard"
 
 interface DeleteConfirmationProps {
   isOpen: boolean
@@ -21,6 +22,16 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
   const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showKeyboard, setShowKeyboard] = useState(true)
+
+  // Reset password when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setPassword("")
+      setError(false)
+      setShowKeyboard(true)
+    }
+  }, [isOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,9 +54,24 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
     }
   }
 
+  const handleKeyPress = (key: string) => {
+    setPassword((prev) => prev + key)
+    setError(false)
+  }
+
+  const handleBackspace = () => {
+    setPassword((prev) => prev.slice(0, -1))
+    setError(false)
+  }
+
+  const handleClear = () => {
+    setPassword("")
+    setError(false)
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
+      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-[hsl(var(--cocktail-error))]" />
@@ -71,14 +97,31 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
               className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${error ? "border-[hsl(var(--cocktail-error))]" : ""}`}
               placeholder="Passwort eingeben"
               autoComplete="off"
+              readOnly
+              onFocus={() => setShowKeyboard(true)}
             />
             {error && (
               <p className="text-[hsl(var(--cocktail-error))] text-sm">Falsches Passwort. Bitte versuche es erneut.</p>
             )}
           </div>
 
+          {showKeyboard && (
+            <div className="mt-4">
+              <AlphaKeyboard
+                onKeyPress={handleKeyPress}
+                onBackspace={handleBackspace}
+                onClear={handleClear}
+                onConfirm={handleSubmit}
+              />
+            </div>
+          )}
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              onClick={onClose}
+            >
               Abbrechen
             </Button>
             <Button type="submit" variant="destructive" disabled={isDeleting}>
