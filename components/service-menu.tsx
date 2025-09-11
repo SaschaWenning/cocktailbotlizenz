@@ -30,6 +30,7 @@ interface ServiceMenuProps {
   onImageEditClick?: (cocktailId: string) => void
   onDeleteCocktail?: (cocktailId: string) => void
   onNewRecipe?: (cocktail: any) => void
+  onTabConfigChange?: () => void
 }
 
 export default function ServiceMenu({
@@ -44,6 +45,7 @@ export default function ServiceMenu({
   onImageEditClick,
   onDeleteCocktail,
   onNewRecipe,
+  onTabConfigChange,
 }: ServiceMenuProps) {
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -214,8 +216,10 @@ export default function ServiceMenu({
               // Reload config after settings change and set to first tab
               const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"
               setActiveServiceTab(firstTab)
+              // Verwende Callback anstatt window.location.reload()
+              onTabConfigChange?.()
               // Trigger a reload of the tab config
-              window.location.reload()
+              window.dispatchEvent(new CustomEvent("tabConfigChanged"))
             }}
           />
         )

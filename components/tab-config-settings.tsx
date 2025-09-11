@@ -91,8 +91,8 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
       })
 
       setTimeout(() => {
-        window.location.reload()
-      }, 500) // Shorter delay for better UX
+        window.dispatchEvent(new CustomEvent("tabConfigChanged"))
+      }, 500)
     } catch (error) {
       console.error("[v0] Error saving config:", error)
       toast({
