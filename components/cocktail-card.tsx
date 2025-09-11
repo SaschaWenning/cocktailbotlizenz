@@ -60,15 +60,14 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
       cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
       // Mit führendem Slash
       cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
+      // API-Pfad als Fallback
+      `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
+      `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/${filename}`)}`,
     )
 
-    // Entferne Duplikate
-    const uniqueStrategies = [...new Set(strategies)]
+    console.log(`[v0] Testing ${strategies.length} image strategies for ${cocktail.name}:`, strategies.slice(0, 5))
 
-    console.log(
-      `[v0] Testing ${uniqueStrategies.length} image strategies for ${cocktail.name}:`,
-      uniqueStrategies.slice(0, 5),
-    )
+    const uniqueStrategies = Array.from(new Set(strategies))
 
     for (let i = 0; i < uniqueStrategies.length; i++) {
       const testPath = uniqueStrategies[i]
