@@ -355,6 +355,31 @@ export default function Home() {
     }
   }
 
+  const calculateCocktailDuration = (cocktail: Cocktail, pumpConfig: PumpConfig[], selectedSize: number): number => {
+    const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
+    const scaleFactor = selectedSize / totalRecipeVolume
+
+    let totalDuration = 0
+
+    for (const item of cocktail.recipe) {
+      if (item.type === "automatic") {
+        const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId && p.enabled)
+        if (pump) {
+          const scaledAmount = Math.round(item.amount * scaleFactor)
+          const duration = (scaledAmount / pump.flowRate) * 1000 // ms
+          totalDuration += duration
+
+          // Zusätzliche Zeit für Grenadine (Schichteffekt)
+          if (item.ingredientId === "grenadine") {
+            totalDuration += 2000
+          }
+        }
+      }
+    }
+
+    return totalDuration
+  }
+
   const handleMakeCocktail = async () => {
     if (!selectedCocktail || isMaking) {
       return
@@ -386,16 +411,22 @@ export default function Home() {
           instructions: item.instructions || item.instruction,
         }))
 
+      const estimatedDuration = calculateCocktailDuration(cocktail, currentPumpConfig, selectedSize)
+      const progressInterval = Math.max(100, estimatedDuration / 100) // Update alle 1% oder mindestens alle 100ms
+
+      console.log(`[v0] Estimated cocktail duration: ${estimatedDuration}ms, progress interval: ${progressInterval}ms`)
+
       let intervalId: NodeJS.Timeout
       intervalId = setInterval(() => {
         setProgress((prev) => {
-          if (prev >= 100) {
+          if (prev >= 95) {
+            // Stoppe bei 95%, damit der echte Abschluss bei 100% angezeigt wird
             clearInterval(intervalId)
-            return 100
+            return prev
           }
-          return prev + 5
+          return prev + 1
         })
-      }, 300)
+      }, progressInterval)
 
       await makeCocktail(cocktail, currentPumpConfig, selectedSize)
 
@@ -704,7 +735,12 @@ export default function Home() {
           </div>
           <div className="flex-1 p-6 flex flex-col">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="font-bold text-2xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
+              <h3
+                className="font-bold text-2xl text-[hsl(var(--cocktail-text))] mb-2 cursor-pointer"
+                onClick={handleTitleClick}
+              >
+                {cocktail.name}
+              </h3>
               <Badge
                 variant={cocktail.alcoholic ? "default" : "default"}
                 className="text-sm bg-[hsl(var(--cocktail-primary))] text-black px-3 py-1"
@@ -1036,54 +1072,61 @@ export default function Home() {
       <main className="min-h-[60vh]">{renderContent()}</main>
 
       {isMaking && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-96 border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
-            <CardContent className="pt-6 space-y-4">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-[hsl(var(--cocktail-primary))]/10 flex items-center justify-center">
-                  <GlassWater className="h-10 w-10 text-[hsl(var(--cocktail-primary))]" />
+        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md mx-auto">
+            <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
+              <CardContent className="pt-8 pb-8 space-y-6">
+                <div className="flex flex-col items-center gap-6">
+                  <div className="w-24 h-24 rounded-full bg-[hsl(var(--cocktail-primary))]/10 flex items-center justify-center">
+                    <GlassWater className="h-12 w-12 text-[hsl(var(--cocktail-primary))]" />
+                  </div>
+                  <h2 className="text-2xl font-semibold text-center">{statusMessage}</h2>
                 </div>
-                <h2 className="text-xl font-semibold text-center">{statusMessage}</h2>
-              </div>
-              <Progress value={progress} className="h-3" />
-              <div className="text-center text-sm text-[hsl(var(--cocktail-text-muted))]">
-                {progress}% abgeschlossen
-              </div>
 
-              {errorMessage && (
-                <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
-                  <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-                  <AlertDescription className="text-[hsl(var(--cocktail-error))]">{errorMessage}</AlertDescription>
-                </Alert>
-              )}
-
-              {showSuccess && (
-                <div className="flex justify-center">
-                  <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-3">
-                    <Check className="h-8 w-8 text-[hsl(var(--cocktail-success))]" />
+                <div className="space-y-3">
+                  <Progress value={progress} className="h-4" />
+                  <div className="text-center text-lg text-[hsl(var(--cocktail-text-muted))]">
+                    {progress}% abgeschlossen
                   </div>
                 </div>
-              )}
 
-              {manualIngredients.length > 0 && (
-                <div className="mt-4 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg">
-                  <h4 className="font-semibold mb-2 text-[hsl(var(--cocktail-text))]">Manuelle Zutaten hinzufügen:</h4>
-                  <ul className="space-y-1 text-sm">
-                    {manualIngredients.map((item, index) => (
-                      <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
-                        • {item.amount}ml {item.ingredientId.replace(/^custom-\d+-/, "")}
-                        {item.instructions && (
-                          <div className="text-xs italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
-                            {item.instructions}
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {errorMessage && (
+                  <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
+                    <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
+                    <AlertDescription className="text-[hsl(var(--cocktail-error))]">{errorMessage}</AlertDescription>
+                  </Alert>
+                )}
+
+                {showSuccess && (
+                  <div className="flex justify-center">
+                    <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-4">
+                      <Check className="h-10 w-10 text-[hsl(var(--cocktail-success))]" />
+                    </div>
+                  </div>
+                )}
+
+                {manualIngredients.length > 0 && (
+                  <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg">
+                    <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">
+                      Manuelle Zutaten hinzufügen:
+                    </h4>
+                    <ul className="space-y-2 text-sm">
+                      {manualIngredients.map((item, index) => (
+                        <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
+                          • {item.amount}ml {item.ingredientId.replace(/^custom-\d+-/, "")}
+                          {item.instructions && (
+                            <div className="text-xs italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
+                              {item.instructions}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
