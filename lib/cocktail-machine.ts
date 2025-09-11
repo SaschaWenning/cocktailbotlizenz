@@ -156,6 +156,11 @@ export const makeCocktail = async (
         `Dispensing ${scaledAmount}ml of ${ingredient?.name || item.ingredientId} using pump ${pump.pumpId} (GPIO ${pump.gpioPin}) for ${duration}ms`,
       )
       await simulateGpioControl(pump.gpioPin, duration)
+
+      if (item.ingredientId === "grenadine") {
+        console.log("Waiting 2 seconds after adding grenadine for proper layering effect...")
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+      }
     } else {
       console.log(
         `Manuelle Zutat: ${scaledAmount}ml ${ingredient?.name || item.ingredientId}. Anleitung: ${item.instruction || "Keine spezielle Anleitung."}`,

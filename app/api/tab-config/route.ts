@@ -100,9 +100,17 @@ async function saveStoredConfig(config: AppConfig): Promise<void> {
 
     await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2))
     console.log("[v0] Tab config saved to file:", CONFIG_FILE_PATH)
+
+    saveLocalStorageConfig(config)
   } catch (error) {
     console.error("[v0] Error saving tab config to file:", error)
-    throw error
+    try {
+      saveLocalStorageConfig(config)
+      console.log("[v0] Fallback: Tab config saved to localStorage")
+    } catch (localStorageError) {
+      console.error("[v0] Error saving to localStorage fallback:", localStorageError)
+      throw error
+    }
   }
 }
 
@@ -127,7 +135,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("[v0] Error saving tab config:", error)
-    throw error
+    try {
+      const config: AppConfig = await request.json()
+      saveLocalStorageConfig(config)
+      console.log("[v0] Fallback: Tab config saved to localStorage")
+      return NextResponse.json({ success: true })
+    } catch (fallbackError) {
+      console.error("[v0] Fallback also failed:", fallbackError)
+      return NextResponse.json({ error: "Failed to save tab config" }, { status: 500 })
+    }
   }
 }
 

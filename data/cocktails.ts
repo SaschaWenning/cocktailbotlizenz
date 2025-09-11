@@ -315,7 +315,7 @@ export const cocktails: Cocktail[] = [
     id: "tropical-sunrise",
     name: "Tropical Sunrise",
     description: "Erfrischender alkoholfreier Cocktail mit Ananas, Orange und Grenadine",
-    image: "/tropical-blend.png",
+    image: "/images/cocktails/tropical-blend.png",
     alcoholic: false,
     ingredients: ["120ml Ananassaft", "120ml Orangensaft", "20ml Grenadine", "10ml Limettensaft"],
     recipe: [
@@ -329,7 +329,7 @@ export const cocktails: Cocktail[] = [
     id: "passion-fizz",
     name: "Passion Fizz",
     description: "Sprudelnder alkoholfreier Cocktail mit Maracuja und Sodawasser",
-    image: "/vibrant-passion-fizz.png",
+    image: "/images/cocktails/vibrant-passion-fizz.png",
     alcoholic: false,
     ingredients: ["150ml Maracujasaft", "100ml Sprudelwasser (manuell)", "20ml Vanillesirup", "10ml Limettensaft"],
     recipe: [
@@ -343,7 +343,7 @@ export const cocktails: Cocktail[] = [
     id: "orange-vanilla-dream",
     name: "Orange Vanilla Dream",
     description: "Cremiger alkoholfreier Cocktail mit Orange und Vanille",
-    image: "/palm-glow.png",
+    image: "/images/cocktails/palm-glow.png",
     alcoholic: false,
     ingredients: ["200ml Orangensaft", "30ml Vanillesirup", "70ml Sprudelwasser (manuell)"],
     recipe: [
@@ -356,7 +356,7 @@ export const cocktails: Cocktail[] = [
     id: "citrus-splash",
     name: "Citrus Splash",
     description: "Fruchtiger alkoholfreier Cocktail mit Grenadine und Zitrusfrüchten",
-    image: "/citrus-splash.png",
+    image: "/images/cocktails/citrus-splash.png",
     alcoholic: false,
     ingredients: [
       "30ml Grenadine",
@@ -377,7 +377,7 @@ export const cocktails: Cocktail[] = [
     id: "pineapple-passion",
     name: "Pineapple Passion",
     description: "Exotischer alkoholfreier Cocktail mit Ananas und Maracuja",
-    image: "/refreshing-citrus-cooler.png",
+    image: "/images/cocktails/refreshing-citrus-cooler.png",
     alcoholic: false,
     ingredients: ["150ml Ananassaft", "100ml Maracujasaft", "15ml Limettensaft", "15ml Vanillesirup"],
     recipe: [
@@ -391,7 +391,7 @@ export const cocktails: Cocktail[] = [
     id: "citrus-cooler",
     name: "Citrus Cooler",
     description: "Erfrischender alkoholfreier Cocktail mit Limette und Sodawasser",
-    image: "/citrus-swirl-sunset.png",
+    image: "/images/cocktails/citrus-swirl-sunset.png",
     alcoholic: false,
     ingredients: ["40ml Limettensaft", "20ml Vanillesirup", "200ml Sprudelwasser (manuell)", "10ml Grenadine"],
     recipe: [
@@ -405,7 +405,7 @@ export const cocktails: Cocktail[] = [
     id: "tropical-sunset",
     name: "Tropical Sunset",
     description: "Schöner Farbverlauf mit Ananas, Orange und Grenadine",
-    image: "/tropical-sunset.png",
+    image: "/images/cocktails/tropical-sunset.png",
     alcoholic: false,
     ingredients: ["120ml Ananassaft", "80ml Orangensaft", "15ml Grenadine"],
     recipe: [
@@ -430,7 +430,7 @@ export const cocktails: Cocktail[] = [
     id: "pineapple-lime-fizz",
     name: "Pineapple Lime Fizz",
     description: "Erfrischender Cocktail mit Ananas und Limette",
-    image: "/pineapple-lime-fizz.png",
+    image: "/images/cocktails/pineapple-lime-fizz.png",
     alcoholic: false,
     ingredients: ["150ml Ananassaft", "30ml Limettensaft", "10ml Vanillesirup"],
     recipe: [
@@ -455,7 +455,7 @@ export const cocktails: Cocktail[] = [
     id: "passion-paradise",
     name: "Passion Paradise",
     description: "Exotischer Cocktail mit Maracuja und tropischen Früchten",
-    image: "/passion-paradise.png",
+    image: "/images/cocktails/passion-paradise.png",
     alcoholic: false,
     ingredients: ["100ml Maracujasaft", "80ml Ananassaft", "40ml Orangensaft", "15ml Mandelsirup"],
     recipe: [
@@ -481,7 +481,7 @@ export const cocktails: Cocktail[] = [
     id: "vanilla-orange-dream",
     name: "Vanilla Orange Dream",
     description: "Cremiger Traum mit Vanille und Orange",
-    image: "/vanilla-orange-dream.png",
+    image: "/images/cocktails/vanilla-orange-dream.png",
     alcoholic: false,
     ingredients: ["120ml Orangensaft", "60ml Ananassaft", "25ml Vanillesirup", "10ml Limettensaft"],
     recipe: [
@@ -507,7 +507,7 @@ export const cocktails: Cocktail[] = [
     id: "grenadine-sunrise",
     name: "Grenadine Sunrise",
     description: "Wunderschöner Sonnenaufgang im Glas",
-    image: "/grenadine-sunrise.png",
+    image: "/images/cocktails/grenadine-sunrise.png",
     alcoholic: false,
     ingredients: ["100ml Orangensaft", "80ml Ananassaft", "20ml Grenadine", "10ml Limettensaft"],
     recipe: [
@@ -533,7 +533,7 @@ export const cocktails: Cocktail[] = [
     id: "almond-citrus-cooler",
     name: "Almond Citrus Cooler",
     description: "Erfrischender Mandel-Zitrus Mix",
-    image: "/almond-citrus-cooler.png",
+    image: "/images/cocktails/almond-citrus-cooler.png",
     alcoholic: false,
     ingredients: ["80ml Orangensaft", "40ml Limettensaft", "60ml Ananassaft", "20ml Mandelsirup"],
     recipe: [
