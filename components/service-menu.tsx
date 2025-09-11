@@ -30,7 +30,7 @@ interface ServiceMenuProps {
   onImageEditClick?: (cocktailId: string) => void
   onDeleteCocktail?: (cocktailId: string) => void
   onNewRecipe?: (cocktail: any) => void
-  onTabConfigChange?: () => void
+  onTabConfigReload?: () => void
 }
 
 export default function ServiceMenu({
@@ -45,7 +45,7 @@ export default function ServiceMenu({
   onImageEditClick,
   onDeleteCocktail,
   onNewRecipe,
-  onTabConfigChange,
+  onTabConfigReload,
 }: ServiceMenuProps) {
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -213,13 +213,26 @@ export default function ServiceMenu({
         return (
           <TabConfigSettings
             onClose={() => {
-              // Reload config after settings change and set to first tab
               const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"
               setActiveServiceTab(firstTab)
-              // Verwende Callback anstatt window.location.reload()
-              onTabConfigChange?.()
-              // Trigger a reload of the tab config
-              window.dispatchEvent(new CustomEvent("tabConfigChanged"))
+              // Reload tab config in parent component
+              onTabConfigReload?.()
+              // Reload local service menu config
+              const loadTabConfig = async () => {
+                try {
+                  const response = await fetch("/api/tab-config")
+                  if (!response.ok) throw new Error("Failed to load tab config")
+
+                  const config: AppConfig = await response.json()
+                  const serviceTabIds = config.tabs.filter((tab) => tab.location === "service").map((tab) => tab.id)
+
+                  setTabConfig(config)
+                  setServiceTabs(serviceTabIds)
+                } catch (error) {
+                  console.error("[v0] Error reloading service tab config:", error)
+                }
+              }
+              loadTabConfig()
             }}
           />
         )
