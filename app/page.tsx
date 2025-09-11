@@ -855,7 +855,7 @@ export default function Home() {
                     variant="destructive"
                     size="sm"
                     className="flex items-center gap-2 shadow-lg"
-                    onClick={onDelete}
+                    onClick={() => onDelete(cocktail.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                     Löschen
@@ -1056,7 +1056,7 @@ export default function Home() {
 
       <div className="mb-8">
         <nav className="tabs-list">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-2">
+          <div className="flex flex-wrap justify-center gap-3 pb-2">
             {tabConfig &&
               mainTabs
                 .filter((tabId) => tabId !== "service")

@@ -44,7 +44,28 @@ function saveIngredientLevelsToStorage(levels: IngredientLevel[]): void {
 
 export async function GET() {
   try {
-    const levels = getIngredientLevelsFromStorage()
+    let levels = getIngredientLevelsFromStorage()
+
+    // Prüfe auf Backup-Daten beim Start
+    if (typeof window !== "undefined" && levels.length === 0) {
+      const backup = localStorage.getItem("ingredient-levels-backup")
+      if (backup) {
+        try {
+          const backupData = JSON.parse(backup)
+          if (backupData.levels && Array.isArray(backupData.levels)) {
+            console.log("[v0] Wiederherstellung von Backup-Füllständen beim Start")
+            levels = backupData.levels
+            // Speichere wiederhergestellte Daten
+            saveIngredientLevelsToStorage(levels)
+            // Entferne Backup nach erfolgreicher Wiederherstellung
+            localStorage.removeItem("ingredient-levels-backup")
+          }
+        } catch (error) {
+          console.error("[v0] Fehler beim Wiederherstellen der Backup-Daten:", error)
+        }
+      }
+    }
+
     console.log("[v0] Returning ingredient levels:", levels.length)
     return NextResponse.json(levels)
   } catch (error) {
