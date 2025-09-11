@@ -90,9 +90,9 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
         description: "Tab-Konfiguration wurde erfolgreich gespeichert.",
       })
 
-      // setTimeout(() => {
-      //   window.location.reload()
-      // }, 500)
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
     } catch (error) {
       console.error("[v0] Error saving config:", error)
       toast({
@@ -144,7 +144,59 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
     setHasChanges(JSON.stringify(defaultTabConfig) !== JSON.stringify(originalConfig))
   }
 
-  const renderTabCard = (tab: TabConfig, showMoveButtons = true) => (
+  const moveTabUp = (tabId: string) => {
+    if (!config) return
+
+    setConfig((prev) => {
+      if (!prev) return prev
+
+      const mainTabs = prev.tabs.filter((t) => t.location === "main")
+      const otherTabs = prev.tabs.filter((t) => t.location !== "main")
+
+      const currentIndex = mainTabs.findIndex((t) => t.id === tabId)
+      if (currentIndex <= 0) return prev
+
+      const newMainTabs = [...mainTabs]
+      const [movedTab] = newMainTabs.splice(currentIndex, 1)
+      newMainTabs.splice(currentIndex - 1, 0, movedTab)
+
+      const newConfig = {
+        ...prev,
+        tabs: [...newMainTabs, ...otherTabs],
+      }
+
+      setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
+      return newConfig
+    })
+  }
+
+  const moveTabDown = (tabId: string) => {
+    if (!config) return
+
+    setConfig((prev) => {
+      if (!prev) return prev
+
+      const mainTabs = prev.tabs.filter((t) => t.location === "main")
+      const otherTabs = prev.tabs.filter((t) => t.location !== "main")
+
+      const currentIndex = mainTabs.findIndex((t) => t.id === tabId)
+      if (currentIndex >= mainTabs.length - 1) return prev
+
+      const newMainTabs = [...mainTabs]
+      const [movedTab] = newMainTabs.splice(currentIndex, 1)
+      newMainTabs.splice(currentIndex + 1, 0, movedTab)
+
+      const newConfig = {
+        ...prev,
+        tabs: [...newMainTabs, ...otherTabs],
+      }
+
+      setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
+      return newConfig
+    })
+  }
+
+  const renderTabCard = (tab: TabConfig, showMoveButtons = true, tabIndex?: number, totalTabs?: number) => (
     <Card
       key={tab.id}
       className="group bg-gray-900 border-gray-700 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] backdrop-blur-sm hover:border-green-500/50"
@@ -180,6 +232,36 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
           </div>
           {showMoveButtons && !tab.alwaysVisible && (
             <div className="flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+              {tab.location === "main" && typeof tabIndex === "number" && typeof totalTabs === "number" && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => moveTabUp(tab.id)}
+                    disabled={tabIndex === 0}
+                    className="h-8 w-8 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
+                    style={{
+                      backgroundColor: "hsl(var(--cocktail-button-bg))",
+                      color: "hsl(var(--cocktail-text))",
+                    }}
+                  >
+                    ↑
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => moveTabDown(tab.id)}
+                    disabled={tabIndex === totalTabs - 1}
+                    className="h-8 w-8 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
+                    style={{
+                      backgroundColor: "hsl(var(--cocktail-button-bg))",
+                      color: "hsl(var(--cocktail-text))",
+                    }}
+                  >
+                    ↓
+                  </Button>
+                </>
+              )}
               {tab.location === "service" && (
                 <Button
                   size="sm"
@@ -424,7 +506,7 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
                 <p style={{ color: "hsl(var(--cocktail-text-muted))" }}>Keine Tabs in der Hauptnavigation</p>
               </div>
             ) : (
-              mainTabs.map((tab) => renderTabCard(tab))
+              mainTabs.map((tab, index) => renderTabCard(tab, true, index, mainTabs.length))
             )}
           </CardContent>
         </Card>
