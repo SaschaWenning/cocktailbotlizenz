@@ -980,6 +980,7 @@ export default function Home() {
             onImageEditClick={handleImageEditClick}
             onDeleteCocktail={handleDeleteClick}
             onNewRecipe={handleNewRecipeSave}
+            onTabConfigChange={reloadTabConfig}
           />
         )
       default:
@@ -1000,6 +1001,55 @@ export default function Home() {
       {tabName}
     </Button>
   )
+
+  const reloadTabConfig = async () => {
+    try {
+      console.log("[v0] Reloading tab config from API...")
+      const response = await fetch("/api/tab-config")
+
+      if (!response.ok) {
+        console.error("[v0] Tab config API response not ok:", response.status, response.statusText)
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const config: AppConfig = await response.json()
+      const mainTabIds = config.tabs.filter((tab) => tab.location === "main").map((tab) => tab.id)
+
+      console.log("[v0] Tab config reloaded successfully:", config)
+      setTabConfig(config)
+      setMainTabs(mainTabIds)
+
+      if (mainTabIds.length > 0 && !mainTabIds.includes(activeTab) && activeTab !== "service") {
+        setActiveTab(mainTabIds[0])
+      }
+    } catch (error) {
+      console.error("[v0] Error reloading tab config:", error)
+    }
+  }
+
+  useEffect(() => {
+    const handleTabConfigChange = () => {
+      console.log("[v0] Tab config change detected, reloading...")
+      reloadTabConfig()
+    }
+
+    // Höre auf localStorage Änderungen
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "tab-config") {
+        console.log("[v0] Tab config changed in localStorage, reloading...")
+        reloadTabConfig()
+      }
+    }
+
+    // Höre auf custom events
+    window.addEventListener("tabConfigChanged", handleTabConfigChange)
+    window.addEventListener("storage", handleStorageChange)
+
+    return () => {
+      window.removeEventListener("tabConfigChanged", handleTabConfigChange)
+      window.removeEventListener("storage", handleStorageChange)
+    }
+  }, [])
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
