@@ -980,7 +980,7 @@ export default function Home() {
             onImageEditClick={handleImageEditClick}
             onDeleteCocktail={handleDeleteClick}
             onNewRecipe={handleNewRecipeSave}
-            onTabConfigReload={() => console.log("Reload tab configuration")}
+            onTabConfigReload={reloadTabConfig}
           />
         )
       default:
@@ -1001,6 +1001,11 @@ export default function Home() {
       {tabName}
     </Button>
   )
+
+  const reloadTabConfig = async () => {
+    console.log("[v0] Reloading tab configuration...")
+    await loadTabConfig()
+  }
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
