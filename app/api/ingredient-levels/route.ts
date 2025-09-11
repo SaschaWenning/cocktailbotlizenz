@@ -1,53 +1,87 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { promises as fs } from "fs"
+import path from "path"
 import type { IngredientLevel } from "@/types/ingredient-level"
 
-const INGREDIENT_LEVELS_FILE = "ingredient-levels-data.json"
+const RASPBERRY_PI_DATA_DIR = "/home/pi/cocktailbot/cocktailbot-main/data"
+const INGREDIENT_LEVELS_FILE = path.join(RASPBERRY_PI_DATA_DIR, "ingredient-levels-data.json")
 
 // Fallback-Daten falls keine Datei existiert
 const defaultIngredientLevels: IngredientLevel[] = []
 
 let cachedIngredientLevels: IngredientLevel[] | null = null
 
-function getIngredientLevelsFromStorage(): IngredientLevel[] {
+async function ensureDataDirectory(): Promise<void> {
+  try {
+    await fs.mkdir(RASPBERRY_PI_DATA_DIR, { recursive: true })
+  } catch (error) {
+    console.error("[v0] Error creating data directory:", error)
+  }
+}
+
+async function getIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
   if (cachedIngredientLevels !== null) {
     return cachedIngredientLevels
   }
 
   try {
-    // In Browser-Umgebung verwende localStorage
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("ingredient-levels")
-      if (stored) {
-        cachedIngredientLevels = JSON.parse(stored)
-        return cachedIngredientLevels
-      }
-    }
+    await ensureDataDirectory()
+    const fileContent = await fs.readFile(INGREDIENT_LEVELS_FILE, "utf-8")
+    const levels = JSON.parse(fileContent)
+    console.log("[v0] Füllstände aus Datei geladen:", levels.length)
+    cachedIngredientLevels = levels
+    return levels
   } catch (error) {
-    console.error("[v0] Error loading ingredient levels from storage:", error)
+    console.log("[v0] Keine Füllstände-Datei gefunden, verwende Fallback")
+
+    try {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("ingredient-levels")
+        if (stored) {
+          cachedIngredientLevels = JSON.parse(stored)
+          return cachedIngredientLevels
+        }
+      }
+    } catch (storageError) {
+      console.error("[v0] Error loading from localStorage:", storageError)
+    }
   }
 
   cachedIngredientLevels = [...defaultIngredientLevels]
   return cachedIngredientLevels
 }
 
-function saveIngredientLevelsToStorage(levels: IngredientLevel[]): void {
+async function saveIngredientLevelsToFile(levels: IngredientLevel[]): Promise<void> {
   try {
-    // In Browser-Umgebung verwende localStorage
+    await ensureDataDirectory()
+    await fs.writeFile(INGREDIENT_LEVELS_FILE, JSON.stringify(levels, null, 2), "utf-8")
+    console.log("[v0] Füllstände erfolgreich in Datei gespeichert:", levels.length)
+
     if (typeof window !== "undefined") {
       localStorage.setItem("ingredient-levels", JSON.stringify(levels))
     }
+
     cachedIngredientLevels = levels
   } catch (error) {
-    console.error("[v0] Error saving ingredient levels to storage:", error)
+    console.error("[v0] Error saving ingredient levels to file:", error)
+
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ingredient-levels", JSON.stringify(levels))
+        console.log("[v0] Füllstände als Fallback in localStorage gespeichert")
+      }
+      cachedIngredientLevels = levels
+    } catch (storageError) {
+      console.error("[v0] Error saving to localStorage fallback:", storageError)
+    }
   }
 }
 
 export async function GET() {
   try {
-    let levels = getIngredientLevelsFromStorage()
+    let levels = await getIngredientLevelsFromFile()
 
-    // Prüfe auf Backup-Daten beim Start
-    if (typeof window !== "undefined" && levels.length === 0) {
+    if (levels.length === 0 && typeof window !== "undefined") {
       const backup = localStorage.getItem("ingredient-levels-backup")
       if (backup) {
         try {
@@ -55,9 +89,7 @@ export async function GET() {
           if (backupData.levels && Array.isArray(backupData.levels)) {
             console.log("[v0] Wiederherstellung von Backup-Füllständen beim Start")
             levels = backupData.levels
-            // Speichere wiederhergestellte Daten
-            saveIngredientLevelsToStorage(levels)
-            // Entferne Backup nach erfolgreicher Wiederherstellung
+            await saveIngredientLevelsToFile(levels)
             localStorage.removeItem("ingredient-levels-backup")
           }
         } catch (error) {
@@ -77,7 +109,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const levels: IngredientLevel[] = await request.json()
-    saveIngredientLevelsToStorage(levels)
+    await saveIngredientLevelsToFile(levels)
     console.log("[v0] Saved ingredient levels:", levels.length)
     return NextResponse.json({ success: true })
   } catch (error) {
