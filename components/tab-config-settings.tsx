@@ -90,9 +90,23 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
         description: "Tab-Konfiguration wurde erfolgreich gespeichert.",
       })
 
-      setTimeout(() => {
+      try {
+        // Versuche Custom Event
         window.dispatchEvent(new CustomEvent("tabConfigChanged"))
-      }, 500)
+
+        // Warte kurz und prüfe ob das Event funktioniert hat
+        setTimeout(() => {
+          // Fallback: Lade die Seite neu, wenn das Custom Event nicht funktioniert
+          console.log("[v0] Reloading page to apply tab configuration changes")
+          window.location.reload()
+        }, 1000)
+      } catch (error) {
+        console.error("[v0] Custom event failed, using fallback reload:", error)
+        // Direkter Fallback bei Fehlern
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
+      }
     } catch (error) {
       console.error("[v0] Error saving config:", error)
       toast({
@@ -451,7 +465,7 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
               Servicemenü
               <Badge
                 variant="secondary"
-                className="ml-auto border"
+                className="border"
                 style={{
                   backgroundColor: "hsl(var(--cocktail-button-bg))",
                   color: "hsl(var(--cocktail-text-muted))",
