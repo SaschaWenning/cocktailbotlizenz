@@ -73,18 +73,15 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
     const existingIndex = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
     if (existingIndex === -1) {
-      const { pumpConfig } = await import("@/data/pump-config")
-      const pumpForIngredient = pumpConfig.find((pump) => pump.ingredient === ingredientId)
-
       const newLevel: IngredientLevel = {
         ingredientId,
-        currentAmount: pumpForIngredient ? 700 : 0, // Nur angeschlossene Zutaten haben Startmenge
-        capacity: 1000, // Standard-Kapazität
+        currentAmount: 0, // Keine Standardwerte mehr - alles muss manuell eingegeben werden
+        capacity: 1000, // Standard-Kapazität bleibt
         lastRefill: new Date(),
       }
       ingredientLevels.push(newLevel)
       hasChanges = true
-      console.log(`[v0] Neue Zutat initialisiert: ${ingredientId} (angeschlossen: ${!!pumpForIngredient})`)
+      console.log(`[v0] Neue Zutat initialisiert: ${ingredientId} (Füllstand: 0ml - manuell eingeben erforderlich)`)
     }
   }
 
@@ -320,10 +317,10 @@ export async function initializeNewIngredientLevel(ingredientId: string, capacit
     return ingredientLevels[existingIndex]
   }
 
-  // Erstelle einen neuen Füllstand für diese Zutat
+  // Keine Standardwerte - neue Zutaten starten mit 0ml
   const newLevel: IngredientLevel = {
     ingredientId,
-    currentAmount: Math.min(700, capacity), // Startmenge nicht größer als Kapazität
+    currentAmount: 0, // Keine Standardwerte - muss manuell eingegeben werden
     capacity, // Verwende übergebene Kapazität
     lastRefill: new Date(),
   }
