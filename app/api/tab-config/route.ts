@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { type AppConfig, defaultTabConfig } from "@/lib/tab-config"
+import { promises as fs } from "fs"
 import path from "path"
 
 export const dynamic = "force-dynamic"
@@ -62,29 +63,54 @@ function saveLocalStorageConfig(config: AppConfig): void {
 
 async function getStoredConfig(): Promise<AppConfig> {
   try {
-    // In v0-Umgebung nur localStorage verwenden
+    // Stelle sicher, dass das data-Verzeichnis existiert
+    const dataDir = path.dirname(CONFIG_FILE_PATH)
+    await fs.mkdir(dataDir, { recursive: true })
+
+    const data = await fs.readFile(CONFIG_FILE_PATH, "utf-8")
+    const parsedConfig = JSON.parse(data)
+    console.log("[v0] Tab config loaded from file:", parsedConfig)
+    return validateAndUpdateConfig(parsedConfig)
+  } catch (error) {
+    console.log("[v0] No existing tab config file found, trying localStorage fallback")
+
     const localStorageConfig = getLocalStorageConfig()
     if (localStorageConfig) {
-      console.log("[v0] Using localStorage config")
+      // Speichere die localStorage-Konfiguration auch in der Datei
+      try {
+        await saveStoredConfig(localStorageConfig)
+      } catch (fileError) {
+        console.log("[v0] Could not save to file, continuing with localStorage config")
+      }
       return localStorageConfig
     }
 
     console.log("[v0] Using default config")
-    return defaultTabConfig
-  } catch (error) {
-    console.log("[v0] Error loading config, using default:", error)
+    // Speichere die Standard-Konfiguration
+    await saveStoredConfig(defaultTabConfig)
     return defaultTabConfig
   }
 }
 
 async function saveStoredConfig(config: AppConfig): Promise<void> {
   try {
-    // In v0-Umgebung nur localStorage verwenden
+    // Stelle sicher, dass das data-Verzeichnis existiert
+    const dataDir = path.dirname(CONFIG_FILE_PATH)
+    await fs.mkdir(dataDir, { recursive: true })
+
+    await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2))
+    console.log("[v0] Tab config saved to file:", CONFIG_FILE_PATH)
+
     saveLocalStorageConfig(config)
-    console.log("[v0] Tab config saved to localStorage")
   } catch (error) {
-    console.error("[v0] Error saving tab config:", error)
-    throw error
+    console.error("[v0] Error saving tab config to file:", error)
+    try {
+      saveLocalStorageConfig(config)
+      console.log("[v0] Fallback: Tab config saved to localStorage")
+    } catch (localStorageError) {
+      console.error("[v0] Error saving to localStorage fallback:", localStorageError)
+      throw error
+    }
   }
 }
 

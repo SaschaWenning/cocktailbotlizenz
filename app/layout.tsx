@@ -1,6 +1,7 @@
 import type React from "react"
 import "@/app/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import ClientWrapper from "./ClientWrapper"
 
 export const metadata = {
   title: "CocktailBot - Automatische Cocktailmaschine",
@@ -17,7 +18,7 @@ export default function RootLayout({
     <html lang="de" suppressHydrationWarning>
       <body className="min-h-screen bg-[hsl(var(--cocktail-bg))]">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
-          {children}
+          <ClientWrapper>{children}</ClientWrapper>
         </ThemeProvider>
       </body>
     </html>
