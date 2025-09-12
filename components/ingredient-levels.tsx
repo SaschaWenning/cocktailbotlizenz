@@ -31,6 +31,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [manualSaving, setManualSaving] = useState(false)
+  const [manualLoading, setManualLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
   const [showSuccess, setShowSuccess] = useState(false)
   const [allIngredients, setAllIngredients] = useState<any[]>([])
@@ -202,6 +203,56 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
       alert("❌ Fehler beim manuellen Speichern!")
     } finally {
       setManualSaving(false)
+    }
+  }
+
+  const handleManualLoad = async () => {
+    setManualLoading(true)
+    try {
+      console.log("[v0] Starting manual load from file...")
+
+      // Sende an manuelle Lade-API
+      const response = await fetch("/api/load-from-file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        console.log("[v0] ✅ Manuelle Ladung erfolgreich:", Object.keys(result.data).length, "ingredients")
+
+        // Konvertiere geladene Daten zu IngredientLevel Format
+        const loadedLevels: IngredientLevel[] = Object.entries(result.data).map(
+          ([ingredientId, data]: [string, any]) => ({
+            ingredientId,
+            currentAmount: data.currentAmount || 0,
+            capacity: data.capacity || 1000,
+            lastRefill: new Date(data.lastRefill || new Date()),
+          }),
+        )
+
+        // Aktualisiere lokalen State
+        setLevels(loadedLevels)
+
+        // Zeige Erfolg an
+        setShowSuccess(true)
+        setTimeout(() => setShowSuccess(false), 3000)
+
+        if (onLevelsUpdated) onLevelsUpdated()
+
+        alert(`✅ Daten erfolgreich geladen!\nPfad: ${result.path}\nAnzahl: ${loadedLevels.length} Zutaten`)
+      } else {
+        console.log("[v0] ❌ Manuelle Ladung fehlgeschlagen:", result.message)
+        alert(`❌ Laden fehlgeschlagen:\n${result.message}`)
+      }
+    } catch (error) {
+      console.error("[v0] Error in manual load:", error)
+      alert("❌ Fehler beim manuellen Laden!")
+    } finally {
+      setManualLoading(false)
     }
   }
 
@@ -550,6 +601,25 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                         <>
                           <RefreshCw className="mr-2 h-5 w-5" />
                           Alle Zutaten vollständig auffüllen
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={handleManualLoad}
+                      variant="outline"
+                      className="w-full bg-gray-900 hover:bg-[#00ff00] text-white hover:text-black border-gray-700 hover:border-[#00ff00] font-semibold py-3 transition-all duration-200"
+                      disabled={manualLoading}
+                    >
+                      {manualLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Lade aus Datei...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-5 w-5" />
+                          Manuell aus Datei laden (Raspberry Pi)
                         </>
                       )}
                     </Button>
