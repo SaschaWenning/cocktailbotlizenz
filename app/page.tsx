@@ -1,40 +1,51 @@
 "use client"
 
+import { Progress } from "@/components/ui/progress"
+
+import { AlertDescription } from "@/components/ui/alert"
+
+import { Alert } from "@/components/ui/alert"
+
 import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
-import { makeCocktail, getPumpConfig, saveRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import type { Cocktail } from "@/types/cocktail"
-import { getIngredientLevels } from "@/lib/ingredient-level-service"
-import type { IngredientLevel } from "@/types/ingredient-level"
-import type { PumpConfig } from "@/types/pump"
 import { Badge } from "@/components/ui/badge"
-import CocktailCard from "@/components/cocktail-card"
-import PumpCleaning from "@/components/pump-cleaning"
-import IngredientLevels from "@/components/ingredient-levels"
-import ShotSelector from "@/components/shot-selector"
-import PasswordModal from "@/components/password-modal"
-import RecipeEditor from "@/components/recipe-editor"
-import RecipeCreator from "@/components/recipe-creator"
-import DeleteConfirmation from "@/components/delete-confirmation"
-import ImageEditor from "@/components/image-editor"
-import QuickShotSelector from "@/components/quick-shot-selector"
-import { toast } from "@/components/ui/use-toast"
-import ServiceMenu from "@/components/service-menu"
-import { getAllIngredients } from "@/lib/ingredients"
-import type { AppConfig } from "@/lib/tab-config"
-import IngredientManager from "@/components/ingredient-manager"
-import PumpCalibration from "@/components/pump-calibration"
-import { Progress } from "@/components/ui/progress"
-import { Check, GlassWater } from "lucide-react"
+import { AlertTriangle, ChevronLeft, ChevronRight, Wrench, Edit, Trash2, ImageIcon } from "lucide-react"
+import { CocktailCard } from "@/components/cocktail-card"
+import { IngredientLevels } from "@/components/ingredient-levels"
+import { PumpCalibration } from "@/components/pump-calibration"
+import { PumpCleaning } from "@/components/pump-cleaning"
+import { QuickShotSelector } from "@/components/quick-shot-selector"
+import { RecipeEditor } from "@/components/recipe-editor"
+import { RecipeCreator } from "@/components/recipe-creator"
+import { PasswordModal } from "@/components/password-modal"
+import { ServiceMenu } from "@/components/service-menu"
+import { IngredientManager } from "@/components/ingredient-manager"
+import { ImageEditor } from "@/components/image-editor"
+import { initialPumpConfig } from "@/data/pump-config"
+import { getIngredientLevelsRuntime } from "@/lib/ingredient-levels-runtime" // Neuer Import für Runtime-Loader
+import { getPumpConfig } from "@/lib/pump-config-service"
+import { makeCocktail } from "@/lib/cocktail-machine"
+import { getAllCocktails, getAllIngredients, saveRecipe, loadIngredientLevels } from "@/lib/cocktail-utils" // Neue Imports
+import { toast } from "@/components/toast" // Neue Import für Toast
+import { DeleteConfirmation } from "@/components/delete-confirmation" // Neue Import für DeleteConfirmation
+import { ShotSelector } from "@/components/shot-selector" // Neue Import für ShotSelector
+import type { Cocktail, IngredientLevel, PumpConfig, AppConfig } from "@/types"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
 
-export default function Home() {
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+export default async function Home() {
+  // Mache die Komponente async für Server-Side Rendering
+  const initialLevels = await getIngredientLevelsRuntime()
+
+  return <ClientHome initialLevels={initialLevels} />
+}
+
+function ClientHome({ initialLevels }: { initialLevels: IngredientLevel[] }) {
   const [selectedCocktail, setSelectedCocktail] = useState<Cocktail | null>(null)
   const [selectedSize, setSelectedSize] = useState<number>(300)
   const [isMaking, setIsMaking] = useState(false)
@@ -50,17 +61,17 @@ export default function Home() {
   const [cocktailToEdit, setCocktailToEdit] = useState<string | null>(null)
   const [cocktailToDelete, setCocktailToDelete] = useState<Cocktail | null>(null)
   const [cocktailsData, setCocktailsData] = useState<Cocktail[]>([])
-  const [ingredientLevels, setIngredientLevels] = useState<IngredientLevel[]>([])
+  const [ingredientLevels, setIngredientLevels] = useState<IngredientLevel[]>(initialLevels) // Initialisiere mit Server-Daten
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [lowIngredients, setLowIngredients] = useState<string[]>([])
   const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
   const [loading, setLoading] = useState(true)
   const [showImageEditor, setShowImageEditor] = useState(false)
-  const [allIngredientsData, setAllIngredientsData] = useState<any[]>([]) // State für alle Zutaten (Standard + benutzerdefiniert) hinzugefügt
+  const [allIngredientsData, setAllIngredientsData] = useState<any[]>([])
   const [manualIngredients, setManualIngredients] = useState<
     Array<{ ingredientId: string; amount: number; instructions?: string }>
-  >([]) // State für manuelle Zutaten hinzugefügt
-  const [showImageEditorPasswordModal, setShowImageEditorPasswordModal] = useState(false) // Neues State für Image Editor Passwort-Modal
+  >([])
+  const [showImageEditorPasswordModal, setShowImageEditorPasswordModal] = useState(false)
   const [tabConfig, setTabConfig] = useState<AppConfig | null>(null)
   const [mainTabs, setMainTabs] = useState<string[]>([])
 
@@ -107,13 +118,10 @@ export default function Home() {
     const loadData = async () => {
       setLoading(true)
       try {
-        await Promise.all([
-          loadIngredientLevels(),
-          loadPumpConfig(),
-          loadCocktails(),
-          loadAllIngredients(),
-          loadTabConfig(),
-        ])
+        await Promise.all([loadPumpConfig(), loadCocktails(), loadAllIngredients(), loadTabConfig()])
+
+        const lowLevels = initialLevels.filter((level) => level.currentAmount < 100)
+        setLowIngredients(lowLevels.map((level) => level.ingredientId))
       } catch (error) {
         console.error("Fehler beim Laden der Daten:", error)
       } finally {
@@ -122,7 +130,7 @@ export default function Home() {
     }
 
     loadData()
-  }, [])
+  }, [initialLevels])
 
   const loadCocktails = async () => {
     console.log("[v0] Loading cocktails...")
@@ -155,19 +163,6 @@ export default function Home() {
       setPumpConfig(config)
     } catch (error) {
       console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
-    }
-  }
-
-  const loadIngredientLevels = async () => {
-    try {
-      const levels = await getIngredientLevels()
-      setIngredientLevels(levels)
-
-      // Prüfe auf niedrige Füllstände
-      const lowLevels = levels.filter((level) => level.currentAmount < 100)
-      setLowIngredients(lowLevels.map((level) => level.ingredientId))
-    } catch (error) {
-      console.error("Fehler beim Laden der Füllstände:", error)
     }
   }
 
@@ -812,7 +807,7 @@ export default function Home() {
                 </div>
                 {!ingredientsAvailable && (
                   <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30 mb-6">
-                    <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
+                    <AlertTriangle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
                     <AlertDescription className="text-[hsl(var(--cocktail-error))] text-sm">
                       <div className="space-y-1">
                         <div className="font-medium">Fehlende Zutaten:</div>
@@ -1078,7 +1073,7 @@ export default function Home() {
               <CardContent className="pt-8 pb-8 space-y-6">
                 <div className="flex flex-col items-center gap-6">
                   <div className="w-24 h-24 rounded-full bg-[hsl(var(--cocktail-primary))]/10 flex items-center justify-center">
-                    <GlassWater className="h-12 w-12 text-[hsl(var(--cocktail-primary))]" />
+                    <ImageIcon className="h-12 w-12 text-[hsl(var(--cocktail-primary))]" />
                   </div>
                   <h2 className="text-2xl font-semibold text-center">{statusMessage}</h2>
                 </div>
@@ -1092,7 +1087,7 @@ export default function Home() {
 
                 {errorMessage && (
                   <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
-                    <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
+                    <AlertTriangle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
                     <AlertDescription className="text-[hsl(var(--cocktail-error))]">{errorMessage}</AlertDescription>
                   </Alert>
                 )}
@@ -1100,7 +1095,7 @@ export default function Home() {
                 {showSuccess && (
                   <div className="flex justify-center">
                     <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-4">
-                      <Check className="h-10 w-10 text-[hsl(var(--cocktail-success))]" />
+                      <Wrench className="h-10 w-10 text-[hsl(var(--cocktail-success))]" />
                     </div>
                   </div>
                 )}
