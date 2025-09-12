@@ -23,9 +23,8 @@ async function loadIngredientLevelsFromAPI(): Promise<IngredientLevel[]> {
     console.error("[v0] Error loading ingredient levels from API:", error)
   }
 
-  // Fallback zu Initial-Daten
-  console.log("[v0] Using initial ingredient levels as fallback")
-  return [...initialIngredientLevels]
+  console.log("[v0] API nicht verfügbar - verwende leeres Array")
+  return []
 }
 
 // Speichere Ingredient Levels in der API
@@ -70,19 +69,22 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
 
   let hasChanges = false
 
-  // Initialisiere fehlende Zutaten
   for (const ingredientId of usedIngredients) {
     const existingIndex = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
     if (existingIndex === -1) {
+      const { pumpConfig } = await import("@/data/pump-config")
+      const pumpForIngredient = pumpConfig.find((pump) => pump.ingredient === ingredientId)
+
       const newLevel: IngredientLevel = {
         ingredientId,
-        currentAmount: 700, // Standard-Startmenge
+        currentAmount: pumpForIngredient ? 700 : 0, // Nur angeschlossene Zutaten haben Startmenge
         capacity: 1000, // Standard-Kapazität
         lastRefill: new Date(),
       }
       ingredientLevels.push(newLevel)
       hasChanges = true
+      console.log(`[v0] Neue Zutat initialisiert: ${ingredientId} (angeschlossen: ${!!pumpForIngredient})`)
     }
   }
 
