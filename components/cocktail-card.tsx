@@ -14,108 +14,28 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
   const [imageSrc, setImageSrc] = useState<string>("")
   const [imageLoaded, setImageLoaded] = useState<boolean>(false)
 
-  const findImagePath = async (cocktail: Cocktail): Promise<string> => {
-    if (!cocktail.image) {
-      return `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
-    }
-
-    // Extrahiere den Dateinamen aus dem Pfad
-    const filename = cocktail.image.split("/").pop() || cocktail.image
-    const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "") // Entferne Dateierweiterung
-    const originalExt = filename.split(".").pop()?.toLowerCase() || ""
-
-    // Alle gängigen Bildformate
-    const imageExtensions = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "svg"]
-
-    // Verwende originale Erweiterung zuerst, dann alle anderen
-    const extensionsToTry = originalExt
-      ? [originalExt, ...imageExtensions.filter((ext) => ext !== originalExt)]
-      : imageExtensions
-
-    // Verschiedene Basispfade für alkoholische und alkoholfreie Cocktails
-    const basePaths = [
-      "/images/cocktails/", // Alkoholische Cocktails
-      "/", // Alkoholfreie Cocktails (direkt im public/)
-      "", // Ohne Pfad
-      "/public/images/cocktails/", // Vollständiger Pfad
-      "/public/", // Public Verzeichnis
-    ]
-
-    const strategies: string[] = []
-
-    // Generiere alle Kombinationen von Pfaden und Dateierweiterungen
-    for (const basePath of basePaths) {
-      for (const ext of extensionsToTry) {
-        strategies.push(`${basePath}${filenameWithoutExt}.${ext}`)
-      }
-      // Auch den originalen Dateinamen probieren
-      strategies.push(`${basePath}${filename}`)
-    }
-
-    // Zusätzliche spezielle Strategien
-    strategies.push(
-      // Originaler Pfad
-      cocktail.image,
-      // Ohne führenden Slash
-      cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
-      // Mit führendem Slash
-      cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
-      // API-Pfad als Fallback
-      `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
-      `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/${filename}`)}`,
-    )
-
-    console.log(`[v0] Testing ${strategies.length} image strategies for ${cocktail.name}:`, strategies.slice(0, 5))
-
-    const uniqueStrategies = Array.from(new Set(strategies))
-
-    for (let i = 0; i < uniqueStrategies.length; i++) {
-      const testPath = uniqueStrategies[i]
-
-      try {
-        const img = new Image()
-        img.crossOrigin = "anonymous" // Für CORS
-
-        const loadPromise = new Promise<boolean>((resolve) => {
-          img.onload = () => resolve(true)
-          img.onerror = () => resolve(false)
-        })
-
-        img.src = testPath
-        const success = await loadPromise
-
-        if (success) {
-          console.log(`[v0] ✅ Found working image for ${cocktail.name}: ${testPath}`)
-          return testPath
-        }
-      } catch (error) {
-        // Fehler ignorieren und nächste Strategie versuchen
-      }
-    }
-
-    // Fallback auf Platzhalter
-    console.log(`[v0] ❌ No working image found for ${cocktail.name}, using placeholder`)
-    return `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
-  }
-
   useEffect(() => {
-    const loadImage = async () => {
-      const imagePath = await findImagePath(cocktail)
-      setImageSrc(imagePath)
+    if (!cocktail.image) {
+      const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+      setImageSrc(placeholder)
       setImageLoaded(true)
+      return
     }
 
-    loadImage()
-  }, [cocktail])
+    // Direkte Bildpfade verwenden
+    setImageSrc(cocktail.image)
+    setImageLoaded(true)
+    console.log(`[v0] Loading image for ${cocktail.name}: ${cocktail.image}`)
+  }, [cocktail.image, cocktail.name])
 
   const handleImageError = () => {
-    console.log(`[v0] ❌ Final image error for ${cocktail.name}: ${imageSrc}`)
+    console.log(`[v0] ❌ Image failed for ${cocktail.name}: ${cocktail.image}`)
     const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
     setImageSrc(placeholder)
   }
 
   const handleImageLoad = () => {
-    console.log(`[v0] ✅ Image loaded successfully for ${cocktail.name}: ${imageSrc}`)
+    console.log(`[v0] ✅ Image loaded successfully for ${cocktail.name}: ${cocktail.image}`)
   }
 
   return (
@@ -130,8 +50,6 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           onError={handleImageError}
           onLoad={handleImageLoad}
-          crossOrigin="anonymous"
-          key={`${cocktail.image}-${imageSrc}`}
         />
 
         {/* Gradient Overlay */}
