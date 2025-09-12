@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { promises as fs } from "fs"
 import path from "path"
 import type { IngredientLevel } from "@/types/ingredient-level"
 
@@ -8,9 +7,22 @@ const INGREDIENT_LEVELS_FILE = path.join(RASPBERRY_PI_DATA_DIR, "ingredient-leve
 
 let cachedIngredientLevels: IngredientLevel[] | null = null
 
+async function getFileSystem() {
+  try {
+    const fs = await import("fs/promises")
+    return fs
+  } catch (error) {
+    console.log("[v0] Dateisystem nicht verfügbar, verwende localStorage Fallback")
+    return null
+  }
+}
+
 async function ensureDataDirectory(): Promise<void> {
   try {
-    await fs.mkdir(RASPBERRY_PI_DATA_DIR, { recursive: true })
+    const fs = await getFileSystem()
+    if (fs) {
+      await fs.mkdir(RASPBERRY_PI_DATA_DIR, { recursive: true })
+    }
   } catch (error) {
     console.error("[v0] Error creating data directory:", error)
   }
@@ -18,6 +30,9 @@ async function ensureDataDirectory(): Promise<void> {
 
 async function isFirstRun(): Promise<boolean> {
   try {
+    const fs = await getFileSystem()
+    if (!fs) return true // Kein Dateisystem = erster Start
+
     await fs.access(INGREDIENT_LEVELS_FILE)
     return false // Datei existiert, nicht der erste Start
   } catch {
@@ -43,6 +58,7 @@ async function getIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
 
   try {
     await ensureDataDirectory()
+    const fs = await getFileSystem()
 
     const firstRun = await isFirstRun()
 
@@ -60,12 +76,15 @@ async function getIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
       return initialLevels
     }
 
-    // Nicht der erste Start - lade gespeicherte Werte
-    const fileContent = await fs.readFile(INGREDIENT_LEVELS_FILE, "utf-8")
-    const levels = JSON.parse(fileContent)
-    console.log("[v0] Gespeicherte Füllstände aus Datei geladen:", levels.length)
-    cachedIngredientLevels = levels
-    return levels
+    if (fs) {
+      const fileContent = await fs.readFile(INGREDIENT_LEVELS_FILE, "utf-8")
+      const levels = JSON.parse(fileContent)
+      console.log("[v0] Gespeicherte Füllstände aus Datei geladen:", levels.length)
+      cachedIngredientLevels = levels
+      return levels
+    } else {
+      throw new Error("Dateisystem nicht verfügbar")
+    }
   } catch (error) {
     console.log("[v0] Fehler beim Laden der Füllstände-Datei:", error)
 
@@ -93,11 +112,19 @@ async function getIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
 async function saveIngredientLevelsToFile(levels: IngredientLevel[]): Promise<void> {
   try {
     await ensureDataDirectory()
-    await fs.writeFile(INGREDIENT_LEVELS_FILE, JSON.stringify(levels, null, 2), "utf-8")
-    console.log("[v0] Füllstände erfolgreich in Datei gespeichert:", levels.length)
+    const fs = await getFileSystem()
 
+    if (fs) {
+      await fs.writeFile(INGREDIENT_LEVELS_FILE, JSON.stringify(levels, null, 2), "utf-8")
+      console.log("[v0] Füllstände erfolgreich in Datei gespeichert:", levels.length)
+    } else {
+      console.log("[v0] Dateisystem nicht verfügbar, verwende nur localStorage")
+    }
+
+    // Immer auch localStorage als Backup verwenden
     if (typeof window !== "undefined") {
       localStorage.setItem("ingredient-levels", JSON.stringify(levels))
+      console.log("[v0] Füllstände auch in localStorage gespeichert")
     }
 
     cachedIngredientLevels = levels
@@ -112,6 +139,7 @@ async function saveIngredientLevelsToFile(levels: IngredientLevel[]): Promise<vo
       cachedIngredientLevels = levels
     } catch (storageError) {
       console.error("[v0] Error saving to localStorage fallback:", storageError)
+      throw new Error("Konnte Füllstände nicht speichern")
     }
   }
 }
