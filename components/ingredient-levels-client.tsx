@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,7 +17,6 @@ interface IngredientLevelsClientProps {
 
 export default function IngredientLevelsClient({ initialLevels }: IngredientLevelsClientProps) {
   const [levels, setLevels] = useState(initialLevels)
-  const [pending, startTransition] = useTransition()
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [keyboardType, setKeyboardType] = useState<"capacity" | "amount">("capacity")
   const [selectedIngredient, setSelectedIngredient] = useState<string>("")
@@ -25,32 +24,24 @@ export default function IngredientLevelsClient({ initialLevels }: IngredientLeve
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
 
   const handleCapacityChange = (ingredientId: string, capacity: number) => {
-    startTransition(async () => {
-      const updatedLevels = await setCapacity(ingredientId, capacity)
-      setLevels(updatedLevels)
-    })
+    const updatedLevels = setCapacity(ingredientId, capacity)
+    setLevels(updatedLevels)
   }
 
   const handleAmountChange = (ingredientId: string, amount: number) => {
-    startTransition(async () => {
-      const updatedLevels = await setCurrentAmount(ingredientId, amount)
-      setLevels(updatedLevels)
-    })
+    const updatedLevels = setCurrentAmount(ingredientId, amount)
+    setLevels(updatedLevels)
   }
 
   const handleRefill = (ingredientId: string) => {
-    startTransition(async () => {
-      const updatedLevels = await refill(ingredientId)
-      setLevels(updatedLevels)
-    })
+    const updatedLevels = refill(ingredientId)
+    setLevels(updatedLevels)
   }
 
   const handleRefillAll = () => {
     const action = () => {
-      startTransition(async () => {
-        const updatedLevels = await refillAll()
-        setLevels(updatedLevels)
-      })
+      const updatedLevels = refillAll()
+      setLevels(updatedLevels)
     }
 
     setPendingAction(() => action)
@@ -106,7 +97,7 @@ export default function IngredientLevelsClient({ initialLevels }: IngredientLeve
           <Droplets className="h-6 w-6" />
           Füllstände
         </h2>
-        <Button onClick={handleRefillAll} disabled={pending} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={handleRefillAll} className="bg-blue-600 hover:bg-blue-700">
           <RefreshCw className="h-4 w-4 mr-2" />
           Alle auffüllen
         </Button>
@@ -165,7 +156,6 @@ export default function IngredientLevelsClient({ initialLevels }: IngredientLeve
 
                 <Button
                   onClick={() => handleRefill(level.ingredientId)}
-                  disabled={pending}
                   className="w-full"
                   variant={percentage < 50 ? "default" : "outline"}
                 >
