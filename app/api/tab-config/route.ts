@@ -34,6 +34,33 @@ function validateAndUpdateConfig(storedConfig: AppConfig): AppConfig {
   return storedConfig
 }
 
+function getLocalStorageConfig(): AppConfig | null {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const stored = localStorage.getItem("tab-config")
+      if (stored) {
+        const parsedConfig = JSON.parse(stored)
+        console.log("[v0] Tab config loaded from localStorage:", parsedConfig)
+        return validateAndUpdateConfig(parsedConfig)
+      }
+    }
+  } catch (error) {
+    console.log("[v0] Error reading from localStorage:", error)
+  }
+  return null
+}
+
+function saveLocalStorageConfig(config: AppConfig): void {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem("tab-config", JSON.stringify(config))
+      console.log("[v0] Tab config saved to localStorage")
+    }
+  } catch (error) {
+    console.error("[v0] Error saving to localStorage:", error)
+  }
+}
+
 async function getStoredConfig(): Promise<AppConfig> {
   try {
     // Stelle sicher, dass das data-Verzeichnis existiert
@@ -45,7 +72,21 @@ async function getStoredConfig(): Promise<AppConfig> {
     console.log("[v0] Tab config loaded from file:", parsedConfig)
     return validateAndUpdateConfig(parsedConfig)
   } catch (error) {
-    console.log("[v0] No existing tab config file found, using default config")
+    console.log("[v0] No existing tab config file found, trying localStorage fallback")
+
+    const localStorageConfig = getLocalStorageConfig()
+    if (localStorageConfig) {
+      // Speichere die localStorage-Konfiguration auch in der Datei
+      try {
+        await saveStoredConfig(localStorageConfig)
+      } catch (fileError) {
+        console.log("[v0] Could not save to file, continuing with localStorage config")
+      }
+      return localStorageConfig
+    }
+
+    console.log("[v0] Using default config")
+    // Speichere die Standard-Konfiguration
     await saveStoredConfig(defaultTabConfig)
     return defaultTabConfig
   }
@@ -59,9 +100,17 @@ async function saveStoredConfig(config: AppConfig): Promise<void> {
 
     await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2))
     console.log("[v0] Tab config saved to file:", CONFIG_FILE_PATH)
+
+    saveLocalStorageConfig(config)
   } catch (error) {
     console.error("[v0] Error saving tab config to file:", error)
-    throw error
+    try {
+      saveLocalStorageConfig(config)
+      console.log("[v0] Fallback: Tab config saved to localStorage")
+    } catch (localStorageError) {
+      console.error("[v0] Error saving to localStorage fallback:", localStorageError)
+      throw error
+    }
   }
 }
 
@@ -86,7 +135,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("[v0] Error saving tab config:", error)
-    return NextResponse.json({ error: "Failed to save tab config" }, { status: 500 })
+    try {
+      const config: AppConfig = await request.json()
+      saveLocalStorageConfig(config)
+      console.log("[v0] Fallback: Tab config saved to localStorage")
+      return NextResponse.json({ success: true })
+    } catch (fallbackError) {
+      console.error("[v0] Fallback also failed:", fallbackError)
+      return NextResponse.json({ error: "Failed to save tab config" }, { status: 500 })
+    }
   }
 }
 
