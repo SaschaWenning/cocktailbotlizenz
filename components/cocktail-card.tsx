@@ -13,8 +13,12 @@ interface CocktailCardProps {
 export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
   const [imageSrc, setImageSrc] = useState<string>("")
   const [imageLoaded, setImageLoaded] = useState<boolean>(false)
+  const [imageError, setImageError] = useState<boolean>(false)
 
   useEffect(() => {
+    setImageError(false)
+    setImageLoaded(false)
+
     if (!cocktail.image) {
       const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
       setImageSrc(placeholder)
@@ -22,20 +26,23 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
       return
     }
 
-    // Direkte Bildpfade verwenden
     setImageSrc(cocktail.image)
-    setImageLoaded(true)
     console.log(`[v0] Loading image for ${cocktail.name}: ${cocktail.image}`)
   }, [cocktail.image, cocktail.name])
 
   const handleImageError = () => {
     console.log(`[v0] ❌ Image failed for ${cocktail.name}: ${cocktail.image}`)
+    setImageError(true)
     const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
     setImageSrc(placeholder)
+    setImageLoaded(true)
   }
 
   const handleImageLoad = () => {
-    console.log(`[v0] ✅ Image loaded successfully for ${cocktail.name}: ${cocktail.image}`)
+    if (!imageError) {
+      console.log(`[v0] ✅ Image loaded successfully for ${cocktail.name}: ${cocktail.image}`)
+      setImageLoaded(true)
+    }
   }
 
   return (
@@ -50,6 +57,7 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           onError={handleImageError}
           onLoad={handleImageLoad}
+          loading="lazy"
         />
 
         {/* Gradient Overlay */}
@@ -60,12 +68,9 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
           {cocktail.alcoholic ? "Alkoholisch" : "Alkoholfrei"}
         </Badge>
 
-        {/* Debug Info */}
-        {process.env.NODE_ENV === "development" && (
-          <div className="absolute bottom-2 left-2 text-xs bg-black/70 text-white p-1 rounded">
-            {imageLoaded ? "✅" : "🔄"}
-          </div>
-        )}
+        <div className="absolute bottom-2 left-2 text-xs bg-black/70 text-white p-1 rounded">
+          {imageError ? "❌" : imageLoaded ? "✅" : "🔄"}
+        </div>
       </div>
 
       <CardContent className="p-4">

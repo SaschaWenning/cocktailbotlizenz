@@ -32,19 +32,6 @@ async function getIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
     return cachedIngredientLevels
   } catch (error) {
     console.log("[v0] No ingredient levels file found, using defaults")
-
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("ingredient-levels")
-        if (stored) {
-          cachedIngredientLevels = JSON.parse(stored)
-          return cachedIngredientLevels
-        }
-      } catch (localError) {
-        console.error("[v0] Error loading from localStorage:", localError)
-      }
-    }
-
     cachedIngredientLevels = [...defaultIngredientLevels]
     return cachedIngredientLevels
   }
@@ -58,16 +45,7 @@ async function saveIngredientLevelsToFile(levels: IngredientLevel[]): Promise<vo
     console.log("[v0] Saved ingredient levels to file:", levels.length)
   } catch (error) {
     console.error("[v0] Error saving ingredient levels to file:", error)
-
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("ingredient-levels", JSON.stringify(levels))
-        cachedIngredientLevels = levels
-        console.log("[v0] Saved ingredient levels to localStorage as fallback")
-      } catch (localError) {
-        console.error("[v0] Error saving to localStorage:", localError)
-      }
-    }
+    throw error
   }
 }
 
