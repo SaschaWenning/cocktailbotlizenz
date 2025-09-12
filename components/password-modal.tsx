@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -14,21 +14,14 @@ interface PasswordModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  title?: string
+  message?: string
 }
 
-export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordModalProps) {
+export function PasswordModal({ onSuccess, onCancel, title = "Passwort erforderlich", message }: PasswordModalProps) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
   const [showKeyboard, setShowKeyboard] = useState(true)
-
-  // Reset password when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      setPassword("")
-      setError(false)
-      setShowKeyboard(true)
-    }
-  }, [isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,18 +51,20 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={true} onOpenChange={onCancel}>
       <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
-            Passwort erforderlich
+            {title}
           </DialogTitle>
         </DialogHeader>
 
+        {message && <p className="text-sm text-gray-400 mb-4">{message}</p>}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Bitte gib das Passwort ein, um Rezepte zu bearbeiten:</Label>
+            <Label htmlFor="password">Bitte gib das Passwort ein:</Label>
             <Input
               id="password"
               type="password"
@@ -101,7 +96,7 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
             <Button
               type="button"
               className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-              onClick={onClose}
+              onClick={onCancel}
             >
               Abbrechen
             </Button>
@@ -116,4 +111,13 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
       </DialogContent>
     </Dialog>
   )
+}
+
+export default function PasswordModalWrapper({
+  isOpen,
+  onClose,
+  onSuccess,
+}: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
+  if (!isOpen) return null
+  return <PasswordModal onSuccess={onSuccess} onCancel={onClose} />
 }
