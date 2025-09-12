@@ -30,6 +30,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
   const [levels, setLevels] = useState<IngredientLevel[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
+  const [manualSaving, setManualSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
   const [showSuccess, setShowSuccess] = useState(false)
   const [allIngredients, setAllIngredients] = useState<any[]>([])
@@ -157,6 +158,50 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
       alert("Fehler beim Nachfüllen aller Zutaten!")
     } finally {
       setSaving(null)
+    }
+  }
+
+  const handleManualSave = async () => {
+    setManualSaving(true)
+    try {
+      console.log("[v0] Starting manual save to file...")
+
+      // Hole aktuelle Daten
+      const currentLevels = await getIngredientLevels()
+
+      // Konvertiere zu Speicherformat
+      const saveData: Record<string, any> = {}
+      currentLevels.forEach((level) => {
+        saveData[level.ingredientId] = {
+          currentAmount: level.currentAmount,
+          capacity: level.capacity,
+          lastRefill: level.lastRefill,
+        }
+      })
+
+      // Sende an manuelle Speicher-API
+      const response = await fetch("/api/save-to-file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(saveData),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        console.log("[v0] ✅ Manuelle Speicherung erfolgreich:", result.path)
+        alert(`✅ Daten erfolgreich gespeichert!\nPfad: ${result.path}`)
+      } else {
+        console.log("[v0] ❌ Manuelle Speicherung fehlgeschlagen:", result.message)
+        alert(`❌ Speicherung fehlgeschlagen:\n${result.message}`)
+      }
+    } catch (error) {
+      console.error("[v0] Error in manual save:", error)
+      alert("❌ Fehler beim manuellen Speichern!")
+    } finally {
+      setManualSaving(false)
     }
   }
 
@@ -490,23 +535,44 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
 
               <Card className="bg-black border border-[#00ff00]/30">
                 <CardContent className="p-4">
-                  <Button
-                    onClick={handleRefillAll}
-                    className="w-full bg-[#00ff00] hover:bg-[#00cc00] text-black font-semibold py-3 transition-all duration-200 shadow-lg"
-                    disabled={saving === "all"}
-                  >
-                    {saving === "all" ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Wird nachgefüllt...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="mr-2 h-5 w-5" />
-                        Alle Zutaten vollständig auffüllen
-                      </>
-                    )}
-                  </Button>
+                  <div className="space-y-3">
+                    <Button
+                      onClick={handleRefillAll}
+                      className="w-full bg-[#00ff00] hover:bg-[#00cc00] text-black font-semibold py-3 transition-all duration-200 shadow-lg"
+                      disabled={saving === "all"}
+                    >
+                      {saving === "all" ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Wird nachgefüllt...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-5 w-5" />
+                          Alle Zutaten vollständig auffüllen
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={handleManualSave}
+                      variant="outline"
+                      className="w-full bg-gray-900 hover:bg-[#ff9500] text-white hover:text-black border-gray-700 hover:border-[#ff9500] font-semibold py-3 transition-all duration-200"
+                      disabled={manualSaving}
+                    >
+                      {manualSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Speichere in Datei...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-5 w-5" />
+                          Manuell in Datei speichern (Raspberry Pi)
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
