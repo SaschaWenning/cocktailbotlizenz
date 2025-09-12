@@ -5,41 +5,7 @@ import { pumpConfig as defaultPumpConfig } from "@/data/pump-config"
 import { cocktails as defaultCocktails } from "@/data/cocktails"
 
 // In-memory storage for demonstration purposes
-const DELETED_COCKTAILS_KEY = "deleted-cocktails"
-
-// Funktion zum Laden der gelöschten Cocktail-IDs aus localStorage
-const getDeletedCocktailIds = (): string[] => {
-  if (typeof window === "undefined") return []
-  try {
-    const deleted = localStorage.getItem(DELETED_COCKTAILS_KEY)
-    return deleted ? JSON.parse(deleted) : []
-  } catch (error) {
-    console.error("Fehler beim Laden der gelöschten Cocktails:", error)
-    return []
-  }
-}
-
-// Funktion zum Speichern der gelöschten Cocktail-IDs in localStorage
-const saveDeletedCocktailIds = (deletedIds: string[]): void => {
-  if (typeof window === "undefined") return
-  try {
-    localStorage.setItem(DELETED_COCKTAILS_KEY, JSON.stringify(deletedIds))
-  } catch (error) {
-    console.error("Fehler beim Speichern der gelöschten Cocktails:", error)
-  }
-}
-
 let currentCocktails: Cocktail[] = defaultCocktails
-  .filter((cocktail) => !getDeletedCocktailIds().includes(cocktail.id))
-  .map((cocktail) => ({
-    ...cocktail,
-    recipe: cocktail.recipe.map((item) => ({
-      ...item,
-      type: (item as any).type || "automatic",
-      instruction: (item as any).instruction || "",
-    })),
-  }))
-
 let currentPumpConfig: PumpConfig[] = defaultPumpConfig
 
 // Simulate GPIO control
@@ -103,28 +69,72 @@ const controlGpio = async (pin: number, duration: number) => {
 }
 
 // Simulate API calls
+const getAllCocktailsFromAPI = async (): Promise<Cocktail[]> => {
+  try {
+    const response = await fetch("/api/cocktails", {
+      method: "GET",
+      cache: "no-store",
+    })
+    if (response.ok) {
+      const cocktails = await response.json()
+      console.log("[v0] Loaded cocktails from API:", cocktails.length)
+      return cocktails
+    }
+  } catch (error) {
+    console.error("[v0] Error loading cocktails from API:", error)
+  }
+
+  // Fallback zu Standard-Cocktails
+  console.log("[v0] Using default cocktails as fallback")
+  return defaultCocktails.map((cocktail) => ({
+    ...cocktail,
+    recipe: cocktail.recipe.map((item) => ({
+      ...item,
+      type: (item as any).type || "automatic",
+      instruction: (item as any).instruction || "",
+    })),
+  }))
+}
+
+const saveCocktailToAPI = async (cocktail: Cocktail): Promise<void> => {
+  try {
+    const response = await fetch("/api/cocktails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "save", cocktail }),
+    })
+    if (!response.ok) {
+      throw new Error("Failed to save cocktail")
+    }
+    console.log(`[v0] Saved cocktail to API: ${cocktail.name}`)
+  } catch (error) {
+    console.error("[v0] Error saving cocktail to API:", error)
+  }
+}
+
+const deleteCocktailFromAPI = async (cocktailId: string): Promise<void> => {
+  try {
+    const response = await fetch("/api/cocktails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", cocktailId }),
+    })
+    if (!response.ok) {
+      throw new Error("Failed to delete cocktail")
+    }
+    console.log(`[v0] Deleted cocktail from API: ${cocktailId}`)
+  } catch (error) {
+    console.error("[v0] Error deleting cocktail from API:", error)
+  }
+}
+
 export const getAllCocktails = async (): Promise<Cocktail[]> => {
   return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log("Fetching all cocktails (simulated)")
-      const deletedIds = getDeletedCocktailIds()
-
-      // Immer von den ursprünglichen defaultCocktails ausgehen und gelöschte herausfiltern
-      const filteredCocktails = defaultCocktails
-        .filter((cocktail) => !deletedIds.includes(cocktail.id))
-        .map((cocktail) => ({
-          ...cocktail,
-          recipe: cocktail.recipe.map((item) => ({
-            ...item,
-            type: (item as any).type || "automatic",
-            instruction: (item as any).instruction || "",
-          })),
-        }))
-
-      // Aktualisiere auch currentCocktails für Konsistenz
-      currentCocktails = filteredCocktails
-
-      resolve(filteredCocktails)
+    setTimeout(async () => {
+      console.log("Fetching all cocktails from API")
+      const cocktails = await getAllCocktailsFromAPI()
+      currentCocktails = cocktails
+      resolve(cocktails)
     }, 500)
   })
 }
@@ -140,14 +150,17 @@ export const getPumpConfig = async (): Promise<PumpConfig[]> => {
 
 export const saveRecipe = async (cocktail: Cocktail): Promise<void> => {
   return new Promise((resolve) => {
-    setTimeout(() => {
+    setTimeout(async () => {
+      await saveCocktailToAPI(cocktail)
+
+      // Aktualisiere auch die lokale Liste
       const index = currentCocktails.findIndex((c) => c.id === cocktail.id)
       if (index > -1) {
         currentCocktails[index] = cocktail
-        console.log(`Cocktail "${cocktail.name}" updated (simulated)`)
+        console.log(`Cocktail "${cocktail.name}" updated locally`)
       } else {
         currentCocktails.push(cocktail)
-        console.log(`Cocktail "${cocktail.name}" added (simulated)`)
+        console.log(`Cocktail "${cocktail.name}" added locally`)
       }
       resolve()
     }, 500)
@@ -156,16 +169,12 @@ export const saveRecipe = async (cocktail: Cocktail): Promise<void> => {
 
 export const deleteRecipe = async (cocktailId: string): Promise<void> => {
   return new Promise((resolve) => {
-    setTimeout(() => {
-      const deletedIds = getDeletedCocktailIds()
-      if (!deletedIds.includes(cocktailId)) {
-        deletedIds.push(cocktailId)
-        saveDeletedCocktailIds(deletedIds)
-      }
+    setTimeout(async () => {
+      await deleteCocktailFromAPI(cocktailId)
 
-      // Entferne auch aus der aktuellen Liste
+      // Entferne auch aus der lokalen Liste
       currentCocktails = currentCocktails.filter((c) => c.id !== cocktailId)
-      console.log(`Cocktail with ID "${cocktailId}" deleted permanently (simulated)`)
+      console.log(`Cocktail with ID "${cocktailId}" deleted locally`)
       resolve()
     }, 300)
   })
