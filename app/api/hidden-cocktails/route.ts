@@ -3,19 +3,9 @@ import { type NextRequest, NextResponse } from "next/server"
 export const dynamic = "force-dynamic"
 
 let hiddenCocktailsCache: string[] = []
-let isInitialized = false
-
-const initializeHiddenCocktails = (): void => {
-  if (!isInitialized) {
-    hiddenCocktailsCache = []
-    isInitialized = true
-    console.log("[v0] Hidden Cocktails initialisiert mit", hiddenCocktailsCache.length, "versteckten Cocktails")
-  }
-}
 
 export async function GET() {
   try {
-    initializeHiddenCocktails()
     console.log("[v0] Hidden cocktails GET request, returning cache:", hiddenCocktailsCache)
     return NextResponse.json({ hiddenCocktails: hiddenCocktailsCache })
   } catch (error) {
@@ -31,10 +21,7 @@ export async function POST(request: NextRequest) {
 
     hiddenCocktailsCache = hiddenCocktails || []
 
-    return NextResponse.json({
-      success: true,
-      hiddenCocktails: hiddenCocktailsCache,
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error saving hidden cocktails:", error)
     return NextResponse.json({ error: "Failed to save hidden cocktails" }, { status: 500 })

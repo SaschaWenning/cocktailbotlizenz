@@ -7,48 +7,48 @@ import { initialIngredientLevels } from "@/data/ingredient-levels"
 let ingredientLevels: IngredientLevel[] = []
 let isInitialized = false
 
-async function ensureInitialized(): Promise<void> {
-  if (!isInitialized) {
-    try {
-      const response = await fetch("/api/ingredient-levels", {
-        method: "GET",
-        cache: "no-store",
-      })
-      if (response.ok) {
-        ingredientLevels = await response.json()
-        console.log("[v0] Verwende gecachte Füllstände:", ingredientLevels.length)
-      }
-    } catch (error) {
-      console.log("[v0] Keine gespeicherten Daten gefunden, starte mit leerem Array")
-      ingredientLevels = []
-    }
-    isInitialized = true
-  }
-}
-
-export async function loadIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
+// Lade Ingredient Levels von der API
+async function loadIngredientLevelsFromAPI(): Promise<IngredientLevel[]> {
   try {
-    console.log("[v0] 🔄 Lade Füllstände aus localStorage...")
-
     const response = await fetch("/api/ingredient-levels", {
       method: "GET",
       cache: "no-store",
     })
-
     if (response.ok) {
       const levels = await response.json()
-      console.log("[v0] ✅ Füllstände erfolgreich geladen:", levels.length)
-
-      ingredientLevels = levels
-      isInitialized = true
-
+      console.log("[v0] Loaded ingredient levels from API:", levels.length)
       return levels
-    } else {
-      throw new Error("Fehler beim Laden der Daten")
     }
   } catch (error) {
-    console.error("[v0] ❌ Fehler beim manuellen Laden:", error)
-    throw new Error("Fehler beim manuellen Laden!")
+    console.error("[v0] Error loading ingredient levels from API:", error)
+  }
+
+  console.log("[v0] API nicht verfügbar - verwende leeres Array")
+  return []
+}
+
+// Speichere Ingredient Levels in der API
+async function saveIngredientLevelsToAPI(levels: IngredientLevel[]): Promise<void> {
+  try {
+    const response = await fetch("/api/ingredient-levels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(levels),
+    })
+    if (!response.ok) {
+      throw new Error("Failed to save ingredient levels")
+    }
+    console.log("[v0] Saved ingredient levels to API:", levels.length)
+  } catch (error) {
+    console.error("[v0] Error saving ingredient levels to API:", error)
+  }
+}
+
+// Initialisiere das System beim ersten Aufruf
+async function ensureInitialized(): Promise<void> {
+  if (!isInitialized) {
+    ingredientLevels = await loadIngredientLevelsFromAPI()
+    isInitialized = true
   }
 }
 
@@ -77,29 +77,22 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
 
       const newLevel: IngredientLevel = {
         ingredientId,
-        currentAmount: 0,
-        capacity: defaultCapacity,
+        currentAmount: 0, // Keine Standardwerte mehr - alles muss manuell eingegeben werden
+        capacity: defaultCapacity, // Zutatenspezifische Kapazität
         lastRefill: new Date(),
       }
       ingredientLevels.push(newLevel)
       hasChanges = true
-      console.log(`[v0] Neue Zutat initialisiert: ${ingredientId} (Kapazität: ${defaultCapacity}ml)`)
+      console.log(
+        `[v0] Neue Zutat initialisiert: ${ingredientId} (Kapazität: ${defaultCapacity}ml - Füllstand: 0ml - manuell eingeben erforderlich)`,
+      )
     }
   }
 
   if (hasChanges) {
-    try {
-      await fetch("/api/ingredient-levels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(ingredientLevels),
-      })
-    } catch (error) {
-      console.error("[v0] Fehler beim Speichern:", error)
-    }
+    await saveIngredientLevelsToAPI(ingredientLevels)
   }
 
-  console.log("[v0] Returning ingredient levels:", ingredientLevels.length)
   return ingredientLevels
 }
 
@@ -375,20 +368,4 @@ export async function initializeNewIngredientLevel(ingredientId: string, capacit
   ingredientLevels.push(newLevel)
   await saveIngredientLevelsToAPI(ingredientLevels)
   return newLevel
-}
-
-async function saveIngredientLevelsToAPI(levels: IngredientLevel[]): Promise<void> {
-  try {
-    const response = await fetch("/api/ingredient-levels", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(levels),
-    })
-    if (!response.ok) {
-      throw new Error("Failed to save ingredient levels")
-    }
-    console.log("[v0] Saved ingredient levels to API:", levels.length)
-  } catch (error) {
-    console.error("[v0] Error saving ingredient levels to API:", error)
-  }
 }

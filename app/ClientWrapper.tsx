@@ -73,38 +73,5 @@ export default function ClientWrapper({
     }
   }, [])
 
-  useEffect(() => {
-    const handleRouteChange = () => {
-      const activeTab = document.body.getAttribute("data-active-tab")
-      const cocktailTabs = ["cocktails", "alkoholfrei", "shots", "longdrinks", "cocktails-mit-alkohol"]
-
-      if (activeTab && cocktailTabs.includes(activeTab)) {
-        setTimeout(() => {
-          window.scrollTo({ top: 0, left: 0, behavior: "instant" })
-        }, 0)
-      }
-    }
-
-    window.addEventListener("popstate", handleRouteChange)
-    window.addEventListener("hashchange", handleRouteChange)
-
-    const observer = new MutationObserver(() => {
-      handleRouteChange()
-    })
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["data-active-tab"],
-    })
-
-    return () => {
-      window.removeEventListener("popstate", handleRouteChange)
-      window.removeEventListener("hashchange", handleRouteChange)
-      observer.disconnect()
-    }
-  }, [])
-
   return <>{children}</>
 }

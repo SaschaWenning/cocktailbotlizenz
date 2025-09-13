@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { type AppConfig, defaultTabConfig } from "@/lib/tab-config"
+import { promises as fs } from "fs"
+import path from "path"
 
 export const dynamic = "force-dynamic"
 
-let configCache: AppConfig | null = null
-let isInitialized = false
+const CONFIG_FILE_PATH = path.join(process.cwd(), "data", "tab-config.json")
 
 function validateAndUpdateConfig(storedConfig: AppConfig): AppConfig {
   const requiredTabIds = defaultTabConfig.tabs.map((tab) => tab.id)
@@ -60,44 +61,56 @@ function saveLocalStorageConfig(config: AppConfig): void {
   }
 }
 
-// Initialisierung nur einmal durchführen
-function initializeConfig(): AppConfig {
-  if (!isInitialized) {
+async function getStoredConfig(): Promise<AppConfig> {
+  try {
+    // Stelle sicher, dass das data-Verzeichnis existiert
+    const dataDir = path.dirname(CONFIG_FILE_PATH)
+    await fs.mkdir(dataDir, { recursive: true })
+
+    const data = await fs.readFile(CONFIG_FILE_PATH, "utf-8")
+    const parsedConfig = JSON.parse(data)
+    console.log("[v0] Tab config loaded from file:", parsedConfig)
+    return validateAndUpdateConfig(parsedConfig)
+  } catch (error) {
+    console.log("[v0] No existing tab config file found, trying localStorage fallback")
+
     const localStorageConfig = getLocalStorageConfig()
     if (localStorageConfig) {
-      configCache = localStorageConfig
-      console.log("[v0] Tab config initialized from localStorage")
-    } else {
-      configCache = defaultTabConfig
-      saveLocalStorageConfig(defaultTabConfig)
-      console.log("[v0] Tab config initialized with default values")
+      // Speichere die localStorage-Konfiguration auch in der Datei
+      try {
+        await saveStoredConfig(localStorageConfig)
+      } catch (fileError) {
+        console.log("[v0] Could not save to file, continuing with localStorage config")
+      }
+      return localStorageConfig
     }
-    isInitialized = true
-  }
-  return configCache!
-}
 
-async function getStoredConfig(): Promise<AppConfig> {
-  // Verwende den Cache wenn bereits initialisiert
-  if (configCache) {
-    console.log("[v0] Returning cached tab config")
-    return configCache
+    console.log("[v0] Using default config")
+    // Speichere die Standard-Konfiguration
+    await saveStoredConfig(defaultTabConfig)
+    return defaultTabConfig
   }
-
-  return initializeConfig()
 }
 
 async function saveStoredConfig(config: AppConfig): Promise<void> {
   try {
-    // Aktualisiere den Cache
-    configCache = config
+    // Stelle sicher, dass das data-Verzeichnis existiert
+    const dataDir = path.dirname(CONFIG_FILE_PATH)
+    await fs.mkdir(dataDir, { recursive: true })
 
-    // Speichere in localStorage
+    await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2))
+    console.log("[v0] Tab config saved to file:", CONFIG_FILE_PATH)
+
     saveLocalStorageConfig(config)
-    console.log("[v0] Tab config saved successfully")
   } catch (error) {
-    console.error("[v0] Error saving tab config:", error)
-    throw error
+    console.error("[v0] Error saving tab config to file:", error)
+    try {
+      saveLocalStorageConfig(config)
+      console.log("[v0] Fallback: Tab config saved to localStorage")
+    } catch (localStorageError) {
+      console.error("[v0] Error saving to localStorage fallback:", localStorageError)
+      throw error
+    }
   }
 }
 
@@ -122,7 +135,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("[v0] Error saving tab config:", error)
-    return NextResponse.json({ error: "Failed to save tab config" }, { status: 500 })
+    try {
+      const config: AppConfig = await request.json()
+      saveLocalStorageConfig(config)
+      console.log("[v0] Fallback: Tab config saved to localStorage")
+      return NextResponse.json({ success: true })
+    } catch (fallbackError) {
+      console.error("[v0] Fallback also failed:", fallbackError)
+      return NextResponse.json({ error: "Failed to save tab config" }, { status: 500 })
+    }
   }
 }
 

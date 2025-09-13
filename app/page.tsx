@@ -129,30 +129,11 @@ export default function Home() {
     const cocktails = await getAllCocktails()
     console.log("[v0] Loaded cocktails from getAllCocktails:", cocktails.length)
 
+    // Load hidden cocktails from API instead of localStorage
     try {
-      let hiddenCocktails: string[] = []
-
-      // Erst aus localStorage laden
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("hidden-cocktails")
-        if (stored) {
-          hiddenCocktails = JSON.parse(stored)
-          console.log("[v0] Hidden cocktails aus localStorage:", hiddenCocktails)
-        }
-      }
-
-      // Dann API aktualisieren
-      const response = await fetch("/api/hidden-cocktails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hiddenCocktails }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        hiddenCocktails = data.hiddenCocktails || []
-      }
-
+      const response = await fetch("/api/hidden-cocktails")
+      const data = await response.json()
+      const hiddenCocktails: string[] = data.hiddenCocktails || []
       console.log("[v0] Hidden cocktails from API:", hiddenCocktails)
 
       const visibleCocktails = cocktails.filter((cocktail) => !hiddenCocktails.includes(cocktail.id))
@@ -336,23 +317,15 @@ export default function Home() {
     try {
       console.log("[v0] Deleting/hiding cocktail:", cocktailToDelete.id)
 
-      let hiddenCocktails: string[] = []
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("hidden-cocktails")
-        if (stored) {
-          hiddenCocktails = JSON.parse(stored)
-        }
-      }
-
+      // Get current hidden cocktails from API
+      const response = await fetch("/api/hidden-cocktails")
+      const data = await response.json()
+      const hiddenCocktails: string[] = data.hiddenCocktails || []
       console.log("[v0] Current hidden cocktails before adding:", hiddenCocktails)
 
       // Add cocktail ID to hidden list if not already there
       if (!hiddenCocktails.includes(cocktailToDelete.id)) {
         hiddenCocktails.push(cocktailToDelete.id)
-
-        if (typeof window !== "undefined") {
-          localStorage.setItem("hidden-cocktails", JSON.stringify(hiddenCocktails))
-        }
 
         // Save updated list to API
         await fetch("/api/hidden-cocktails", {
