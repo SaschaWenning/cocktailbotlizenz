@@ -49,6 +49,7 @@ async function ensureInitialized(): Promise<void> {
   if (!isInitialized) {
     ingredientLevels = await loadIngredientLevelsFromAPI()
     isInitialized = true
+    console.log("[v0] System initialisiert mit", ingredientLevels.length, "gespeicherten Füllständen")
   }
 }
 
@@ -73,15 +74,19 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
     const existingIndex = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
     if (existingIndex === -1) {
+      const defaultCapacity = getDefaultCapacityForIngredient(ingredientId)
+
       const newLevel: IngredientLevel = {
         ingredientId,
         currentAmount: 0, // Keine Standardwerte mehr - alles muss manuell eingegeben werden
-        capacity: 1000, // Standard-Kapazität bleibt
+        capacity: defaultCapacity, // Zutatenspezifische Kapazität
         lastRefill: new Date(),
       }
       ingredientLevels.push(newLevel)
       hasChanges = true
-      console.log(`[v0] Neue Zutat initialisiert: ${ingredientId} (Füllstand: 0ml - manuell eingeben erforderlich)`)
+      console.log(
+        `[v0] Neue Zutat initialisiert: ${ingredientId} (Kapazität: ${defaultCapacity}ml - Füllstand: 0ml - manuell eingeben erforderlich)`,
+      )
     }
   }
 
@@ -90,6 +95,27 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
   }
 
   return ingredientLevels
+}
+
+export async function loadIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
+  try {
+    const response = await fetch("/api/load-from-file", {
+      method: "GET",
+      cache: "no-store",
+    })
+    if (response.ok) {
+      const levels = await response.json()
+      console.log("[v0] Daten aus Datei geladen:", levels.length)
+      ingredientLevels = levels
+      isInitialized = true
+      return levels
+    } else {
+      throw new Error("Fehler beim Laden der Datei")
+    }
+  } catch (error) {
+    console.error("[v0] Error loading from file:", error)
+    throw error
+  }
 }
 
 // Füllstand für eine bestimmte Zutat aktualisieren
@@ -306,8 +332,43 @@ export async function resetIngredientLevels(): Promise<IngredientLevel[]> {
   return ingredientLevels
 }
 
-// Füge eine Funktion hinzu, um Füllstände für neu angeschlossene Zutaten zu initialisieren
-export async function initializeNewIngredientLevel(ingredientId: string, capacity = 1000): Promise<IngredientLevel> {
+function getDefaultCapacityForIngredient(ingredientId: string): number {
+  // Alkoholische Getränke - 700ml Standard
+  const alcoholicIngredients = [
+    "vodka",
+    "dark-rum",
+    "malibu",
+    "peach-liqueur",
+    "tequila",
+    "triple-sec",
+    "blue-curacao",
+    "gin",
+  ]
+
+  // Säfte und Sirupe - 1000ml Standard
+  const juicesAndSyrups = [
+    "lime-juice",
+    "orange-juice",
+    "pineapple-juice",
+    "passion-fruit-juice",
+    "cranberry-juice",
+    "lemon-juice",
+    "grenadine",
+    "vanilla-syrup",
+    "almond-syrup",
+    "coconut-syrup",
+  ]
+
+  if (alcoholicIngredients.includes(ingredientId)) {
+    return 700 // Alkohol: 700ml
+  } else if (juicesAndSyrups.includes(ingredientId)) {
+    return 1000 // Säfte/Sirupe: 1000ml
+  } else {
+    return 1000 // Standard für unbekannte Zutaten
+  }
+}
+
+export async function initializeNewIngredientLevel(ingredientId: string, capacity?: number): Promise<IngredientLevel> {
   await ensureInitialized()
 
   // Prüfe, ob bereits ein Füllstand für diese Zutat existiert
@@ -317,11 +378,12 @@ export async function initializeNewIngredientLevel(ingredientId: string, capacit
     return ingredientLevels[existingIndex]
   }
 
-  // Keine Standardwerte - neue Zutaten starten mit 0ml
+  const defaultCapacity = capacity ?? getDefaultCapacityForIngredient(ingredientId)
+
   const newLevel: IngredientLevel = {
     ingredientId,
     currentAmount: 0, // Keine Standardwerte - muss manuell eingegeben werden
-    capacity, // Verwende übergebene Kapazität
+    capacity: defaultCapacity, // Verwende zutatenspezifische Kapazität
     lastRefill: new Date(),
   }
 
