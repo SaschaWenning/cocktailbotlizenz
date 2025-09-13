@@ -75,17 +75,32 @@ export default function ClientWrapper({
 
   useEffect(() => {
     const handleRouteChange = () => {
-      window.scrollTo(0, 0)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+      }, 0)
     }
 
     // Scroll bei jedem Render nach oben
-    window.scrollTo(0, 0)
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
 
-    // Event-Listener für Seitenwechsel
     window.addEventListener("popstate", handleRouteChange)
+    window.addEventListener("hashchange", handleRouteChange)
+
+    const observer = new MutationObserver(() => {
+      handleRouteChange()
+    })
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-active-tab"],
+    })
 
     return () => {
       window.removeEventListener("popstate", handleRouteChange)
+      window.removeEventListener("hashchange", handleRouteChange)
+      observer.disconnect()
     }
   }, [])
 

@@ -100,20 +100,35 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
 export async function loadIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
   try {
     const response = await fetch("/api/load-from-file", {
-      method: "GET",
+      method: "POST",
       cache: "no-store",
     })
+
     if (response.ok) {
-      const levels = await response.json()
-      console.log("[v0] Daten aus Datei geladen:", levels.length)
-      ingredientLevels = levels
-      isInitialized = true
-      return levels
+      const result = await response.json()
+
+      if (result.success && result.action === "load_from_storage") {
+        // Lade Daten aus localStorage über die normale API
+        const apiResponse = await fetch("/api/ingredient-levels", {
+          method: "GET",
+          cache: "no-store",
+        })
+
+        if (apiResponse.ok) {
+          const levels = await apiResponse.json()
+          console.log("[v0] Daten aus localStorage geladen:", levels.length, "ingredients")
+          ingredientLevels = levels
+          isInitialized = true
+          return levels
+        }
+      }
+
+      throw new Error(result.message || "Fehler beim Laden der Daten")
     } else {
-      throw new Error("Fehler beim Laden der Datei")
+      throw new Error("Fehler beim Laden der Daten")
     }
   } catch (error) {
-    console.error("[v0] Error loading from file:", error)
+    console.error("[v0] Error loading from storage:", error)
     throw error
   }
 }

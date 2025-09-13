@@ -7,7 +7,6 @@ let isInitialized = false
 
 const initializeHiddenCocktails = (): void => {
   if (!isInitialized) {
-    // Starte mit leerem Cache - wird durch manuelle Lade-Funktion gefüllt
     hiddenCocktailsCache = []
     isInitialized = true
     console.log("[v0] Hidden Cocktails initialisiert mit", hiddenCocktailsCache.length, "versteckten Cocktails")
@@ -32,10 +31,10 @@ export async function POST(request: NextRequest) {
 
     hiddenCocktailsCache = hiddenCocktails || []
 
-    const response = NextResponse.json({ success: true })
-    response.headers.set("Set-Cookie", `hidden-cocktails=${JSON.stringify(hiddenCocktailsCache)}; Path=/; HttpOnly`)
-
-    return response
+    return NextResponse.json({
+      success: true,
+      hiddenCocktails: hiddenCocktailsCache,
+    })
   } catch (error) {
     console.error("Error saving hidden cocktails:", error)
     return NextResponse.json({ error: "Failed to save hidden cocktails" }, { status: 500 })
