@@ -16,7 +16,6 @@ import {
   refillAllIngredients,
   updateIngredientLevel,
   updateIngredientCapacity,
-  loadIngredientLevelsFromFile, // Import der neuen Lade-Funktion
 } from "@/lib/ingredient-level-service"
 import type { PumpConfig } from "@/types/pump-config"
 import { getAllIngredients } from "@/lib/ingredients"
@@ -212,18 +211,43 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     try {
       console.log("[v0] Starting manual load from file...")
 
-      const loadedLevels = await loadIngredientLevelsFromFile()
+      // Sende an manuelle Lade-API
+      const response = await fetch("/api/load-from-file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
 
-      // Aktualisiere lokalen State
-      setLevels(loadedLevels)
+      const result = await response.json()
 
-      // Zeige Erfolg an
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
+      if (result.success && result.data) {
+        console.log("[v0] ✅ Manuelle Ladung erfolgreich:", Object.keys(result.data).length, "ingredients")
 
-      if (onLevelsUpdated) onLevelsUpdated()
+        // Konvertiere geladene Daten zu IngredientLevel Format
+        const loadedLevels: IngredientLevel[] = Object.entries(result.data).map(
+          ([ingredientId, data]: [string, any]) => ({
+            ingredientId,
+            currentAmount: data.currentAmount || 0,
+            capacity: data.capacity || 1000,
+            lastRefill: new Date(data.lastRefill || new Date()),
+          }),
+        )
 
-      alert(`✅ Daten erfolgreich geladen!\nAnzahl: ${loadedLevels.length} Zutaten`)
+        // Aktualisiere lokalen State
+        setLevels(loadedLevels)
+
+        // Zeige Erfolg an
+        setShowSuccess(true)
+        setTimeout(() => setShowSuccess(false), 3000)
+
+        if (onLevelsUpdated) onLevelsUpdated()
+
+        alert(`✅ Daten erfolgreich geladen!\nPfad: ${result.path}\nAnzahl: ${loadedLevels.length} Zutaten`)
+      } else {
+        console.log("[v0] ❌ Manuelle Ladung fehlgeschlagen:", result.message)
+        alert(`❌ Laden fehlgeschlagen:\n${result.message}`)
+      }
     } catch (error) {
       console.error("[v0] Error in manual load:", error)
       alert("❌ Fehler beim manuellen Laden!")
