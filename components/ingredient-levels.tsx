@@ -224,18 +224,29 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
       if (result.success && result.data) {
         console.log("[v0] ✅ Manuelle Ladung erfolgreich:", Object.keys(result.data).length, "ingredients")
 
-        // Konvertiere geladene Daten zu IngredientLevel Format
         const loadedLevels: IngredientLevel[] = Object.entries(result.data).map(
           ([ingredientId, data]: [string, any]) => ({
             ingredientId,
             currentAmount: data.currentAmount || 0,
-            capacity: data.capacity || 1000,
+            capacity: data.capacity || 0, // Verwende 0 statt 1000 als Standard
             lastRefill: new Date(data.lastRefill || new Date()),
           }),
         )
 
-        // Aktualisiere lokalen State
-        setLevels(loadedLevels)
+        setLevels((prevLevels) => {
+          const updatedLevels = [...prevLevels]
+
+          loadedLevels.forEach((loadedLevel) => {
+            const existingIndex = updatedLevels.findIndex((level) => level.ingredientId === loadedLevel.ingredientId)
+            if (existingIndex >= 0) {
+              updatedLevels[existingIndex] = loadedLevel
+            } else {
+              updatedLevels.push(loadedLevel)
+            }
+          })
+
+          return updatedLevels
+        })
 
         // Zeige Erfolg an
         setShowSuccess(true)
@@ -328,9 +339,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     return false
   })
 
-  const lowLevelsCount = levels.filter(
-    (level) => level.currentAmount < 100 && connectedIngredientIds.includes(level.ingredientId),
-  ).length
+  const lowLevelsCount = sortedLevels.filter((level) => level.currentAmount < 100).length
 
   const openKeyboard = (ingredientId: string, type: "capacity" | "fill", currentValue: number) => {
     setEditingIngredient(ingredientId)
