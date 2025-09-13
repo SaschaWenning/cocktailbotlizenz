@@ -2,11 +2,72 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
 
+const HIDDEN_COCKTAILS_FILE = "/home/pi/cocktailbot/cocktailbot-main/data/hidden-cocktails.json"
+
 let hiddenCocktailsCache: string[] = []
+let isInitialized = false
+
+async function initializeHiddenCocktails() {
+  if (isInitialized) return
+
+  try {
+    // Try to use require() for better compatibility
+    const fs = require("fs/promises")
+    console.log("[v0] Versuche Hidden Cocktails aus Datei zu laden:", HIDDEN_COCKTAILS_FILE)
+
+    const data = await fs.readFile(HIDDEN_COCKTAILS_FILE, "utf8")
+    const parsed = JSON.parse(data)
+    hiddenCocktailsCache = parsed.hiddenCocktails || []
+    console.log("[v0] Hidden Cocktails aus Datei geladen:", hiddenCocktailsCache.length)
+  } catch (error) {
+    console.log("[v0] Dateisystem nicht verfügbar für Hidden Cocktails:", error.message)
+
+    // Fallback to localStorage (for v0 preview)
+    if (typeof localStorage !== "undefined") {
+      try {
+        const stored = localStorage.getItem("hidden-cocktails")
+        if (stored) {
+          hiddenCocktailsCache = JSON.parse(stored)
+          console.log("[v0] Hidden Cocktails aus localStorage geladen:", hiddenCocktailsCache.length)
+        }
+      } catch (e) {
+        console.log("[v0] Fehler beim Laden aus localStorage:", e.message)
+      }
+    }
+  }
+
+  isInitialized = true
+}
+
+async function saveHiddenCocktails(hiddenCocktails: string[]) {
+  // Update cache
+  hiddenCocktailsCache = hiddenCocktails
+
+  try {
+    // Try to save to file
+    const fs = require("fs/promises")
+    const data = { hiddenCocktails }
+    await fs.writeFile(HIDDEN_COCKTAILS_FILE, JSON.stringify(data, null, 2))
+    console.log("[v0] Hidden Cocktails in Datei gespeichert:", hiddenCocktails.length)
+  } catch (error) {
+    console.log("[v0] Dateisystem nicht verfügbar, verwende nur localStorage")
+  }
+
+  // Always save to localStorage as fallback
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem("hidden-cocktails", JSON.stringify(hiddenCocktails))
+      console.log("[v0] Hidden Cocktails auch in localStorage gespeichert")
+    } catch (e) {
+      console.log("[v0] Fehler beim Speichern in localStorage:", e.message)
+    }
+  }
+}
 
 export async function GET() {
   try {
-    console.log("[v0] Hidden cocktails GET request, returning cache:", hiddenCocktailsCache)
+    await initializeHiddenCocktails()
+    console.log("[v0] Hidden cocktails GET request, returning cache:", hiddenCocktailsCache.length)
     return NextResponse.json({ hiddenCocktails: hiddenCocktailsCache })
   } catch (error) {
     console.error("Error reading hidden cocktails:", error)
@@ -17,9 +78,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const { hiddenCocktails } = await request.json()
-    console.log("[v0] Hidden cocktails POST request, saving:", hiddenCocktails)
+    console.log("[v0] Hidden cocktails POST request, saving:", hiddenCocktails?.length || 0)
 
-    hiddenCocktailsCache = hiddenCocktails || []
+    await saveHiddenCocktails(hiddenCocktails || [])
 
     return NextResponse.json({ success: true })
   } catch (error) {

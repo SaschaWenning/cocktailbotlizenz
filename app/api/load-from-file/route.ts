@@ -37,9 +37,22 @@ export async function POST() {
 
       console.log("[v0] ✅ Successfully loaded data from file:", Object.keys(data).length, "ingredients")
 
+      const { setIngredientLevels, resetCache } = await import("@/lib/ingredient-level-service")
+
+      // Konvertiere die Daten in das richtige Format
+      const levels = Object.entries(data).map(([ingredientId, levelData]: [string, any]) => ({
+        ingredientId,
+        currentAmount: levelData.currentAmount || 0,
+        capacity: levelData.capacity || 1000,
+        lastRefill: new Date(levelData.lastRefill || new Date()),
+      }))
+
+      // Setze die Füllstände direkt im Service
+      await setIngredientLevels(levels)
+
       return NextResponse.json({
         success: true,
-        message: "Daten erfolgreich aus Datei geladen",
+        message: "Daten erfolgreich aus Datei geladen und Cache aktualisiert",
         data: data,
         path: filePath,
       })
