@@ -5,7 +5,6 @@ import type { Cocktail } from "@/types/cocktail"
 import { initialIngredientLevels } from "@/data/ingredient-levels"
 
 let ingredientLevels: IngredientLevel[] = []
-let isInitialized = false
 
 // Lade Ingredient Levels von der API
 async function loadIngredientLevelsFromAPI(): Promise<IngredientLevel[]> {
@@ -44,12 +43,9 @@ async function saveIngredientLevelsToAPI(levels: IngredientLevel[]): Promise<voi
   }
 }
 
-// Initialisiere das System beim ersten Aufruf
 async function ensureInitialized(): Promise<void> {
-  if (!isInitialized) {
-    ingredientLevels = await loadIngredientLevelsFromAPI()
-    isInitialized = true
-  }
+  // Lade immer von der API, da Server-State nicht persistiert wird
+  ingredientLevels = await loadIngredientLevelsFromAPI()
 }
 
 // Füllstände abrufen und automatisch neue Zutaten initialisieren
