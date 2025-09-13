@@ -4,8 +4,6 @@ import type { IngredientLevel } from "@/types/ingredient-level"
 import type { Cocktail } from "@/types/cocktail"
 import { initialIngredientLevels } from "@/data/ingredient-levels"
 
-let ingredientLevels: IngredientLevel[] = []
-
 // Lade Ingredient Levels von der API
 async function loadIngredientLevelsFromAPI(): Promise<IngredientLevel[]> {
   try {
@@ -43,14 +41,9 @@ async function saveIngredientLevelsToAPI(levels: IngredientLevel[]): Promise<voi
   }
 }
 
-async function ensureInitialized(): Promise<void> {
-  // Lade immer von der API, da Server-State nicht persistiert wird
-  ingredientLevels = await loadIngredientLevelsFromAPI()
-}
-
 // Füllstände abrufen und automatisch neue Zutaten initialisieren
 export async function getIngredientLevels(): Promise<IngredientLevel[]> {
-  await ensureInitialized()
+  const ingredientLevels = await loadIngredientLevelsFromAPI()
 
   // Hole alle Cocktails und extrahiere verwendete Zutaten
   const { getAllCocktails } = await import("@/lib/cocktail-machine")
@@ -64,9 +57,10 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
   })
 
   let hasChanges = false
+  const updatedLevels = [...ingredientLevels]
 
   for (const ingredientId of usedIngredients) {
-    const existingIndex = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
+    const existingIndex = updatedLevels.findIndex((level) => level.ingredientId === ingredientId)
 
     if (existingIndex === -1) {
       const defaultCapacity = getDefaultCapacityForIngredient(ingredientId)
@@ -77,7 +71,7 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
         capacity: defaultCapacity, // Zutatenspezifische Kapazität
         lastRefill: new Date(),
       }
-      ingredientLevels.push(newLevel)
+      updatedLevels.push(newLevel)
       hasChanges = true
       console.log(
         `[v0] Neue Zutat initialisiert: ${ingredientId} (Kapazität: ${defaultCapacity}ml - Füllstand: 0ml - manuell eingeben erforderlich)`,
@@ -86,10 +80,10 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
   }
 
   if (hasChanges) {
-    await saveIngredientLevelsToAPI(ingredientLevels)
+    await saveIngredientLevelsToAPI(updatedLevels)
   }
 
-  return ingredientLevels
+  return updatedLevels
 }
 
 // Füllstand für eine bestimmte Zutat aktualisieren
@@ -98,7 +92,7 @@ export async function updateIngredientLevel(
   newAmount: number,
   newCapacity?: number,
 ): Promise<IngredientLevel> {
-  await ensureInitialized()
+  const ingredientLevels = await loadIngredientLevelsFromAPI()
 
   const index = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
@@ -110,8 +104,8 @@ export async function updateIngredientLevel(
       capacity: newCapacity ?? Math.max(newAmount, 1000),
       lastRefill: new Date(),
     }
-    ingredientLevels.push(newLevel)
-    await saveIngredientLevelsToAPI(ingredientLevels)
+    const updatedLevels = [...ingredientLevels, newLevel]
+    await saveIngredientLevelsToAPI(updatedLevels)
     return newLevel
   }
 
@@ -140,7 +134,7 @@ export async function updateLevelsAfterCocktail(
   success: boolean
   insufficientIngredients: string[]
 }> {
-  await ensureInitialized()
+  const ingredientLevels = await loadIngredientLevelsFromAPI()
 
   // Skaliere das Rezept auf die gewünschte Größe
   const currentTotal = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
@@ -203,7 +197,7 @@ export async function updateLevelAfterShot(
 ): Promise<{
   success: boolean
 }> {
-  await ensureInitialized()
+  const ingredientLevels = await loadIngredientLevelsFromAPI()
 
   // Finde den Füllstand für diese Zutat
   const levelIndex = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
@@ -232,7 +226,7 @@ export async function updateLevelAfterShot(
 
 // Zutat nachfüllen
 export async function refillIngredient(ingredientId: string, amount: number): Promise<IngredientLevel> {
-  await ensureInitialized()
+  const ingredientLevels = await loadIngredientLevelsFromAPI()
 
   const index = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
@@ -256,21 +250,21 @@ export async function refillIngredient(ingredientId: string, amount: number): Pr
 
 // Alle Zutaten auf maximale Kapazität auffüllen
 export async function refillAllIngredients(): Promise<IngredientLevel[]> {
-  await ensureInitialized()
+  const ingredientLevels = await loadIngredientLevelsFromAPI()
 
-  ingredientLevels = ingredientLevels.map((level) => ({
+  const updatedLevels = ingredientLevels.map((level) => ({
     ...level,
     currentAmount: level.capacity,
     lastRefill: new Date(),
   }))
 
-  await saveIngredientLevelsToAPI(ingredientLevels)
-  return ingredientLevels
+  await saveIngredientLevelsToAPI(updatedLevels)
+  return updatedLevels
 }
 
 // Füllstandskapazität aktualisieren
 export async function updateIngredientCapacity(ingredientId: string, capacity: number): Promise<IngredientLevel> {
-  await ensureInitialized()
+  const ingredientLevels = await loadIngredientLevelsFromAPI()
 
   const index = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
@@ -281,8 +275,8 @@ export async function updateIngredientCapacity(ingredientId: string, capacity: n
       capacity,
       lastRefill: new Date(),
     }
-    ingredientLevels.push(newLevel)
-    await saveIngredientLevelsToAPI(ingredientLevels)
+    const updatedLevels = [...ingredientLevels, newLevel]
+    await saveIngredientLevelsToAPI(updatedLevels)
     return newLevel
   }
 
@@ -299,11 +293,9 @@ export async function updateIngredientCapacity(ingredientId: string, capacity: n
 
 // Zurücksetzen auf Initialwerte (für Testzwecke)
 export async function resetIngredientLevels(): Promise<IngredientLevel[]> {
-  await ensureInitialized()
-
-  ingredientLevels = [...initialIngredientLevels]
-  await saveIngredientLevelsToAPI(ingredientLevels)
-  return ingredientLevels
+  const updatedLevels = [...initialIngredientLevels]
+  await saveIngredientLevelsToAPI(updatedLevels)
+  return updatedLevels
 }
 
 function getDefaultCapacityForIngredient(ingredientId: string): number {
@@ -343,7 +335,7 @@ function getDefaultCapacityForIngredient(ingredientId: string): number {
 }
 
 export async function initializeNewIngredientLevel(ingredientId: string, capacity?: number): Promise<IngredientLevel> {
-  await ensureInitialized()
+  const ingredientLevels = await loadIngredientLevelsFromAPI()
 
   // Prüfe, ob bereits ein Füllstand für diese Zutat existiert
   const existingIndex = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
@@ -361,7 +353,7 @@ export async function initializeNewIngredientLevel(ingredientId: string, capacit
     lastRefill: new Date(),
   }
 
-  ingredientLevels.push(newLevel)
-  await saveIngredientLevelsToAPI(ingredientLevels)
+  const updatedLevels = [...ingredientLevels, newLevel]
+  await saveIngredientLevelsToAPI(updatedLevels)
   return newLevel
 }
