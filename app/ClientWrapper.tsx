@@ -73,5 +73,21 @@ export default function ClientWrapper({
     }
   }, [])
 
+  useEffect(() => {
+    const handleRouteChange = () => {
+      window.scrollTo(0, 0)
+    }
+
+    // Scroll bei jedem Render nach oben
+    window.scrollTo(0, 0)
+
+    // Event-Listener für Seitenwechsel
+    window.addEventListener("popstate", handleRouteChange)
+
+    return () => {
+      window.removeEventListener("popstate", handleRouteChange)
+    }
+  }, [])
+
   return <>{children}</>
 }

@@ -9,31 +9,16 @@ export async function POST() {
     let hiddenCocktails: string[] = []
 
     try {
-      const fs = require("fs")
-      const path = require("path")
-      const filePath = "/home/pi/cocktailbot/cocktailbot-main/data/hidden-cocktails-data.json"
-
-      if (fs.existsSync(filePath)) {
-        const fileContent = fs.readFileSync(filePath, "utf8")
-        const data = JSON.parse(fileContent)
-        hiddenCocktails = data.hiddenCocktails || []
-        console.log("[v0] Versteckte Cocktails aus Datei geladen:", hiddenCocktails.length)
-      } else {
-        console.log("[v0] Keine Datei für versteckte Cocktails gefunden, verwende leere Liste")
-      }
-    } catch (fsError) {
-      console.error("[v0] Dateisystem nicht verfügbar:", fsError)
-
-      // Fallback: Versuche aus localStorage zu laden
+      // Versuche aus localStorage zu laden (funktioniert nur client-seitig)
       if (typeof window !== "undefined") {
-        try {
-          const stored = localStorage.getItem("hidden-cocktails")
-          hiddenCocktails = stored ? JSON.parse(stored) : []
-          console.log("[v0] Versteckte Cocktails aus localStorage geladen:", hiddenCocktails.length)
-        } catch (storageError) {
-          console.error("[v0] Fehler beim Laden aus localStorage:", storageError)
-        }
+        const stored = localStorage.getItem("hidden-cocktails")
+        hiddenCocktails = stored ? JSON.parse(stored) : []
+        console.log("[v0] Versteckte Cocktails aus localStorage geladen:", hiddenCocktails.length)
+      } else {
+        console.log("[v0] Server-seitig - keine localStorage verfügbar")
       }
+    } catch (error) {
+      console.error("[v0] Fehler beim Laden aus localStorage:", error)
     }
 
     return NextResponse.json({
