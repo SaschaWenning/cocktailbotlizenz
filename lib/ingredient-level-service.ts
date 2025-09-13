@@ -7,49 +7,51 @@ import { initialIngredientLevels } from "@/data/ingredient-levels"
 let ingredientLevels: IngredientLevel[] = []
 let isInitialized = false
 
-// Lade Ingredient Levels von der API
-async function loadIngredientLevelsFromAPI(): Promise<IngredientLevel[]> {
+async function ensureInitialized(): Promise<void> {
+  if (!isInitialized) {
+    // Lade Daten aus der API (die localStorage verwendet)
+    try {
+      const response = await fetch("/api/ingredient-levels", {
+        method: "GET",
+        cache: "no-store",
+      })
+      if (response.ok) {
+        ingredientLevels = await response.json()
+        console.log("[v0] Verwende gecachte Füllstände:", ingredientLevels.length)
+      }
+    } catch (error) {
+      console.log("[v0] Keine gespeicherten Daten gefunden, starte mit leerem Array")
+      ingredientLevels = []
+    }
+    isInitialized = true
+  }
+}
+
+export async function loadIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
   try {
+    console.log("[v0] 🔄 Lade Füllstände aus localStorage...")
+
+    // Lade direkt aus der API, die localStorage verwendet
     const response = await fetch("/api/ingredient-levels", {
       method: "GET",
       cache: "no-store",
     })
+
     if (response.ok) {
       const levels = await response.json()
-      console.log("[v0] Loaded ingredient levels from API:", levels.length)
+      console.log("[v0] ✅ Füllstände erfolgreich geladen:", levels.length)
+
+      // Aktualisiere den internen Cache
+      ingredientLevels = levels
+      isInitialized = true
+
       return levels
+    } else {
+      throw new Error("Fehler beim Laden der Daten")
     }
   } catch (error) {
-    console.error("[v0] Error loading ingredient levels from API:", error)
-  }
-
-  console.log("[v0] API nicht verfügbar - verwende leeres Array")
-  return []
-}
-
-// Speichere Ingredient Levels in der API
-async function saveIngredientLevelsToAPI(levels: IngredientLevel[]): Promise<void> {
-  try {
-    const response = await fetch("/api/ingredient-levels", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(levels),
-    })
-    if (!response.ok) {
-      throw new Error("Failed to save ingredient levels")
-    }
-    console.log("[v0] Saved ingredient levels to API:", levels.length)
-  } catch (error) {
-    console.error("[v0] Error saving ingredient levels to API:", error)
-  }
-}
-
-// Initialisiere das System beim ersten Aufruf
-async function ensureInitialized(): Promise<void> {
-  if (!isInitialized) {
-    ingredientLevels = await loadIngredientLevelsFromAPI()
-    isInitialized = true
-    console.log("[v0] System initialisiert mit", ingredientLevels.length, "gespeicherten Füllständen")
+    console.error("[v0] ❌ Fehler beim manuellen Laden:", error)
+    throw new Error("Fehler beim manuellen Laden!")
   }
 }
 
@@ -78,59 +80,30 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
 
       const newLevel: IngredientLevel = {
         ingredientId,
-        currentAmount: 0, // Keine Standardwerte mehr - alles muss manuell eingegeben werden
-        capacity: defaultCapacity, // Zutatenspezifische Kapazität
+        currentAmount: 0,
+        capacity: defaultCapacity,
         lastRefill: new Date(),
       }
       ingredientLevels.push(newLevel)
       hasChanges = true
-      console.log(
-        `[v0] Neue Zutat initialisiert: ${ingredientId} (Kapazität: ${defaultCapacity}ml - Füllstand: 0ml - manuell eingeben erforderlich)`,
-      )
+      console.log(`[v0] Neue Zutat initialisiert: ${ingredientId} (Kapazität: ${defaultCapacity}ml)`)
     }
   }
 
   if (hasChanges) {
-    await saveIngredientLevelsToAPI(ingredientLevels)
-  }
-
-  return ingredientLevels
-}
-
-export async function loadIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
-  try {
-    const response = await fetch("/api/load-from-file", {
-      method: "POST",
-      cache: "no-store",
-    })
-
-    if (response.ok) {
-      const result = await response.json()
-
-      if (result.success && result.action === "load_from_storage") {
-        // Lade Daten aus localStorage über die normale API
-        const apiResponse = await fetch("/api/ingredient-levels", {
-          method: "GET",
-          cache: "no-store",
-        })
-
-        if (apiResponse.ok) {
-          const levels = await apiResponse.json()
-          console.log("[v0] Daten aus localStorage geladen:", levels.length, "ingredients")
-          ingredientLevels = levels
-          isInitialized = true
-          return levels
-        }
-      }
-
-      throw new Error(result.message || "Fehler beim Laden der Daten")
-    } else {
-      throw new Error("Fehler beim Laden der Daten")
+    try {
+      await fetch("/api/ingredient-levels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ingredientLevels),
+      })
+    } catch (error) {
+      console.error("[v0] Fehler beim Speichern:", error)
     }
-  } catch (error) {
-    console.error("[v0] Error loading from storage:", error)
-    throw error
   }
+
+  console.log("[v0] Returning ingredient levels:", ingredientLevels.length)
+  return ingredientLevels
 }
 
 // Füllstand für eine bestimmte Zutat aktualisieren
@@ -405,4 +378,20 @@ export async function initializeNewIngredientLevel(ingredientId: string, capacit
   ingredientLevels.push(newLevel)
   await saveIngredientLevelsToAPI(ingredientLevels)
   return newLevel
+}
+
+async function saveIngredientLevelsToAPI(levels: IngredientLevel[]): Promise<void> {
+  try {
+    const response = await fetch("/api/ingredient-levels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(levels),
+    })
+    if (!response.ok) {
+      throw new Error("Failed to save ingredient levels")
+    }
+    console.log("[v0] Saved ingredient levels to API:", levels.length)
+  } catch (error) {
+    console.error("[v0] Error saving ingredient levels to API:", error)
+  }
 }

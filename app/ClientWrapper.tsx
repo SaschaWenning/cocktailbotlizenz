@@ -75,13 +75,15 @@ export default function ClientWrapper({
 
   useEffect(() => {
     const handleRouteChange = () => {
-      setTimeout(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: "instant" })
-      }, 0)
-    }
+      const activeTab = document.body.getAttribute("data-active-tab")
+      const cocktailTabs = ["cocktails", "alkoholfrei", "shots", "longdrinks", "cocktails-mit-alkohol"]
 
-    // Scroll bei jedem Render nach oben
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+      if (activeTab && cocktailTabs.includes(activeTab)) {
+        setTimeout(() => {
+          window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+        }, 0)
+      }
+    }
 
     window.addEventListener("popstate", handleRouteChange)
     window.addEventListener("hashchange", handleRouteChange)

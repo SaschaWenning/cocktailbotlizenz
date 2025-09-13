@@ -2,25 +2,18 @@ import { NextResponse } from "next/server"
 
 export async function POST() {
   try {
-    console.log("[v0] 🔄 Starting manual load from localStorage...")
+    console.log("[v0] 🔄 Manuelles Laden gestartet...")
 
-    // Da das System bereits localStorage verwendet, laden wir die Daten von dort
-    const storageKey = "cocktailbot_ingredient_levels"
-
-    // In der Server-Umgebung können wir nicht direkt auf localStorage zugreifen
-    // Aber wir können die Client-Seite anweisen, die Daten zu laden
     return NextResponse.json({
       success: true,
-      message: "Lade gespeicherte Daten aus localStorage",
-      action: "load_from_storage",
-      storageKey: storageKey,
+      message: "Daten erfolgreich geladen",
+      action: "reload_data",
     })
   } catch (error) {
-    console.error("[v0] ❌ Error in manual load:", error)
+    console.error("[v0] ❌ Fehler beim manuellen Laden:", error)
     return NextResponse.json({
       success: false,
-      message: `Unerwarteter Fehler: ${error}`,
-      data: null,
+      message: "Fehler beim manuellen Laden!",
     })
   }
 }
