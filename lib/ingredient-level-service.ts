@@ -9,7 +9,6 @@ let isInitialized = false
 
 async function ensureInitialized(): Promise<void> {
   if (!isInitialized) {
-    // Lade Daten aus der API (die localStorage verwendet)
     try {
       const response = await fetch("/api/ingredient-levels", {
         method: "GET",
@@ -31,7 +30,6 @@ export async function loadIngredientLevelsFromFile(): Promise<IngredientLevel[]>
   try {
     console.log("[v0] 🔄 Lade Füllstände aus localStorage...")
 
-    // Lade direkt aus der API, die localStorage verwendet
     const response = await fetch("/api/ingredient-levels", {
       method: "GET",
       cache: "no-store",
@@ -41,7 +39,6 @@ export async function loadIngredientLevelsFromFile(): Promise<IngredientLevel[]>
       const levels = await response.json()
       console.log("[v0] ✅ Füllstände erfolgreich geladen:", levels.length)
 
-      // Aktualisiere den internen Cache
       ingredientLevels = levels
       isInitialized = true
 
