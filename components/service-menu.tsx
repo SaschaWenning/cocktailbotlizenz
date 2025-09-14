@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Lock, Settings } from "lucide-react"
+import { Lock, Settings, Download } from "lucide-react"
 import PumpCleaning from "@/components/pump-cleaning"
 import PumpVenting from "@/components/pump-venting"
 import PumpCalibration from "@/components/pump-calibration"
 import IngredientLevels from "@/components/ingredient-levels"
-import PasswordModal from "@/components/password-modal"
 import PasswordSettings from "@/components/password-settings"
 import { IngredientManager } from "@/components/ingredient-manager"
 import TabConfigSettings from "@/components/tab-config-settings"
@@ -15,6 +14,7 @@ import CocktailGrid from "@/components/cocktail-grid"
 import ShotSelector from "@/components/shot-selector"
 import RecipeCreator from "@/components/recipe-creator"
 import HiddenCocktailsManager from "@/components/hidden-cocktails-manager"
+import { restoreIngredientLevelsFromFile } from "@/lib/ingredient-level-service"
 import type { AppConfig } from "@/lib/tab-config"
 import type { PumpConfig } from "@/types/pump"
 import type { IngredientLevel } from "@/types/ingredient-level"
@@ -54,6 +54,7 @@ export default function ServiceMenu({
   const [activeServiceTab, setActiveServiceTab] = useState("")
   const [tabConfig, setTabConfig] = useState<AppConfig | null>(null)
   const [serviceTabs, setServiceTabs] = useState<string[]>([])
+  const [restoring, setRestoring] = useState(false)
 
   useEffect(() => {
     const loadTabConfig = async () => {
@@ -109,34 +110,16 @@ export default function ServiceMenu({
     setShowPasswordModal(true)
   }
 
-  if (!isUnlocked) {
-    return (
-      <>
-        <div className="text-center py-12">
-          <div className="bg-[hsl(var(--cocktail-card-bg))] rounded-2xl p-8 max-w-md mx-auto shadow-2xl border border-[hsl(var(--cocktail-card-border))]">
-            <Lock className="h-16 w-16 mx-auto mb-6 text-[hsl(var(--cocktail-warning))]" />
-            <h2 className="text-2xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">
-              Servicemenü ist passwortgeschützt
-            </h2>
-            <p className="text-[hsl(var(--cocktail-text-muted))] mb-6 leading-relaxed">
-              Bitte gib das Passwort ein, um das Servicemenü zu öffnen.
-            </p>
-            <Button
-              onClick={handleUnlockClick}
-              className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-3 px-6 shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              Passwort eingeben
-            </Button>
-          </div>
-        </div>
-
-        <PasswordModal
-          isOpen={showPasswordModal}
-          onClose={() => setShowPasswordModal(false)}
-          onSuccess={handlePasswordSuccess}
-        />
-      </>
-    )
+  const handleRestoreClick = async () => {
+    try {
+      setRestoring(true)
+      await restoreIngredientLevelsFromFile()
+      // optional: toast/notification „Wiederhergestellt"
+    } catch (e) {
+      console.error(e) // optional: Fehler-Toast
+    } finally {
+      setRestoring(false)
+    }
   }
 
   const renderServiceContent = () => {
@@ -210,6 +193,22 @@ export default function ServiceMenu({
         return (
           <div className="space-y-6">
             <PasswordSettings />
+            <div className="bg-[hsl(var(--cocktail-card-bg))] rounded-xl p-6 border border-[hsl(var(--cocktail-card-border))]">
+              <h3 className="text-lg font-semibold text-[hsl(var(--cocktail-text))] mb-4">
+                Füllstände wiederherstellen
+              </h3>
+              <p className="text-[hsl(var(--cocktail-text-muted))] mb-4">
+                Lade gespeicherte Füllstände aus der Datei und überschreibe die aktuellen Werte.
+              </p>
+              <Button
+                onClick={handleRestoreClick}
+                disabled={restoring}
+                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {restoring ? "Wiederherstellen..." : "Aus Datei wiederherstellen"}
+              </Button>
+            </div>
             <TabConfigSettings
               onClose={() => {
                 const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"

@@ -12,6 +12,7 @@ import {
   updateContainerSize,
   updateIngredientName,
   resetAllLevels,
+  onIngredientLevelsUpdated,
   type IngredientLevel,
 } from "@/lib/ingredient-level-service"
 
@@ -26,6 +27,8 @@ export function IngredientLevels() {
   // Load levels on component mount
   useEffect(() => {
     loadLevels()
+    const unsubscribe = onIngredientLevelsUpdated(loadLevels)
+    return unsubscribe
   }, [])
 
   const loadLevels = () => {
