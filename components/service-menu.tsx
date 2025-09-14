@@ -13,6 +13,7 @@ import TabConfigSettings from "@/components/tab-config-settings"
 import CocktailGrid from "@/components/cocktail-grid"
 import ShotSelector from "@/components/shot-selector"
 import RecipeCreator from "@/components/recipe-creator"
+import HiddenCocktailsManager from "@/components/hidden-cocktails-manager"
 import type { AppConfig } from "@/lib/tab-config"
 import type { PumpConfig } from "@/types/pump"
 import type { IngredientLevel } from "@/types/ingredient-level"
@@ -89,6 +90,7 @@ export default function ServiceMenu({
           "virgin",
           "shots",
           "recipe-creator",
+          "hidden-cocktails",
         ])
         setActiveServiceTab("levels")
       }
@@ -233,6 +235,16 @@ export default function ServiceMenu({
                 }
               }
               loadTabConfig()
+            }}
+          />
+        )
+      case "hidden-cocktails":
+      case "ausgeblendete-cocktails":
+        return (
+          <HiddenCocktailsManager
+            onClose={() => {
+              const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"
+              setActiveServiceTab(firstTab)
             }}
           />
         )

@@ -8,8 +8,20 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Cocktail } from "@/types/cocktail"
 import { getAllIngredients } from "@/lib/ingredients"
-import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, ImageIcon, Trash2, Plus, Minus, FolderOpen, ArrowLeft, X, Check, ArrowUp, Lock } from "lucide-react"
+import {
+  Loader2,
+  ImageIcon,
+  Trash2,
+  Plus,
+  Minus,
+  FolderOpen,
+  ArrowLeft,
+  X,
+  Check,
+  ArrowUp,
+  Lock,
+  EyeOff,
+} from "lucide-react"
 import FileBrowser from "./file-browser"
 import type { RecipeEditorProps } from "@/types/recipe-editor"
 
@@ -24,6 +36,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const [sizes, setSizes] = useState<number[]>([200, 300, 400])
   const [saving, setSaving] = useState(false)
   const [ingredients, setIngredients] = useState(getAllIngredients())
+  const [hidingCocktail, setHidingCocktail] = useState(false)
 
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [keyboardMode, setKeyboardMode] = useState("")
@@ -259,7 +272,23 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         }),
       }
 
-      await saveRecipe(updatedCocktail)
+      const response = await fetch("/api/save-recipe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedCocktail),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save recipe")
+      }
+
+      const result = await response.json()
+      if (!result.success) {
+        throw new Error(result.error || "Failed to save recipe")
+      }
+
       onSave(updatedCocktail)
       onClose()
     } catch (error) {
@@ -272,6 +301,42 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const handleDeleteRequest = () => {
     if (!cocktail) return
     onRequestDelete(cocktail.id)
+  }
+
+  const handleHideCocktail = async () => {
+    if (!cocktail) return
+
+    try {
+      setHidingCocktail(true)
+
+      // Get current hidden cocktails
+      const response = await fetch("/api/hidden-cocktails")
+      const data = await response.json()
+      const hiddenCocktails: string[] = data.hiddenCocktails || []
+
+      // Add cocktail to hidden list if not already there
+      if (!hiddenCocktails.includes(cocktail.id)) {
+        hiddenCocktails.push(cocktail.id)
+
+        // Update API
+        await fetch("/api/hidden-cocktails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ hiddenCocktails }),
+        })
+      }
+
+      // Close editor and trigger parent update
+      onClose()
+      // Trigger a refresh of the cocktail list
+      window.location.reload()
+    } catch (error) {
+      console.error("Fehler beim Ausblenden des Cocktails:", error)
+    } finally {
+      setHidingCocktail(false)
+    }
   }
 
   const getIngredientName = (id: string) => {
@@ -389,7 +454,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 setNewSizeInput("")
               }
             }}
-            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))] h-10"
+            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -629,10 +694,31 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
           {!showKeyboard && (
             <DialogFooter className="flex justify-between items-center">
-              <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Löschen
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="destructive" onClick={handleDeleteRequest} type="button">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Löschen
+                </Button>
+                <Button
+                  onClick={handleHideCocktail}
+                  disabled={hidingCocktail}
+                  variant="outline"
+                  className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-warning))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  type="button"
+                >
+                  {hidingCocktail ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Wird ausgeblendet...
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      Ausblenden
+                    </>
+                  )}
+                </Button>
+              </div>
               <div className="flex gap-2">
                 <Button
                   type="button"
