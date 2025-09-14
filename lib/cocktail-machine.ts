@@ -199,6 +199,8 @@ export const makeCocktail = async (
   const scaleFactor = selectedSize / totalRecipeVolume
   console.log(`[v0] Scale factor: ${scaleFactor} (${selectedSize}ml / ${totalRecipeVolume}ml)`)
 
+  const usedIngredients: { ingredientId: string; amount: number }[] = []
+
   for (const item of cocktail.recipe) {
     const ingredient = ingredients.find((i) => i.id === item.ingredientId)
     const scaledAmount = Math.round(item.amount * scaleFactor)
@@ -221,6 +223,8 @@ export const makeCocktail = async (
 
       await controlGpio(pump.pin, duration)
 
+      usedIngredients.push({ ingredientId: item.ingredientId, amount: scaledAmount })
+
       if (item.ingredientId === "grenadine") {
         console.log("[v0] Waiting 2 seconds after adding grenadine for proper layering effect...")
         await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -232,23 +236,27 @@ export const makeCocktail = async (
     }
   }
 
-  console.log(`[v0] Finished making cocktail: ${cocktail.name}`)
-}
+  try {
+    console.log(`[v0] Updating ingredient levels after cocktail preparation`)
+    const response = await fetch("/api/ingredient-levels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "updateAfterCocktail",
+        usedIngredients,
+      }),
+    })
 
-export const activatePumpForDuration = async (
-  pumpId: string,
-  durationMs: number,
-  pumpConfig: PumpConfig[],
-): Promise<void> => {
-  console.log(`[v0] Activating pump with ID: ${pumpId} for ${durationMs}ms`)
-  const pump = pumpConfig.find((p) => p.id.toString() === pumpId)
-  if (!pump) {
-    throw new Error(`Pumpe mit ID "${pumpId}" nicht gefunden.`)
+    if (!response.ok) {
+      console.error(`[v0] Failed to update ingredient levels: ${response.statusText}`)
+    } else {
+      console.log(`[v0] Ingredient levels updated successfully`)
+    }
+  } catch (error) {
+    console.error(`[v0] Error updating ingredient levels:`, error)
   }
 
-  console.log(`[v0] Found pump: ${pump.id} (GPIO ${pump.pin})`)
-  await controlGpio(pump.pin, durationMs)
-  console.log(`[v0] Pump ${pump.id} deactivated.`)
+  console.log(`[v0] Finished making cocktail: ${cocktail.name}`)
 }
 
 export const makeSingleShot = async (
@@ -267,7 +275,44 @@ export const makeSingleShot = async (
     `[v0] Shot preparation: ${amountMl}ml ${ingredientId} (Pump ${pump.id}, GPIO ${pump.pin}) for ${duration}ms`,
   )
   await controlGpio(pump.pin, duration)
+
+  try {
+    console.log(`[v0] Updating ingredient levels after shot`)
+    const response = await fetch("/api/ingredient-levels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "updateAfterCocktail",
+        usedIngredients: [{ ingredientId, amount: amountMl }],
+      }),
+    })
+
+    if (!response.ok) {
+      console.error(`[v0] Failed to update ingredient levels: ${response.statusText}`)
+    } else {
+      console.log(`[v0] Ingredient levels updated successfully`)
+    }
+  } catch (error) {
+    console.error(`[v0] Error updating ingredient levels:`, error)
+  }
+
   console.log(`[v0] Shot of ${ingredientId} completed.`)
+}
+
+export const activatePumpForDuration = async (
+  pumpId: string,
+  durationMs: number,
+  pumpConfig: PumpConfig[],
+): Promise<void> => {
+  console.log(`[v0] Activating pump with ID: ${pumpId} for ${durationMs}ms`)
+  const pump = pumpConfig.find((p) => p.id.toString() === pumpId)
+  if (!pump) {
+    throw new Error(`Pumpe mit ID "${pumpId}" nicht gefunden.`)
+  }
+
+  console.log(`[v0] Found pump: ${pump.id} (GPIO ${pump.pin})`)
+  await controlGpio(pump.pin, durationMs)
+  console.log(`[v0] Pump ${pump.id} deactivated.`)
 }
 
 export const calibratePump = async (pumpId: string, duration: number): Promise<void> => {
