@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import type { PumpConfig } from "@/types/pump"
+import { savePumpConfig, calibratePump, getPumpConfig } from "@/lib/cocktail-machine"
 import { getAllIngredients } from "@/lib/ingredients"
 import { Loader2, Beaker, Save, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -39,9 +40,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
   const loadPumpConfig = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/pump-config")
-      if (!response.ok) throw new Error("Failed to load pump config")
-      const config = await response.json()
+      const config = await getPumpConfig()
       setPumpConfig(config)
     } catch (error) {
       console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
@@ -61,13 +60,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
   const handleSave = async () => {
     setSaving(true)
     try {
-      const response = await fetch("/api/pump-config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pumpConfig),
-      })
-      if (!response.ok) throw new Error("Failed to save pump config")
-
+      await savePumpConfig(pumpConfig)
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
 
@@ -89,13 +82,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
 
     try {
       // Pumpe für genau 2 Sekunden laufen lassen
-      const response = await fetch("/api/calibrate-pump", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pumpId, duration: 2000 }),
-      })
-      if (!response.ok) throw new Error("Failed to calibrate pump")
-
+      await calibratePump(pumpId, 2000)
       setCalibrationStep("input")
       setMeasuredAmount("")
       // Öffne das Dialog-Fenster für die Eingabe
@@ -106,6 +93,29 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
     } finally {
       setCalibrating(null)
     }
+  }
+
+  const handleMeasuredAmountChange = (value: string) => {
+    // Nur Zahlen und einen Dezimalpunkt erlauben
+    if (/^\d*\.?\d*$/.test(value) || value === "") {
+      setMeasuredAmount(value)
+    }
+  }
+
+  const handleKeyPress = (key: string) => {
+    // Verhindere mehrere Dezimalpunkte
+    if (key === "." && measuredAmount.includes(".")) {
+      return
+    }
+    setMeasuredAmount((prev) => prev + key)
+  }
+
+  const handleBackspace = () => {
+    setMeasuredAmount((prev) => prev.slice(0, -1))
+  }
+
+  const handleClear = () => {
+    setMeasuredAmount("")
   }
 
   const saveCalibration = async () => {
@@ -130,14 +140,10 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
 
     setPumpConfig(updatedConfig)
 
+    // Speichere die Konfiguration sofort
     setSaving(true)
     try {
-      const response = await fetch("/api/pump-config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedConfig),
-      })
-      if (!response.ok) throw new Error("Failed to save calibration")
+      await savePumpConfig(updatedConfig)
 
       // Protokolliere die aktualisierte Durchflussrate für Debugging-Zwecke
       const pump = updatedConfig.find((p) => p.id === currentPumpId)
@@ -164,29 +170,6 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
     setCalibrationStep("idle")
     setCurrentPumpId(null)
     setShowInputDialog(false)
-  }
-
-  const handleMeasuredAmountChange = (value: string) => {
-    // Nur Zahlen und einen Dezimalpunkt erlauben
-    if (/^\d*\.?\d*$/.test(value) || value === "") {
-      setMeasuredAmount(value)
-    }
-  }
-
-  const handleKeyPress = (key: string) => {
-    // Verhindere mehrere Dezimalpunkte
-    if (key === "." && measuredAmount.includes(".")) {
-      return
-    }
-    setMeasuredAmount((prev) => prev + key)
-  }
-
-  const handleBackspace = () => {
-    setMeasuredAmount((prev) => prev.slice(0, -1))
-  }
-
-  const handleClear = () => {
-    setMeasuredAmount("")
   }
 
   const cancelCalibration = () => {

@@ -7,7 +7,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Check, AlertCircle, GlassWater } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
+import { getAllIngredients } from "@/lib/ingredients"
 import type { IngredientLevel } from "@/types/ingredient-level"
+import { makeSingleShot } from "@/lib/cocktail-machine" // Declare the makeSingleShot variable
 
 interface QuickShotSelectorProps {
   pumpConfig: PumpConfig[]
@@ -26,8 +28,7 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
 
   useEffect(() => {
     const loadIngredients = async () => {
-      const response = await fetch("/api/ingredients")
-      const ingredients = await response.json()
+      const ingredients = await getAllIngredients()
       setAllIngredients(ingredients)
     }
     loadIngredients()
@@ -85,21 +86,7 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
         })
       }, 200)
 
-      const response = await fetch("/api/make-shot", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ingredientId,
-          amount: shotSize,
-          pumpConfig,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Fehler bei der Zubereitung")
-      }
+      await makeSingleShot(ingredientId, shotSize, pumpConfig)
 
       clearInterval(intervalId)
       setProgress(100)

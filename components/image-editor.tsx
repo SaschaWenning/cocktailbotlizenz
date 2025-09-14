@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import type { Cocktail } from "@/types/cocktail"
+import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, FolderOpen, TestTube } from "lucide-react"
 import FileBrowser from "./file-browser"
 
@@ -78,18 +79,7 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
         image: imageUrl || "",
       }
 
-      const response = await fetch("/api/save-recipe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedCocktail),
-      })
-
-      if (!response.ok) {
-        throw new Error("Fehler beim Speichern")
-      }
-
+      await saveRecipe(updatedCocktail)
       onSave(updatedCocktail)
       onClose()
     } catch (error) {

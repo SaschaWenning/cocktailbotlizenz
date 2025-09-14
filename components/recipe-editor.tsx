@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Cocktail } from "@/types/cocktail"
 import { getAllIngredients } from "@/lib/ingredients"
+import { saveRecipe } from "@/lib/cocktail-machine"
 import {
   Loader2,
   ImageIcon,
@@ -272,23 +273,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         }),
       }
 
-      const response = await fetch("/api/save-recipe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedCocktail),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to save recipe")
-      }
-
-      const result = await response.json()
-      if (!result.success) {
-        throw new Error(result.error || "Failed to save recipe")
-      }
-
+      await saveRecipe(updatedCocktail)
       onSave(updatedCocktail)
       onClose()
     } catch (error) {
