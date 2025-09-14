@@ -10,13 +10,31 @@ import { promisify } from "util"
 const execPromise = promisify(exec)
 
 const updateLevelsAfterCocktailServer = async (ingredients: { pumpId: number; amount: number }[]): Promise<void> => {
-  // This would update levels on the server side via API calls
   try {
-    await fetch("/api/ingredient-levels/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ingredients }),
-    })
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/ingredient-levels/update`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients }),
+      },
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      console.log("[v0] Füllstände erfolgreich aktualisiert:", data.levels?.length || 0, "Levels")
+
+      // Trigger Client-Update über globales Event
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("ingredient-levels-updated", {
+            detail: data.levels,
+          }),
+        )
+      }
+    } else {
+      console.error("Fehler beim Aktualisieren der Füllstände:", response.statusText)
+    }
   } catch (error) {
     console.error("Error updating levels:", error)
   }

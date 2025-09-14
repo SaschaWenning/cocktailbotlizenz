@@ -37,7 +37,17 @@ export async function POST(request: NextRequest) {
     fs.mkdirSync(path.dirname(LEVELS_FILE_PATH), { recursive: true })
     fs.writeFileSync(LEVELS_FILE_PATH, JSON.stringify(levels, null, 2), "utf8")
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      levels: levels.map((level) => ({
+        pumpId: level.pumpId,
+        ingredient: level.ingredient,
+        ingredientId: level.ingredientId,
+        currentLevel: level.currentLevel,
+        containerSize: level.containerSize,
+        lastUpdated: new Date(level.lastUpdated),
+      })),
+    })
   } catch (error) {
     console.error("Error updating ingredient levels:", error)
     return NextResponse.json({ error: "Failed to update levels" }, { status: 500 })
