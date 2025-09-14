@@ -51,42 +51,24 @@ const simulateGpioControl = async (pin: number, duration: number) => {
 const controlGpio = async (pin: number, duration: number) => {
   console.log(`[v0] Attempting to control GPIO pin ${pin} for ${duration}ms`)
 
-  // Für Raspberry Pi: Echte GPIO-Kontrolle
+  // Für Raspberry Pi: Verwende das Python-Steuerungsskript
   if (typeof window === "undefined") {
     try {
-      // Versuche echte GPIO-Kontrolle (nur auf Raspberry Pi verfügbar)
       const { exec } = require("child_process")
+      const { promisify } = require("util")
+      const execPromise = promisify(exec)
+      const path = require("path")
 
-      // GPIO Pin aktivieren
-      console.log(`[v0] Activating GPIO pin ${pin}`)
-      await new Promise((resolve, reject) => {
-        exec(`echo "${pin}" > /sys/class/gpio/export`, (error) => {
-          if (error && !error.message.includes("Device or resource busy")) {
-            console.log(`[v0] GPIO export error (might be already exported): ${error.message}`)
-          }
-          resolve(null)
-        })
-      })
+      // Verwende das Python-Skript zur Steuerung der Pumpe
+      const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+      const roundedDuration = Math.round(duration)
 
-      // Pin als Output setzen
-      await new Promise((resolve) => {
-        exec(`echo "out" > /sys/class/gpio/gpio${pin}/direction`, () => resolve(null))
-      })
+      console.log(`[v0] Executing: python3 ${PUMP_CONTROL_SCRIPT} activate ${pin} ${roundedDuration}`)
 
-      // Pin auf HIGH setzen
-      console.log(`[v0] Setting GPIO pin ${pin} to HIGH`)
-      await new Promise((resolve) => {
-        exec(`echo "1" > /sys/class/gpio/gpio${pin}/value`, () => resolve(null))
-      })
+      const { stdout, stderr } = await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pin} ${roundedDuration}`)
 
-      // Warten für die angegebene Dauer
-      await new Promise((resolve) => setTimeout(resolve, duration))
-
-      // Pin auf LOW setzen
-      console.log(`[v0] Setting GPIO pin ${pin} to LOW`)
-      await new Promise((resolve) => {
-        exec(`echo "0" > /sys/class/gpio/gpio${pin}/value`, () => resolve(null))
-      })
+      if (stdout) console.log(`[v0] Python output: ${stdout}`)
+      if (stderr) console.log(`[v0] Python stderr: ${stderr}`)
 
       console.log(`[v0] GPIO pin ${pin} controlled successfully for ${duration}ms`)
     } catch (error) {
