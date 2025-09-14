@@ -8,6 +8,7 @@ import PumpVenting from "@/components/pump-venting"
 import PumpCalibration from "@/components/pump-calibration"
 import IngredientLevels from "@/components/ingredient-levels"
 import PasswordModal from "@/components/password-modal"
+import PasswordSettings from "@/components/password-settings"
 import { IngredientManager } from "@/components/ingredient-manager"
 import TabConfigSettings from "@/components/tab-config-settings"
 import CocktailGrid from "@/components/cocktail-grid"
@@ -207,30 +208,33 @@ export default function ServiceMenu({
       case "settings":
       case "einstellungen":
         return (
-          <TabConfigSettings
-            onClose={() => {
-              const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"
-              setActiveServiceTab(firstTab)
-              // Reload tab config in parent component
-              onTabConfigReload?.()
-              // Reload local service menu config
-              const loadTabConfig = async () => {
-                try {
-                  const response = await fetch("/api/tab-config")
-                  if (!response.ok) throw new Error("Failed to load tab config")
+          <div className="space-y-6">
+            <PasswordSettings />
+            <TabConfigSettings
+              onClose={() => {
+                const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"
+                setActiveServiceTab(firstTab)
+                // Reload tab config in parent component
+                onTabConfigReload?.()
+                // Reload local service menu config
+                const loadTabConfig = async () => {
+                  try {
+                    const response = await fetch("/api/tab-config")
+                    if (!response.ok) throw new Error("Failed to load tab config")
 
-                  const config: AppConfig = await response.json()
-                  const serviceTabIds = config.tabs.filter((tab) => tab.location === "service").map((tab) => tab.id)
+                    const config: AppConfig = await response.json()
+                    const serviceTabIds = config.tabs.filter((tab) => tab.location === "service").map((tab) => tab.id)
 
-                  setTabConfig(config)
-                  setServiceTabs(serviceTabIds)
-                } catch (error) {
-                  console.error("[v0] Error reloading service tab config:", error)
+                    setTabConfig(config)
+                    setServiceTabs(serviceTabIds)
+                  } catch (error) {
+                    console.error("[v0] Error reloading service tab config:", error)
+                  }
                 }
-              }
-              loadTabConfig()
-            }}
-          />
+                loadTabConfig()
+              }}
+            />
+          </div>
         )
       case "hidden-cocktails":
       case "ausgeblendete-cocktails":

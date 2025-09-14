@@ -1,0 +1,197 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Key, Save, Eye, EyeOff } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import AlphaKeyboard from "./alpha-keyboard"
+
+export default function PasswordSettings() {
+  const [customPassword, setCustomPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const { toast } = useToast()
+
+  // Load custom password on component mount
+  useEffect(() => {
+    const loadCustomPassword = async () => {
+      try {
+        const response = await fetch("/api/load-from-file", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: "custom-password.json" }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setCustomPassword(data.password || "")
+        }
+      } catch (error) {
+        console.error("Fehler beim Laden des benutzerdefinierten Passworts:", error)
+      }
+    }
+
+    loadCustomPassword()
+  }, [])
+
+  const handleSavePassword = async () => {
+    try {
+      const response = await fetch("/api/save-to-file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: "custom-password.json",
+          data: { password: newPassword },
+        }),
+      })
+
+      if (response.ok) {
+        setCustomPassword(newPassword)
+        setNewPassword("")
+        setIsEditing(false)
+        setShowKeyboard(false)
+        toast({
+          title: "Passwort gespeichert",
+          description: "Das benutzerdefinierte Passwort wurde erfolgreich gespeichert.",
+        })
+      } else {
+        throw new Error("Fehler beim Speichern")
+      }
+    } catch (error) {
+      console.error("Fehler beim Speichern des Passworts:", error)
+      toast({
+        title: "Fehler",
+        description: "Das Passwort konnte nicht gespeichert werden.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleKeyPress = (key: string) => {
+    setNewPassword((prev) => prev + key)
+  }
+
+  const handleBackspace = () => {
+    setNewPassword((prev) => prev.slice(0, -1))
+  }
+
+  const handleClear = () => {
+    setNewPassword("")
+  }
+
+  const handleStartEdit = () => {
+    setIsEditing(true)
+    setNewPassword(customPassword)
+    setShowKeyboard(true)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setNewPassword("")
+    setShowKeyboard(false)
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-[hsl(var(--cocktail-text))]">
+            <Key className="h-5 w-5" />
+            Passwort-Einstellungen
+          </CardTitle>
+          <CardDescription className="text-[hsl(var(--cocktail-text-muted))]">
+            Verwalte dein benutzerdefiniertes Passwort für den Zugriff auf Einstellungen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-[hsl(var(--cocktail-text))]">Aktuelles benutzerdefiniertes Passwort:</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={customPassword || "Kein benutzerdefiniertes Passwort gesetzt"}
+                readOnly
+                className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowPassword(!showPassword)}
+                className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
+          {!isEditing ? (
+            <Button
+              onClick={handleStartEdit}
+              className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+            >
+              Passwort ändern
+            </Button>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-[hsl(var(--cocktail-text))]">Neues Passwort:</Label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  readOnly
+                  placeholder="Neues Passwort eingeben"
+                  className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
+                  onFocus={() => setShowKeyboard(true)}
+                />
+              </div>
+
+              {showKeyboard && (
+                <div className="mt-4">
+                  <AlphaKeyboard
+                    onKeyPress={handleKeyPress}
+                    onBackspace={handleBackspace}
+                    onClear={handleClear}
+                    onConfirm={handleSavePassword}
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSavePassword}
+                  disabled={!newPassword.trim()}
+                  className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Speichern
+                </Button>
+                <Button
+                  onClick={handleCancelEdit}
+                  variant="outline"
+                  className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
+                >
+                  Abbrechen
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 p-4 bg-[hsl(var(--cocktail-bg))] rounded-lg border border-[hsl(var(--cocktail-card-border))]">
+            <h4 className="text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2">Wichtige Hinweise:</h4>
+            <ul className="text-sm text-[hsl(var(--cocktail-text-muted))] space-y-1">
+              <li>• Das Master-Passwort "cocktail" funktioniert immer als Fallback</li>
+              <li>• Dein benutzerdefiniertes Passwort wird zusätzlich akzeptiert</li>
+              <li>• Bewahre dein Passwort sicher auf</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

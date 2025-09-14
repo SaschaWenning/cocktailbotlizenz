@@ -20,20 +20,40 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
   const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
   const [showKeyboard, setShowKeyboard] = useState(true)
+  const [customPassword, setCustomPassword] = useState("")
 
-  // Reset password when dialog opens
   useEffect(() => {
     if (isOpen) {
       setPassword("")
       setError(false)
       setShowKeyboard(true)
+
+      // Load custom password
+      const loadCustomPassword = async () => {
+        try {
+          const response = await fetch("/api/load-from-file", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename: "custom-password.json" }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setCustomPassword(data.password || "")
+          }
+        } catch (error) {
+          console.error("Fehler beim Laden des benutzerdefinierten Passworts:", error)
+        }
+      }
+
+      loadCustomPassword()
     }
   }, [isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (password === "cocktail") {
+    if (password === "cocktail" || (customPassword && password === customPassword)) {
       setError(false)
       setPassword("")
       onSuccess()
