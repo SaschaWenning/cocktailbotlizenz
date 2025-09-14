@@ -391,6 +391,15 @@ export default function Home() {
       return
     }
 
+    if (!pumpConfig || pumpConfig.length === 0) {
+      console.log("[v0] PumpConfig not available, loading...")
+      await loadPumpConfig()
+      if (!pumpConfig || pumpConfig.length === 0) {
+        setErrorMessage("Pumpenkonfiguration nicht verfügbar. Bitte versuchen Sie es erneut.")
+        return
+      }
+    }
+
     setIsMaking(true)
     setProgress(0)
     setStatusMessage("Bereite Cocktail vor...")
@@ -398,7 +407,7 @@ export default function Home() {
     setManualIngredients([])
 
     try {
-      const currentPumpConfig = await getPumpConfig()
+      const currentPumpConfig = pumpConfig
 
       const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
       const scaleFactor = selectedSize / totalRecipeVolume
@@ -415,6 +424,10 @@ export default function Home() {
       const progressInterval = Math.max(100, estimatedDuration / 100) // Update alle 1% oder mindestens alle 100ms
 
       console.log(`[v0] Estimated cocktail duration: ${estimatedDuration}ms, progress interval: ${progressInterval}ms`)
+      console.log(
+        `[v0] Using pumpConfig:`,
+        currentPumpConfig.map((p) => `${p.id}: ${p.ingredient} (enabled: ${p.enabled})`),
+      )
 
       let intervalId: NodeJS.Timeout
       intervalId = setInterval(() => {
