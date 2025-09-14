@@ -85,7 +85,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
       return false
     }
     const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
-    return level && level.currentAmount >= shotSize
+    return level && level.currentLevel >= shotSize
   }
 
   const handleMakeShot = async () => {

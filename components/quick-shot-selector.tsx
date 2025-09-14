@@ -60,7 +60,7 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
 
   const checkIngredientAvailable = (ingredientId: string) => {
     const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
-    return level && level.currentAmount >= shotSize
+    return level && level.currentLevel >= shotSize
   }
 
   const handleQuickShot = async (ingredientId: string) => {
