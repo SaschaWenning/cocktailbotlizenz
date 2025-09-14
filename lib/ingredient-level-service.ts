@@ -156,6 +156,16 @@ export const resetAllLevels = async (): Promise<void> => {
   await saveIngredientLevels(resetLevels)
 }
 
+// Update ingredient capacity for a specific pump
+export const updateIngredientCapacity = async (pumpId: number, newCapacity: number): Promise<void> => {
+  await updateContainerSize(pumpId, newCapacity)
+}
+
+// Refill all ingredients to full capacity
+export const refillAllIngredients = async (): Promise<void> => {
+  await resetAllLevels()
+}
+
 // Set levels from external source (file load)
 export const setIngredientLevels = async (newLevels: IngredientLevel[]): Promise<void> => {
   await saveIngredientLevels(newLevels)

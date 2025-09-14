@@ -519,7 +519,7 @@ export default function Home() {
         continue
       }
 
-      const level = ingredientLevels.find((l) => l.ingredientId === recipeItem.ingredientId)
+      const level = ingredientLevels.find((l) => l.pumpId === pump.id)
       const availableAmount = level?.currentLevel || 0
 
       if (availableAmount < requiredAmount) {
