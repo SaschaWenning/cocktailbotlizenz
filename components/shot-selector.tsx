@@ -48,6 +48,10 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
   }, [])
 
   const getAllAvailableIngredients = () => {
+    if (!pumpConfig || !Array.isArray(pumpConfig)) {
+      return []
+    }
+
     return pumpConfig
       .filter((pump) => pump.enabled) // Nur aktivierte Pumpen anzeigen
       .map((pump) => {
@@ -77,6 +81,9 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
   }
 
   const checkIngredientAvailable = (ingredientId: string) => {
+    if (!ingredientLevels || !Array.isArray(ingredientLevels)) {
+      return false
+    }
     const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
     return level && level.currentAmount >= shotSize
   }
@@ -102,7 +109,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
         })
       }, 200)
 
-      await makeSingleShot(selectedIngredient, shotSize)
+      await makeSingleShot(selectedIngredient, shotSize, pumpConfig)
 
       clearInterval(intervalId)
       setProgress(100)
