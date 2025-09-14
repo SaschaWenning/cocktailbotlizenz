@@ -1,63 +1,158 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import type { Cocktail } from "@/types/cocktail"
-import type { PumpConfig } from "@/types/pump"
-import type { IngredientLevel } from "@/types/ingredient-level"
-import CocktailCard from "@/components/cocktail-card"
-import ServiceMenu from "@/components/service-menu"
-import { Check, AlertCircle, Loader2 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
+import { makeCocktail, getPumpConfig, saveRecipe, getAllCocktails } from "@/lib/cocktail-machine"
+import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import type { Cocktail } from "@/types/cocktail"
+import { getIngredientLevels } from "@/lib/ingredient-level-service"
+import type { IngredientLevel } from "@/types/ingredient-level"
+import type { PumpConfig } from "@/types/pump"
+import { Badge } from "@/components/ui/badge"
+import CocktailCard from "@/components/cocktail-card"
+import PumpCleaning from "@/components/pump-cleaning"
+import IngredientLevels from "@/components/ingredient-levels"
+import ShotSelector from "@/components/shot-selector"
+import PasswordModal from "@/components/password-modal"
+import RecipeEditor from "@/components/recipe-editor"
+import RecipeCreator from "@/components/recipe-creator"
+import DeleteConfirmation from "@/components/delete-confirmation"
+import ImageEditor from "@/components/image-editor"
+import QuickShotSelector from "@/components/quick-shot-selector"
+import { toast } from "@/components/ui/use-toast"
+import ServiceMenu from "@/components/service-menu"
+import { getAllIngredients } from "@/lib/ingredients"
+import type { AppConfig } from "@/lib/tab-config"
+import IngredientManager from "@/components/ingredient-manager"
+import PumpCalibration from "@/components/pump-calibration"
+import { Progress } from "@/components/ui/progress"
+import { Check, GlassWater } from "lucide-react"
+
+// Anzahl der Cocktails pro Seite
+const COCKTAILS_PER_PAGE = 9
 
 export default function Home() {
-  const [cocktails, setCocktails] = useState<Cocktail[]>([])
-  const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>([])
-  const [ingredientLevels, setIngredientLevels] = useState<IngredientLevel[]>([])
   const [selectedCocktail, setSelectedCocktail] = useState<Cocktail | null>(null)
   const [selectedSize, setSelectedSize] = useState<number>(300)
   const [isMaking, setIsMaking] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [progress, setProgress] = useState<number>(0)
   const [statusMessage, setStatusMessage] = useState("")
   const [showSuccess, setShowSuccess] = useState(false)
+  const [activeTab, setActiveTab] = useState("cocktails")
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showRecipeEditor, setShowRecipeEditor] = useState(false)
+  const [showRecipeCreator, setShowRecipeCreator] = useState(false)
+  const [showRecipeCreatorPasswordModal, setShowRecipeCreatorPasswordModal] = useState(false)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [cocktailToEdit, setCocktailToEdit] = useState<string | null>(null)
+  const [cocktailToDelete, setCocktailToDelete] = useState<Cocktail | null>(null)
+  const [cocktailsData, setCocktailsData] = useState<Cocktail[]>([])
+  const [ingredientLevels, setIngredientLevels] = useState<IngredientLevel[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [showServiceMenu, setShowServiceMenu] = useState(false)
+  const [lowIngredients, setLowIngredients] = useState<string[]>([])
+  const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
   const [loading, setLoading] = useState(true)
+  const [showImageEditor, setShowImageEditor] = useState(false)
+  const [allIngredientsData, setAllIngredientsData] = useState<any[]>([]) // State für alle Zutaten (Standard + benutzerdefiniert) hinzugefügt
+  const [manualIngredients, setManualIngredients] = useState<
+    Array<{ ingredientId: string; amount: number; instructions?: string }>
+  >([]) // State für manuelle Zutaten hinzugefügt
+  const [showImageEditorPasswordModal, setShowImageEditorPasswordModal] = useState(false) // Neues State für Image Editor Passwort-Modal
+  const [tabConfig, setTabConfig] = useState<AppConfig | null>(null)
+  const [mainTabs, setMainTabs] = useState<string[]>([])
 
+  // Kiosk-Modus Exit Zähler
+  const [kioskExitClicks, setKioskExitClicks] = useState(0)
+  const [lastClickTime, setLastClickTime] = useState(0)
+
+  // Paginierung
+  const [currentPage, setCurrentPage] = useState(1)
+  const [virginCurrentPage, setVirginCurrentPage] = useState(1)
+
+  // Filtere Cocktails nach alkoholisch und nicht-alkoholisch
+  const alcoholicCocktails = cocktailsData.filter((cocktail) => cocktail.alcoholic)
+  const virginCocktails = cocktailsData.filter((cocktail) => !cocktail.alcoholic)
+
+  // Berechne die Gesamtanzahl der Seiten
+  const totalPages = Math.ceil(alcoholicCocktails.length / COCKTAILS_PER_PAGE)
+  const virginTotalPages = Math.ceil(virginCocktails.length / COCKTAILS_PER_PAGE)
+
+  // Hole die Cocktails für die aktuelle Seite
+  const getCurrentPageCocktails = (cocktails: Cocktail[], page: number) => {
+    const startIndex = (page - 1) * COCKTAILS_PER_PAGE
+    const endIndex = startIndex + COCKTAILS_PER_PAGE
+    return cocktails.slice(startIndex, endIndex)
+  }
+
+  // Aktuelle Seite von Cocktails
+  const currentPageCocktails = getCurrentPageCocktails(alcoholicCocktails, currentPage)
+  const currentPageVirginCocktails = getCurrentPageCocktails(virginCocktails, virginCurrentPage)
+
+  // Berechne alle verfügbaren Zutaten aus den Cocktail-Rezepten
+  const getAvailableIngredientsFromCocktails = () => {
+    const allIngredients = new Set<string>()
+    cocktailsData.forEach((cocktail) => {
+      cocktail.recipe.forEach((item) => {
+        allIngredients.add(item.ingredientId)
+      })
+    })
+    return Array.from(allIngredients)
+  }
+
+  // Lade Füllstände, Pumpenkonfiguration und Cocktails beim ersten Rendern
   useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        await Promise.all([
+          loadIngredientLevels(),
+          loadPumpConfig(),
+          loadCocktails(),
+          loadAllIngredients(),
+          loadTabConfig(),
+        ])
+      } catch (error) {
+        console.error("Fehler beim Laden der Daten:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadData()
   }, [])
 
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      await Promise.all([loadCocktails(), loadPumpConfig(), loadIngredientLevels()])
-    } catch (error) {
-      console.error("Fehler beim Laden der Daten:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const loadCocktails = async () => {
+    console.log("[v0] Loading cocktails...")
+    const cocktails = await getAllCocktails()
+    console.log("[v0] Loaded cocktails from getAllCocktails:", cocktails.length)
+
+    // Load hidden cocktails from API instead of localStorage
     try {
-      const response = await fetch("/api/cocktails")
-      if (!response.ok) throw new Error("Failed to load cocktails")
+      const response = await fetch("/api/hidden-cocktails")
       const data = await response.json()
-      setCocktails(data)
+      const hiddenCocktails: string[] = data.hiddenCocktails || []
+      console.log("[v0] Hidden cocktails from API:", hiddenCocktails)
+
+      const visibleCocktails = cocktails.filter((cocktail) => !hiddenCocktails.includes(cocktail.id))
+      console.log("[v0] Visible cocktails after filtering:", visibleCocktails.length)
+      console.log("[v0] Filtered out cocktails:", cocktails.length - visibleCocktails.length)
+
+      setCocktailsData(visibleCocktails)
+      console.log("[v0] Setting cocktails data with", visibleCocktails.length, "cocktails")
     } catch (error) {
-      console.error("Fehler beim Laden der Cocktails:", error)
+      console.error("[v0] Error loading hidden cocktails:", error)
+      // Fallback to showing all cocktails if API fails
+      setCocktailsData(cocktails)
     }
   }
 
   const loadPumpConfig = async () => {
     try {
-      const response = await fetch("/api/pump-config")
-      if (!response.ok) throw new Error("Failed to load pump config")
-      const data = await response.json()
-      setPumpConfig(data)
+      const config = await getPumpConfig()
+      setPumpConfig(config)
     } catch (error) {
       console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
     }
@@ -65,255 +160,1040 @@ export default function Home() {
 
   const loadIngredientLevels = async () => {
     try {
-      const response = await fetch("/api/ingredient-levels")
-      if (!response.ok) throw new Error("Failed to load ingredient levels")
-      const data = await response.json()
-      setIngredientLevels(data)
+      const levels = await getIngredientLevels()
+      setIngredientLevels(levels)
+
+      // Prüfe auf niedrige Füllstände
+      const lowLevels = levels.filter((level) => level.currentAmount < 100)
+      setLowIngredients(lowLevels.map((level) => level.ingredientId))
     } catch (error) {
       console.error("Fehler beim Laden der Füllstände:", error)
     }
   }
 
-  const handleCocktailSelect = (cocktail: Cocktail) => {
-    setSelectedCocktail(cocktail)
-    // Setze die erste verfügbare Größe als Standard
-    if (cocktail.sizes && cocktail.sizes.length > 0) {
-      setSelectedSize(cocktail.sizes[0])
-    } else {
-      setSelectedSize(300) // Fallback
+  const loadAllIngredients = async () => {
+    try {
+      const ingredients = await getAllIngredients()
+      setAllIngredientsData(ingredients)
+    } catch (error) {
+      console.error("Fehler beim Laden der Zutaten:", error)
     }
   }
 
-  const handleCancelSelection = () => {
-    setSelectedCocktail(null)
+  const loadTabConfig = async () => {
+    try {
+      console.log("[v0] Loading tab config from API...")
+      const response = await fetch("/api/tab-config")
+
+      if (!response.ok) {
+        console.error("[v0] Tab config API response not ok:", response.status, response.statusText)
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const config: AppConfig = await response.json()
+      const mainTabIds = config.tabs.filter((tab) => tab.location === "main").map((tab) => tab.id)
+
+      console.log("[v0] Tab config loaded successfully:", config)
+      setTabConfig(config)
+      setMainTabs(mainTabIds)
+
+      if (mainTabIds.length > 0 && !mainTabIds.includes(activeTab) && activeTab !== "service") {
+        setActiveTab(mainTabIds[0])
+      }
+    } catch (error) {
+      console.error("[v0] Error loading tab config:", error)
+      console.log("[v0] Using fallback tab configuration")
+      setMainTabs(["cocktails", "virgin", "shots"])
+      if (!["cocktails", "virgin", "shots", "service"].includes(activeTab)) {
+        setActiveTab("cocktails")
+      }
+    }
+  }
+
+  const handleImageEditClick = (cocktailId: string) => {
+    setCocktailToEdit(cocktailId)
+    setShowImageEditorPasswordModal(true)
+  }
+
+  const handleDeleteClick = (cocktailId: string) => {
+    const cocktail = cocktailsData.find((c) => c.id === cocktailId)
+    if (cocktail) {
+      setCocktailToDelete(cocktail)
+      setShowDeleteConfirmation(true)
+    }
+  }
+
+  const handleCalibrationClick = () => {
+    setActiveTab("service")
+    setShowPasswordModal(true)
+  }
+
+  const handlePasswordSuccess = () => {
+    setShowPasswordModal(false)
+    if (activeTab === "cocktails" || activeTab === "virgin") {
+      setShowRecipeEditor(true)
+    } else if (activeTab === "service") {
+      setActiveTab("service")
+    }
+  }
+
+  const handleRecipeCreatorPasswordSuccess = () => {
+    setShowRecipeCreatorPasswordModal(false)
+    setShowRecipeCreator(true)
+  }
+
+  const handleImageEditorPasswordSuccess = () => {
+    setShowImageEditorPasswordModal(false)
+    setShowImageEditor(true)
+  }
+
+  const handleEditRecipe = (cocktailId: string) => {
+    setCocktailToEdit(cocktailId)
+    setShowPasswordModal(true)
+  }
+
+  const handleRecipeEditClick = (cocktailId: string) => {
+    const cocktail = cocktailsData.find((c) => c.id === cocktailId)
+    if (cocktail) {
+      setCocktailToEdit(cocktailId)
+      setShowPasswordModal(true)
+    }
+  }
+
+  const handleImageSave = async (updatedCocktail: Cocktail) => {
+    try {
+      await saveRecipe(updatedCocktail)
+
+      // Aktualisiere die lokale Liste
+      setCocktailsData((prev) => prev.map((c) => (c.id === updatedCocktail.id ? updatedCocktail : c)))
+
+      // Aktualisiere auch die Füllstände für neue Zutaten
+      await loadIngredientLevels()
+    } catch (error) {
+      console.error("Fehler beim Speichern des Bildes:", error)
+    }
+  }
+
+  const handleRecipeSave = async (updatedCocktail: Cocktail) => {
+    try {
+      await saveRecipe(updatedCocktail)
+
+      // Aktualisiere die lokale Liste
+      setCocktailsData((prev) => prev.map((c) => (c.id === updatedCocktail.id ? updatedCocktail : c)))
+
+      // Aktualisiere auch die Füllstände für neue Zutaten
+      await loadIngredientLevels()
+    } catch (error) {
+      console.error("Fehler beim Speichern des Rezepts:", error)
+    }
+  }
+
+  const handleNewRecipeSave = async (newCocktail: Cocktail) => {
+    try {
+      await saveRecipe(newCocktail)
+
+      // Füge den neuen Cocktail zur lokalen Liste hinzu
+      setCocktailsData((prev) => [...prev, newCocktail])
+
+      // Aktualisiere auch die Füllstände für neue Zutaten
+      await loadIngredientLevels()
+    } catch (error) {
+      console.error("Fehler beim Speichern des neuen Rezepts:", error)
+    }
+  }
+
+  const handleRequestDelete = (cocktailId: string) => {
+    const cocktail = cocktailsData.find((c) => c.id === cocktailId)
+    if (cocktail) {
+      setCocktailToDelete(cocktail)
+      setShowRecipeEditor(false)
+      setShowDeleteConfirmation(true)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!cocktailToDelete) return
+
+    try {
+      console.log("[v0] Deleting/hiding cocktail:", cocktailToDelete.id)
+
+      // Get current hidden cocktails from API
+      const response = await fetch("/api/hidden-cocktails")
+      const data = await response.json()
+      const hiddenCocktails: string[] = data.hiddenCocktails || []
+      console.log("[v0] Current hidden cocktails before adding:", hiddenCocktails)
+
+      // Add cocktail ID to hidden list if not already there
+      if (!hiddenCocktails.includes(cocktailToDelete.id)) {
+        hiddenCocktails.push(cocktailToDelete.id)
+
+        // Save updated list to API
+        await fetch("/api/hidden-cocktails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ hiddenCocktails }),
+        })
+        console.log("[v0] Updated hidden cocktails via API:", hiddenCocktails)
+      } else {
+        console.log("[v0] Cocktail already in hidden list")
+      }
+
+      setCocktailsData((prev) => prev.filter((c) => c.id !== cocktailToDelete.id))
+      console.log("[v0] Removed cocktail from local state")
+
+      // If the hidden cocktail was selected, reset selection
+      if (selectedCocktail?.id === cocktailToDelete.id) {
+        setSelectedCocktail(null)
+      }
+
+      setCocktailToDelete(null)
+    } catch (error) {
+      console.error("Fehler beim Ausblenden des Cocktails:", error)
+      throw error
+    }
+  }
+
+  const calculateCocktailDuration = (cocktail: Cocktail, pumpConfig: PumpConfig[], selectedSize: number): number => {
+    const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
+    const scaleFactor = selectedSize / totalRecipeVolume
+
+    let totalDuration = 0
+
+    for (const item of cocktail.recipe) {
+      if (item.type === "automatic") {
+        const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId && p.enabled)
+        if (pump) {
+          const scaledAmount = Math.round(item.amount * scaleFactor)
+          const duration = (scaledAmount / pump.flowRate) * 1000 // ms
+          totalDuration += duration
+
+          // Zusätzliche Zeit für Grenadine (Schichteffekt)
+          if (item.ingredientId === "grenadine") {
+            totalDuration += 2000
+          }
+        }
+      }
+    }
+
+    return totalDuration
   }
 
   const handleMakeCocktail = async () => {
-    if (!selectedCocktail) return
+    if (!selectedCocktail || isMaking) {
+      return
+    }
+
+    const cocktail = selectedCocktail
+
+    if (!cocktail) {
+      return
+    }
+
+    if (!pumpConfig || pumpConfig.length === 0) {
+      console.log("[v0] PumpConfig not available, loading...")
+      await loadPumpConfig()
+      if (!pumpConfig || pumpConfig.length === 0) {
+        setErrorMessage("Pumpenkonfiguration nicht verfügbar. Bitte versuchen Sie es erneut.")
+        return
+      }
+    }
 
     setIsMaking(true)
     setProgress(0)
     setStatusMessage("Bereite Cocktail vor...")
     setErrorMessage(null)
-
-    let intervalId: NodeJS.Timeout
+    setManualIngredients([])
 
     try {
+      const currentPumpConfig = pumpConfig
+
+      const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
+      const scaleFactor = selectedSize / totalRecipeVolume
+
+      const manualRecipeItems = cocktail.recipe
+        .filter((item) => item.manual === true || item.type === "manual")
+        .map((item) => ({
+          ingredientId: item.ingredientId,
+          amount: Math.round(item.amount * scaleFactor),
+          instructions: item.instructions || item.instruction,
+        }))
+
+      const estimatedDuration = calculateCocktailDuration(cocktail, currentPumpConfig, selectedSize)
+      const progressInterval = Math.max(100, estimatedDuration / 100) // Update alle 1% oder mindestens alle 100ms
+
+      console.log(`[v0] Estimated cocktail duration: ${estimatedDuration}ms, progress interval: ${progressInterval}ms`)
+      console.log(
+        `[v0] Using pumpConfig:`,
+        currentPumpConfig.map((p) => `${p.id}: ${p.ingredient} (enabled: ${p.enabled})`),
+      )
+
+      let intervalId: NodeJS.Timeout
       intervalId = setInterval(() => {
         setProgress((prev) => {
-          if (prev >= 100) {
+          if (prev >= 95) {
+            // Stoppe bei 95%, damit der echte Abschluss bei 100% angezeigt wird
             clearInterval(intervalId)
-            return 100
+            return prev
           }
-          return prev + 10
+          return prev + 1
         })
-      }, 200)
+      }, progressInterval)
 
-      const response = await fetch("/api/make-cocktail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cocktail: selectedCocktail, size: selectedSize }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to make cocktail")
-      }
+      await makeCocktail(cocktail, currentPumpConfig, selectedSize)
 
       clearInterval(intervalId)
       setProgress(100)
-      setStatusMessage(`${selectedCocktail.name} (${selectedSize}ml) fertig!`)
+
+      if (manualRecipeItems.length > 0) {
+        setManualIngredients(manualRecipeItems)
+        setStatusMessage(
+          `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
+        )
+      } else {
+        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
+      }
+
       setShowSuccess(true)
 
-      // Lade die Füllstände neu
       await loadIngredientLevels()
 
-      setTimeout(() => {
-        setIsMaking(false)
-        setShowSuccess(false)
-        setSelectedCocktail(null)
-      }, 3000)
+      setTimeout(
+        () => {
+          setIsMaking(false)
+          setShowSuccess(false)
+          setSelectedCocktail(null)
+          setManualIngredients([])
+        },
+        manualRecipeItems.length > 0 ? 8000 : 3000,
+      )
     } catch (error) {
+      let intervalId: NodeJS.Timeout
       clearInterval(intervalId)
       setProgress(0)
       setStatusMessage("Fehler bei der Zubereitung!")
       setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
+      setManualIngredients([])
       setTimeout(() => setIsMaking(false), 3000)
     }
   }
 
-  const handleServiceMenuClose = async () => {
-    setShowServiceMenu(false)
-    // Lade alle Daten neu, wenn das Servicemenü geschlossen wird
-    await loadData()
+  // Berechne das aktuelle Gesamtvolumen des ausgewählten Cocktails
+  const getCurrentVolume = () => {
+    const cocktail = selectedCocktail
+    if (!cocktail) return 0
+    // Summiere alle Mengen, unabhängig vom Typ (automatisch/manuell)
+    return cocktail.recipe.reduce((total, item) => total + item.amount, 0)
   }
 
-  const handleNewCocktail = (newCocktail: Cocktail) => {
-    setCocktails((prev) => [...prev, newCocktail])
+  const ingredientAvailability = useMemo(() => {
+    if (!selectedCocktail || !pumpConfig || !ingredientLevels) {
+      return { available: true, missingIngredients: [] }
+    }
+
+    const cocktail = selectedCocktail
+    if (!cocktail) {
+      return { available: false, missingIngredients: [] }
+    }
+
+    const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
+    const scaleFactor = selectedSize / totalRecipeVolume
+    const missingIngredients: Array<{ ingredient: string; needed: number; available: number }> = []
+
+    for (const recipeItem of cocktail.recipe) {
+      if (recipeItem.manual || recipeItem.type === "manual") {
+        continue
+      }
+
+      const requiredAmount = Math.round(recipeItem.amount * scaleFactor)
+      const pump = pumpConfig.find((p) => p.ingredient === recipeItem.ingredientId)
+
+      if (!pump) {
+        const ingredient = allIngredientsData.find((i) => i.id === recipeItem.ingredientId)
+        missingIngredients.push({
+          ingredient: ingredient?.name || recipeItem.ingredientId,
+          needed: requiredAmount,
+          available: 0,
+        })
+        continue
+      }
+
+      const level = ingredientLevels.find((l) => l.ingredientId === recipeItem.ingredientId)
+      const availableAmount = level?.currentAmount || 0
+
+      if (availableAmount < requiredAmount) {
+        const ingredient = allIngredientsData.find((i) => i.id === recipeItem.ingredientId)
+        missingIngredients.push({
+          ingredient: ingredient?.name || recipeItem.ingredientId,
+          needed: requiredAmount,
+          available: availableAmount,
+        })
+      }
+    }
+
+    return {
+      available: missingIngredients.length === 0,
+      missingIngredients,
+    }
+  }, [selectedCocktail, pumpConfig, ingredientLevels, selectedSize, allIngredientsData])
+
+  const ingredientsAvailable = ingredientAvailability.available
+
+  const getIngredientName = (id: string) => {
+    const ingredient = allIngredientsData.find((i) => i.id === id)
+    return ingredient ? ingredient.name : id
   }
 
-  const checkIngredientsAvailable = (cocktail: Cocktail) => {
-    if (!ingredientLevels || ingredientLevels.length === 0) return false
-
-    return cocktail.recipe.every((item) => {
-      if (item.type === "manual") return true
-      const level = ingredientLevels.find((level) => level.ingredientId === item.ingredientId)
-      return level && level.currentAmount >= item.amount
-    })
+  // Tab-Wechsel Handler - schließt automatisch die Cocktail-Detailansicht
+  const handleTabChange = (newTab: string) => {
+    setSelectedCocktail(null) // Schließe die Cocktail-Detailansicht
+    setActiveTab(newTab)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-[hsl(var(--cocktail-primary))] mx-auto mb-4" />
-          <p className="text-white text-lg">Lade CocktailBot...</p>
-        </div>
-      </div>
+  // Funktion zum Beenden des Kiosk-Modus
+  const handleExitKiosk = async () => {
+    try {
+      const response = await fetch("/api/exit-kiosk", {
+        method: "POST",
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Kiosk-Modus wird beendet",
+          description: "Die Anwendung wird in wenigen Sekunden geschlossen.",
+        })
+      } else {
+        toast({
+          title: "Fehler",
+          description: "Kiosk-Modus konnte nicht beendet werden.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Fehler beim Beenden des Kiosk-Modus:", error)
+      toast({
+        title: "Fehler",
+        description: "Verbindungsproblem beim Beenden des Kiosk-Modus.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Handler für Klicks auf den Titel
+  const handleTitleClick = () => {
+    const currentTime = Date.now()
+
+    // Wenn mehr als 3 Sekunden seit dem letzten Klick vergangen sind, setze den Zähler zurück
+    if (currentTime - lastClickTime > 3000 && kioskExitClicks > 0) {
+      setKioskExitClicks(1)
+    } else {
+      setKioskExitClicks((prev) => prev + 1)
+    }
+
+    setLastClickTime(currentTime)
+
+    // Nach 5 Klicks den Kiosk-Modus beenden
+    if (kioskExitClicks + 1 >= 5) {
+      handleExitKiosk()
+      setKioskExitClicks(0)
+    }
+  }
+
+  // Erweiterte Bildlogik für Cocktail-Detail
+  const findDetailImagePath = async (cocktail: Cocktail): Promise<string> => {
+    if (!cocktail.image) {
+      return `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+    }
+
+    // Extrahiere den Dateinamen aus dem Pfad
+    const filename = cocktail.image.split("/").pop() || cocktail.image
+    const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "") // Entferne Dateierweiterung
+    const originalExt = filename.split(".").pop()?.toLowerCase() || ""
+
+    // Alle gängigen Bildformate
+    const imageExtensions = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "svg"]
+
+    // Verwende originale Erweiterung zuerst, dann alle anderen
+    const extensionsToTry = originalExt
+      ? [originalExt, ...imageExtensions.filter((ext) => ext !== originalExt)]
+      : imageExtensions
+
+    // Verschiedene Basispfade für alkoholische und alkoholfreie Cocktails
+    const basePaths = [
+      "/images/cocktails/", // Alkoholische Cocktails
+      "/", // Alkoholfreie Cocktails (direkt im public/)
+      "", // Ohne Pfad
+      "/public/images/cocktails/", // Vollständiger Pfad
+      "/public/", // Public Verzeichnis
+    ]
+
+    const strategies: string[] = []
+
+    // Generiere alle Kombinationen von Pfaden und Dateierweiterungen
+    for (const basePath of basePaths) {
+      for (const ext of extensionsToTry) {
+        strategies.push(`${basePath}${filenameWithoutExt}.${ext}`)
+      }
+      // Auch den originalen Dateinamen probieren
+      strategies.push(`${basePath}${filename}`)
+    }
+
+    // Zusätzliche spezielle Strategien
+    strategies.push(
+      // Originaler Pfad
+      cocktail.image,
+      // Ohne führenden Slash
+      cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
+      // Mit führendem Slash
+      cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
+      // API-Pfad als Fallback
+      `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
+      `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/${filename}`)}`,
     )
-  }
 
-  if (showServiceMenu) {
-    return (
-      <ServiceMenu
-        onClose={handleServiceMenuClose}
-        pumpConfig={pumpConfig}
-        ingredientLevels={ingredientLevels}
-        onNewCocktail={handleNewCocktail}
-      />
+    // Entferne Duplikate
+    const uniqueStrategies = [...new Set(strategies)]
+
+    console.log(
+      `Testing ${uniqueStrategies.length} detail image strategies for ${cocktail.name}:`,
+      uniqueStrategies.slice(0, 10),
     )
+
+    for (let i = 0; i < uniqueStrategies.length; i++) {
+      const testPath = uniqueStrategies[i]
+
+      try {
+        const img = new Image()
+        img.crossOrigin = "anonymous" // Für CORS
+
+        const loadPromise = new Promise<boolean>((resolve) => {
+          img.onload = () => resolve(true)
+          img.onerror = () => resolve(false)
+        })
+
+        img.src = testPath
+        const success = await loadPromise
+
+        if (success) {
+          console.log(`✅ Found working detail image for ${cocktail.name}: ${testPath}`)
+          return testPath
+        }
+      } catch (error) {
+        // Fehler ignorieren und nächste Strategie versuchen
+      }
+    }
+
+    // Fallback auf Platzhalter
+    console.log(`❌ No working detail image found for ${cocktail.name}, using placeholder`)
+    return `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
   }
 
-  if (isMaking) {
+  // Neue Komponente für die Cocktail-Detailansicht
+  function CocktailDetail({
+    cocktail,
+    onBack,
+    onEdit,
+    onDelete,
+    onImageEdit,
+    onMakeCocktail,
+    pumpConfig,
+    ingredientLevels,
+    allIngredients,
+  }: {
+    cocktail: Cocktail
+    onBack: () => void
+    onEdit: (id: string) => void
+    onDelete: (id: string) => void
+    onImageEdit: (id: string) => void
+    onMakeCocktail: () => void
+    pumpConfig: PumpConfig[]
+    ingredientLevels: IngredientLevel[]
+    allIngredients: any[]
+  }) {
+    const [detailImageSrc, setDetailImageSrc] = useState<string>("")
+
+    useEffect(() => {
+      const loadDetailImage = async () => {
+        const imagePath = await findDetailImagePath(cocktail)
+        setDetailImageSrc(imagePath)
+      }
+
+      loadDetailImage()
+    }, [cocktail])
+
+    const handleDetailImageError = () => {
+      const placeholder = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.id)}`
+      setDetailImageSrc(placeholder)
+    }
+
+    const availableSizes = cocktail.sizes || [200, 300, 400]
+    const allAvailableSizes = availableSizes.sort((a, b) => a - b)
+
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
-          <CardContent className="pt-6 space-y-4">
-            <h2 className="text-xl font-semibold text-center">{statusMessage}</h2>
-            <Progress value={progress} className="h-2" />
+      <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))] shadow-2xl">
+        <div className="flex flex-col md:flex-row">
+          <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
+            <img
+              src={detailImageSrc || "/placeholder.svg"}
+              alt={cocktail.name}
+              className="w-full h-full object-cover"
+              onError={handleDetailImageError}
+              crossOrigin="anonymous"
+              key={`${cocktail.image}-${detailImageSrc}`}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+          </div>
+          <div className="flex-1 p-6 flex flex-col">
+            <div className="flex justify-between items-start mb-4">
+              <h3
+                className="font-bold text-2xl text-[hsl(var(--cocktail-text))] mb-2 cursor-pointer"
+                onClick={handleTitleClick}
+              >
+                {cocktail.name}
+              </h3>
+              <Badge
+                variant={cocktail.alcoholic ? "default" : "default"}
+                className="text-sm bg-[hsl(var(--cocktail-primary))] text-black px-3 py-1"
+              >
+                {cocktail.alcoholic ? "Alkoholisch" : "Alkoholfrei"}
+              </Badge>
+            </div>
+            <div className="flex flex-col md:flex-row gap-6 flex-1">
+              <div className="md:w-1/2">
+                <p className="text-base text-[hsl(var(--cocktail-text-muted))] mb-6 leading-relaxed">
+                  {cocktail.description}
+                </p>
+                <div>
+                  <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
+                  <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
+                    {cocktail.recipe.map((item, index) => {
+                      const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
+                      let ingredientName = ingredient ? ingredient.name : item.ingredientId
 
-            {errorMessage && (
-              <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
-                <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-                <AlertDescription className="text-[hsl(var(--cocktail-error))]">{errorMessage}</AlertDescription>
-              </Alert>
-            )}
+                      if (!ingredient && item.ingredientId.startsWith("custom-")) {
+                        ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
+                      }
 
-            {showSuccess && (
-              <div className="flex justify-center">
-                <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-3">
-                  <Check className="h-8 w-8 text-[hsl(var(--cocktail-success))]" />
+                      return (
+                        <li
+                          key={index}
+                          className="flex items-start bg-[hsl(var(--cocktail-card-bg))]/50 p-2 rounded-lg"
+                        >
+                          <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
+                          <span>
+                            {item.amount}ml {ingredientName}
+                            {(item.manual === true || item.type === "manual") && (
+                              <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>
+                            )}
+                            {(item.manual === true || item.type === "manual") && item.instruction && (
+                              <span className="block text-sm text-[hsl(var(--cocktail-text-muted))] italic mt-1">
+                                Anleitung: {item.instruction}
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="md:w-1/2 flex flex-col">
+                <div className="space-y-4 mb-6">
+                  <h4 className="text-lg mb-3 text-[hsl(var(--cocktail-text))]">Cocktailgröße wählen:</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    {allAvailableSizes.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={`py-3 px-4 rounded-lg transition-all duration-200 font-medium ${
+                          selectedSize === size
+                            ? "bg-[#00ff00] text-black shadow-lg scale-105"
+                            : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
+                        }`}
+                      >
+                        {size}ml
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-sm text-[hsl(var(--cocktail-text-muted))] bg-[hsl(var(--cocktail-card-bg))]/30 p-2 rounded">
+                    Originalrezept: ca. {getCurrentVolume()}ml
+                  </div>
+                </div>
+                {!ingredientsAvailable && (
+                  <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30 mb-6">
+                    <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
+                    <AlertDescription className="text-[hsl(var(--cocktail-error))] text-sm">
+                      <div className="space-y-1">
+                        <div className="font-medium">Fehlende Zutaten:</div>
+                        {ingredientAvailability.missingIngredients.map((missing, index) => (
+                          <div key={index} className="text-xs">
+                            • {missing.ingredient}: {missing.needed}ml benötigt, {missing.available}ml verfügbar
+                          </div>
+                        ))}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <div className="flex flex-col gap-3 mt-auto">
+                  <Button
+                    onClick={onMakeCocktail}
+                    disabled={!ingredientsAvailable || isMaking}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg"
+                  >
+                    {isMaking ? "Zubereitung läuft..." : "Cocktail zubereiten"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={onBack}
+                    className="w-full py-2 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  >
+                    Zurück zur Übersicht
+                  </Button>
+                </div>
+                <div className="flex justify-between mt-4 gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                    onClick={() => onEdit(cocktail.id)}
+                  >
+                    <Edit className="h-4 w-4" />
+                    Bearbeiten
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex items-center gap-2 shadow-lg"
+                    onClick={() => onDelete(cocktail.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Löschen
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  // Paginierungskomponente
+  function PaginationComponent({
+    currentPage,
+    totalPages,
+    onPageChange,
+  }: {
+    currentPage: number
+    totalPages: number
+    onPageChange: (page: number) => void
+  }) {
+    return (
+      <div className="flex justify-center items-center gap-3 mt-8">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="h-10 w-10 p-0 bg-[#00ff00] text-black border-[#00ff00] hover:bg-[#00ff00] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <span className="text-sm font-medium text-[hsl(var(--cocktail-text))] bg-[hsl(var(--cocktail-card-bg))] px-4 py-2 rounded-lg border border-[hsl(var(--cocktail-card-border))]">
+          Seite {currentPage} von {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="h-10 w-10 p-0 bg-[#00ff00] text-black border-[#00ff00] hover:bg-[#00ff00] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
       </div>
     )
   }
 
-  if (selectedCocktail) {
-    const isAvailable = checkIngredientsAvailable(selectedCocktail)
-    const availableSizes = selectedCocktail.sizes || [200, 300, 400]
+  // Hauptinhalt basierend auf dem ausgewählten Tab
+  const renderContent = () => {
+    if (selectedCocktail) {
+      return (
+        <CocktailDetail
+          cocktail={selectedCocktail}
+          onBack={() => setSelectedCocktail(null)}
+          onEdit={handleEditRecipe}
+          onDelete={handleDeleteClick}
+          onImageEdit={handleImageEditClick}
+          onMakeCocktail={handleMakeCocktail}
+          pumpConfig={pumpConfig}
+          ingredientLevels={ingredientLevels}
+          allIngredients={allIngredientsData}
+        />
+      )
+    }
 
-    return (
-      <div className="min-h-screen bg-black p-4">
-        <div className="max-w-md mx-auto space-y-4">
-          <Card className="border-[hsl(var(--cocktail-card-border))] bg-black">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-[hsl(var(--cocktail-text))]">{selectedCocktail.name}</CardTitle>
-              {selectedCocktail.description && (
-                <p className="text-[hsl(var(--cocktail-text-muted))]">{selectedCocktail.description}</p>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="aspect-video rounded-lg overflow-hidden bg-[hsl(var(--cocktail-card-bg))]">
-                <img
-                  src={selectedCocktail.image || "/placeholder.svg"}
-                  alt={selectedCocktail.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = "/placeholder.svg?height=200&width=400"
-                  }}
+    switch (activeTab) {
+      case "cocktails":
+        return (
+          <div className="space-y-8">
+            <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))] text-center">Cocktails mit Alkohol</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {currentPageCocktails.map((cocktail) => (
+                <CocktailCard
+                  key={cocktail.id}
+                  cocktail={cocktail}
+                  onClick={() => setSelectedCocktail(cocktail)}
+                  onEdit={() => handleRecipeEditClick(cocktail.id)} // Added recipe edit handler
                 />
-              </div>
+              ))}
+            </div>
 
-              <div>
-                <h4 className="text-lg mb-2 text-center text-[hsl(var(--cocktail-text))]">Größe wählen:</h4>
-                <div className="flex gap-2 justify-center">
-                  {availableSizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 rounded bg-[hsl(var(--cocktail-card-bg))] ${
-                        selectedSize === size
-                          ? "font-semibold border-2 border-[hsl(var(--cocktail-primary))] text-[hsl(var(--cocktail-primary))]"
-                          : "text-[hsl(var(--cocktail-text))] hover:text-[hsl(var(--cocktail-primary))]"
-                      }`}
-                    >
-                      {size}ml
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {totalPages > 1 && (
+              <PaginationComponent currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            )}
+          </div>
+        )
+      case "virgin":
+        return (
+          <div className="space-y-8">
+            <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))] text-center">Alkoholfreie Cocktails</h2>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleCancelSelection}
-                  className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-                >
-                  Zurück
-                </Button>
-                <Button
-                  onClick={handleMakeCocktail}
-                  disabled={!isAvailable}
-                  className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black"
-                >
-                  Zubereiten
-                </Button>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {currentPageVirginCocktails.map((cocktail) => (
+                <CocktailCard
+                  key={cocktail.id}
+                  cocktail={cocktail}
+                  onClick={() => setSelectedCocktail(cocktail)}
+                  onEdit={() => handleRecipeEditClick(cocktail.id)} // Added recipe edit handler
+                />
+              ))}
+            </div>
 
-              {!isAvailable && (
-                <Alert className="bg-[hsl(var(--cocktail-warning))]/10 border-[hsl(var(--cocktail-warning))]/30">
-                  <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-warning))]" />
-                  <AlertDescription className="text-[hsl(var(--cocktail-warning))]">
-                    Nicht alle Zutaten sind in ausreichender Menge vorhanden.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
+            {virginTotalPages > 1 && (
+              <PaginationComponent
+                currentPage={virginCurrentPage}
+                totalPages={virginTotalPages}
+                onPageChange={setVirginCurrentPage}
+              />
+            )}
+          </div>
+        )
+      case "shots":
+        return (
+          <ShotSelector
+            pumpConfig={pumpConfig}
+            ingredientLevels={ingredientLevels}
+            onShotComplete={loadIngredientLevels}
+          />
+        )
+      case "recipe-creator":
+        return (
+          <div className="space-y-8">
+            <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Neues Rezept erstellen</h2>
+            <RecipeCreator isOpen={true} onClose={() => setActiveTab("cocktails")} onSave={handleNewRecipeSave} />
+          </div>
+        )
+      case "levels":
+        return <IngredientLevels pumpConfig={pumpConfig} onLevelsUpdated={loadIngredientLevels} />
+      case "ingredients":
+        return <IngredientManager onClose={() => setActiveTab("cocktails")} />
+      case "calibration":
+        return <PumpCalibration pumpConfig={pumpConfig} onConfigUpdate={loadPumpConfig} />
+      case "cleaning":
+        return <PumpCleaning pumpConfig={pumpConfig} />
+      case "venting":
+        return (
+          <QuickShotSelector
+            pumpConfig={pumpConfig}
+            ingredientLevels={ingredientLevels}
+            onShotComplete={loadIngredientLevels}
+          />
+        )
+      case "service":
+        return (
+          <ServiceMenu
+            pumpConfig={pumpConfig}
+            ingredientLevels={ingredientLevels}
+            onLevelsUpdated={loadIngredientLevels}
+            onConfigUpdate={loadPumpConfig}
+            onShotComplete={loadIngredientLevels}
+            availableIngredients={getAvailableIngredientsFromCocktails()}
+            cocktails={cocktailsData}
+            onCocktailSelect={(cocktail) => setSelectedCocktail(cocktail)}
+            onImageEditClick={handleImageEditClick}
+            onDeleteCocktail={handleDeleteClick}
+            onNewRecipe={handleNewRecipeSave}
+            onTabConfigReload={reloadTabConfig}
+          />
+        )
+      default:
+        return null
+    }
+  }
+
+  const renderTabButton = (tabId: string, tabName: string) => (
+    <Button
+      key={tabId}
+      onClick={() => handleTabChange(tabId)}
+      className={`flex-1 py-1.5 px-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none text-sm ${
+        activeTab === tabId
+          ? "bg-[#00ff00] text-black scale-105 focus:bg-[#00ff00]"
+          : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102 focus:bg-[#00ff00] focus:text-black"
+      }`}
+    >
+      {tabName}
+    </Button>
+  )
+
+  const reloadTabConfig = async () => {
+    console.log("[v0] Reloading tab configuration...")
+    await loadTabConfig()
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <div className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-[hsl(var(--cocktail-text))]">CocktailBot</h1>
-          <Button
-            onClick={() => setShowServiceMenu(true)}
-            className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black"
-          >
-            Service
-          </Button>
-        </div>
+    <div className="container mx-auto p-6 max-w-7xl">
+      <header className="mb-8">
+        <h1
+          className="text-4xl font-bold text-center text-[hsl(var(--cocktail-text))] mb-2 cursor-pointer"
+          onClick={handleTitleClick}
+        >
+          CocktailBot
+        </h1>
+      </header>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {cocktails.map((cocktail) => (
-            <CocktailCard
-              key={cocktail.id}
-              cocktail={cocktail}
-              onClick={() => handleCocktailSelect(cocktail)}
-              isAvailable={checkIngredientsAvailable(cocktail)}
-            />
-          ))}
-        </div>
+      <div className="mb-8">
+        <nav className="tabs-list">
+          <div className="flex flex-wrap justify-center gap-3 pb-2">
+            {tabConfig &&
+              mainTabs
+                .filter((tabId) => tabId !== "service")
+                .map((tabId) => {
+                  const tab = tabConfig.tabs.find((t) => t.id === tabId)
+                  return tab ? renderTabButton(tab.id, tab.name) : null
+                })}
+            {renderTabButton("service", "Servicemenü")}
+          </div>
+        </nav>
       </div>
+
+      <main className="min-h-[60vh]">{renderContent()}</main>
+
+      {isMaking && (
+        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md mx-auto">
+            <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
+              <CardContent className="pt-8 pb-8 space-y-6">
+                <div className="flex flex-col items-center gap-6">
+                  <div className="w-24 h-24 rounded-full bg-[hsl(var(--cocktail-primary))]/10 flex items-center justify-center">
+                    <GlassWater className="h-12 w-12 text-[hsl(var(--cocktail-primary))]" />
+                  </div>
+                  <h2 className="text-2xl font-semibold text-center">{statusMessage}</h2>
+                </div>
+
+                <div className="space-y-3">
+                  <Progress value={progress} className="h-4" />
+                  <div className="text-center text-lg text-[hsl(var(--cocktail-text-muted))]">
+                    {progress}% abgeschlossen
+                  </div>
+                </div>
+
+                {errorMessage && (
+                  <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
+                    <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
+                    <AlertDescription className="text-[hsl(var(--cocktail-error))]">{errorMessage}</AlertDescription>
+                  </Alert>
+                )}
+
+                {showSuccess && (
+                  <div className="flex justify-center">
+                    <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-4">
+                      <Check className="h-10 w-10 text-[hsl(var(--cocktail-success))]" />
+                    </div>
+                  </div>
+                )}
+
+                {manualIngredients.length > 0 && (
+                  <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg">
+                    <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">
+                      Manuelle Zutaten hinzufügen:
+                    </h4>
+                    <ul className="space-y-2 text-sm">
+                      {manualIngredients.map((item, index) => (
+                        <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
+                          • {item.amount}ml {item.ingredientId.replace(/^custom-\d+-/, "")}
+                          {item.instructions && (
+                            <div className="text-xs italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
+                              {item.instructions}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      <PasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onSuccess={handlePasswordSuccess}
+      />
+
+      <PasswordModal
+        isOpen={showImageEditorPasswordModal}
+        onClose={() => setShowImageEditorPasswordModal(false)}
+        onSuccess={handleImageEditorPasswordSuccess}
+      />
+
+      <PasswordModal
+        isOpen={showRecipeCreatorPasswordModal}
+        onClose={() => setShowRecipeCreatorPasswordModal(false)}
+        onSuccess={handleRecipeCreatorPasswordSuccess}
+      />
+
+      {showRecipeEditor && selectedCocktail && (
+        <RecipeEditor
+          isOpen={showRecipeEditor}
+          onClose={() => {
+            setShowRecipeEditor(false)
+            setSelectedCocktail(null)
+          }}
+          cocktail={selectedCocktail}
+          onSave={handleRecipeSave}
+          onRequestDelete={handleRequestDelete}
+        />
+      )}
+
+      <RecipeCreator
+        isOpen={showRecipeCreator}
+        onClose={() => setShowRecipeCreator(false)}
+        onSave={handleNewRecipeSave}
+      />
+
+      <DeleteConfirmation
+        isOpen={showDeleteConfirmation}
+        onClose={() => setShowDeleteConfirmation(false)}
+        onConfirm={handleDeleteConfirm}
+        cocktailName={cocktailToDelete?.name || ""}
+      />
+
+      <ImageEditor
+        isOpen={showImageEditor}
+        onClose={() => setShowImageEditor(false)}
+        cocktail={selectedCocktail}
+        onSave={handleImageSave}
+      />
     </div>
   )
 }
