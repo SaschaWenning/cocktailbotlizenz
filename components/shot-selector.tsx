@@ -84,7 +84,10 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
     if (!ingredientLevels || !Array.isArray(ingredientLevels)) {
       return false
     }
-    const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
+    const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
+    if (!pump) return false
+
+    const level = ingredientLevels.find((level) => level.pumpId === pump.id)
     return level && level.currentLevel >= shotSize
   }
 
