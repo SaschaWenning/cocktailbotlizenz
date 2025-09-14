@@ -69,6 +69,12 @@ export const defaultTabConfig: AppConfig = {
       passwordProtected: true,
     },
     {
+      id: "hidden-cocktails",
+      name: "Ausgeblendete Cocktails",
+      location: "service",
+      passwordProtected: true,
+    },
+    {
       id: "service",
       name: "Servicemenü",
       location: "main",
