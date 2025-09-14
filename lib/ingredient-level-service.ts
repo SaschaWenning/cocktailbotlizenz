@@ -27,13 +27,17 @@ const getDefaultLevels = (): IngredientLevel[] => {
 const LEVELS_UPDATED_EVENT = "ingredient-levels:updated"
 function emitLevelsUpdated() {
   if (typeof window !== "undefined") {
+    console.log("[v0] Emitting ingredient levels updated event")
     window.dispatchEvent(new CustomEvent(LEVELS_UPDATED_EVENT))
   }
 }
 
 export function onIngredientLevelsUpdated(cb: () => void) {
   if (typeof window === "undefined") return () => {}
-  const handler = () => cb()
+  const handler = () => {
+    console.log("[v0] Ingredient levels updated event received")
+    cb()
+  }
   window.addEventListener(LEVELS_UPDATED_EVENT, handler)
   return () => window.removeEventListener(LEVELS_UPDATED_EVENT, handler)
 }
@@ -46,6 +50,7 @@ export const getIngredientLevels = (): IngredientLevel[] => {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const levels = JSON.parse(stored)
+      console.log("[v0] Loaded ingredient levels from localStorage:", levels.length, "levels")
       // Ensure we have all 20 pumps
       const defaults = getDefaultLevels()
       const merged = defaults.map((defaultLevel) => {
@@ -58,12 +63,17 @@ export const getIngredientLevels = (): IngredientLevel[] => {
     console.error("Error loading ingredient levels from localStorage:", error)
   }
 
+  console.log("[v0] Using default ingredient levels")
   return getDefaultLevels()
 }
 
 // Save levels to localStorage and attempt file backup
 export const saveIngredientLevels = async (levels: IngredientLevel[]): Promise<void> => {
   try {
+    console.log(
+      "[v0] Saving ingredient levels:",
+      levels.map((l) => `Pump ${l.pumpId}: ${l.currentLevel}ml`),
+    )
     // Save to localStorage immediately
     localStorage.setItem(STORAGE_KEY, JSON.stringify(levels))
     emitLevelsUpdated()
@@ -75,6 +85,7 @@ export const saveIngredientLevels = async (levels: IngredientLevel[]): Promise<v
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(levels),
       })
+      console.log("[v0] Successfully saved levels to file")
     } catch (fileError) {
       console.warn("Could not save to file, using localStorage only:", fileError)
     }
@@ -123,20 +134,28 @@ export const updateIngredientName = async (pumpId: number, newName: string): Pro
 
 // Reduce level after cocktail making
 export const updateLevelsAfterCocktail = async (ingredients: { pumpId: number; amount: number }[]): Promise<void> => {
+  console.log("[v0] Updating levels after cocktail:", ingredients)
   const levels = getIngredientLevels()
   let updated = false
 
   for (const ingredient of ingredients) {
     const levelIndex = levels.findIndex((l) => l.pumpId === ingredient.pumpId)
     if (levelIndex !== -1) {
+      const oldLevel = levels[levelIndex].currentLevel
       levels[levelIndex].currentLevel = Math.max(0, levels[levelIndex].currentLevel - ingredient.amount)
       levels[levelIndex].lastUpdated = new Date()
+      console.log(
+        `[v0] Pump ${ingredient.pumpId}: ${oldLevel}ml -> ${levels[levelIndex].currentLevel}ml (used ${ingredient.amount}ml)`,
+      )
       updated = true
     }
   }
 
   if (updated) {
     await saveIngredientLevels(levels)
+    console.log("[v0] Levels updated and saved after cocktail")
+  } else {
+    console.log("[v0] No levels were updated")
   }
 }
 
@@ -185,6 +204,7 @@ export const resetCache = (): void => {
 }
 
 export const syncLevelsWithPumpConfig = async (pumpConfig: any[]): Promise<void> => {
+  console.log("[v0] Syncing levels with pump config:", pumpConfig.length, "pumps")
   const levels = getIngredientLevels()
   let updated = false
 
@@ -193,6 +213,9 @@ export const syncLevelsWithPumpConfig = async (pumpConfig: any[]): Promise<void>
     if (levelIndex !== -1) {
       // Update ingredientId from pump config
       if (levels[levelIndex].ingredientId !== pump.ingredient) {
+        console.log(
+          `[v0] Updating pump ${pump.id} ingredient: ${levels[levelIndex].ingredientId} -> ${pump.ingredient}`,
+        )
         levels[levelIndex].ingredientId = pump.ingredient
         levels[levelIndex].ingredient = pump.ingredient.replace(/^custom-\d+-/, "")
         updated = true
@@ -202,5 +225,6 @@ export const syncLevelsWithPumpConfig = async (pumpConfig: any[]): Promise<void>
 
   if (updated) {
     await saveIngredientLevels(levels)
+    console.log("[v0] Levels synced with pump config")
   }
 }

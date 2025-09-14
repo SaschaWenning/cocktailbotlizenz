@@ -23,15 +23,6 @@ const updateLevelsAfterCocktailServer = async (ingredients: { pumpId: number; am
     if (response.ok) {
       const data = await response.json()
       console.log("[v0] Füllstände erfolgreich aktualisiert:", data.levels?.length || 0, "Levels")
-
-      // Trigger Client-Update über globales Event
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("ingredient-levels-updated", {
-            detail: data.levels,
-          }),
-        )
-      }
     } else {
       console.error("Fehler beim Aktualisieren der Füllstände:", response.statusText)
     }

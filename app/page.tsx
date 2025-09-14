@@ -429,6 +429,8 @@ export default function Home() {
         currentPumpConfig.map((p) => `${p.id}: ${p.ingredient} (enabled: ${p.enabled})`),
       )
 
+      console.log("[v0] Ingredient levels before cocktail:", ingredientLevels)
+
       let intervalId: NodeJS.Timeout
       intervalId = setInterval(() => {
         setProgress((prev) => {
@@ -457,7 +459,11 @@ export default function Home() {
 
       setShowSuccess(true)
 
-      await loadIngredientLevels()
+      console.log("[v0] Waiting for server update, then reloading levels...")
+      setTimeout(async () => {
+        await loadIngredientLevels()
+        console.log("[v0] Ingredient levels after cocktail:", ingredientLevels)
+      }, 2000)
 
       setTimeout(
         () => {
