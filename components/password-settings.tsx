@@ -144,23 +144,19 @@ export default function PasswordSettings() {
                 <Input
                   type="password"
                   value={newPassword}
-                  readOnly
                   placeholder="Neues Passwort eingeben"
                   className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
-                  onFocus={() => setShowKeyboard(true)}
                 />
               </div>
 
-              {showKeyboard && (
-                <div className="mt-4">
-                  <AlphaKeyboard
-                    onKeyPress={handleKeyPress}
-                    onBackspace={handleBackspace}
-                    onClear={handleClear}
-                    onConfirm={handleSavePassword}
-                  />
-                </div>
-              )}
+              <div className="mt-4">
+                <AlphaKeyboard
+                  onKeyPress={handleKeyPress}
+                  onBackspace={handleBackspace}
+                  onClear={handleClear}
+                  onConfirm={handleSavePassword}
+                />
+              </div>
 
               <div className="flex gap-2">
                 <Button
