@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
+import fs from "fs"
+import path from "path"
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,18 +9,14 @@ export async function POST(request: NextRequest) {
 
     // Versuche direkt in Datei zu schreiben (nur auf Raspberry Pi)
     try {
-      // Dynamischer Import für bessere Kompatibilität
-      const fs = await import("fs/promises")
-      const path = await import("path")
-
       const dataDir = "/home/pi/cocktailbot/cocktailbot-main/data"
       const filePath = path.join(dataDir, "ingredient-levels-data.json")
 
       // Erstelle Verzeichnis falls es nicht existiert
-      await fs.mkdir(dataDir, { recursive: true })
+      await fs.promises.mkdir(dataDir, { recursive: true })
 
       // Schreibe Daten in Datei
-      await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8")
+      await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), "utf8")
 
       console.log("[v0] ✅ Daten erfolgreich in Datei gespeichert:", filePath)
 

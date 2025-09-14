@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import fs from "fs"
 
 export const dynamic = "force-dynamic"
 
@@ -11,11 +12,9 @@ async function initializeHiddenCocktails() {
   if (isInitialized) return
 
   try {
-    // Try to use require() for better compatibility
-    const fs = require("fs/promises")
     console.log("[v0] Versuche Hidden Cocktails aus Datei zu laden:", HIDDEN_COCKTAILS_FILE)
 
-    const data = await fs.readFile(HIDDEN_COCKTAILS_FILE, "utf8")
+    const data = await fs.promises.readFile(HIDDEN_COCKTAILS_FILE, "utf8")
     const parsed = JSON.parse(data)
     hiddenCocktailsCache = parsed.hiddenCocktails || []
     console.log("[v0] Hidden Cocktails aus Datei geladen:", hiddenCocktailsCache.length)
@@ -44,10 +43,8 @@ async function saveHiddenCocktails(hiddenCocktails: string[]) {
   hiddenCocktailsCache = hiddenCocktails
 
   try {
-    // Try to save to file
-    const fs = require("fs/promises")
     const data = { hiddenCocktails }
-    await fs.writeFile(HIDDEN_COCKTAILS_FILE, JSON.stringify(data, null, 2))
+    await fs.promises.writeFile(HIDDEN_COCKTAILS_FILE, JSON.stringify(data, null, 2))
     console.log("[v0] Hidden Cocktails in Datei gespeichert:", hiddenCocktails.length)
   } catch (error) {
     console.log("[v0] Dateisystem nicht verfügbar, verwende nur localStorage")
