@@ -1,284 +1,418 @@
+"use server"
+
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
-import { ingredients } from "@/data/ingredients"
-import { pumpConfig as defaultPumpConfig } from "@/data/pump-config"
-import { cocktails as defaultCocktails } from "@/data/cocktails"
+import { updateLevelsAfterCocktail, updateLevelAfterShot } from "@/lib/ingredient-level-service"
+import fs from "fs"
+import path from "path"
+import { exec } from "child_process"
+import { promisify } from "util"
 
-// In-memory storage for demonstration purposes
-const DELETED_COCKTAILS_KEY = "deleted-cocktails"
+const execPromise = promisify(exec)
 
-// Funktion zum Laden der gelöschten Cocktail-IDs aus localStorage
-const getDeletedCocktailIds = (): string[] => {
-  if (typeof window === "undefined") return []
-  try {
-    const deleted = localStorage.getItem(DELETED_COCKTAILS_KEY)
-    return deleted ? JSON.parse(deleted) : []
-  } catch (error) {
-    console.error("Fehler beim Laden der gelöschten Cocktails:", error)
-    return []
-  }
-}
+// Skaliert die Zutatenmengen proportional zur gewünschten Gesamtmenge
+function scaleRecipe(cocktail: Cocktail, targetSize: number) {
+  const currentTotal = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
 
-// Funktion zum Speichern der gelöschten Cocktail-IDs in localStorage
-const saveDeletedCocktailIds = (deletedIds: string[]): void => {
-  if (typeof window === "undefined") return
-  try {
-    localStorage.setItem(DELETED_COCKTAILS_KEY, JSON.stringify(deletedIds))
-  } catch (error) {
-    console.error("Fehler beim Speichern der gelöschten Cocktails:", error)
-  }
-}
+  // Wenn das aktuelle Volumen 0 ist (was nicht sein sollte), vermeide Division durch 0
+  if (currentTotal === 0) return cocktail.recipe
 
-let currentCocktails: Cocktail[] = defaultCocktails
-  .filter((cocktail) => !getDeletedCocktailIds().includes(cocktail.id))
-  .map((cocktail) => ({
-    ...cocktail,
-    recipe: cocktail.recipe.map((item) => ({
-      ...item,
-      type: (item as any).type || "automatic",
-      instruction: (item as any).instruction || "",
-    })),
+  const scaleFactor = targetSize / currentTotal
+
+  return cocktail.recipe.map((item) => ({
+    ...item,
+    amount: Math.round(item.amount * scaleFactor),
   }))
-
-let currentPumpConfig: PumpConfig[] = defaultPumpConfig
-
-// Simulate GPIO control
-const simulateGpioControl = async (pin: number, duration: number) => {
-  console.log(`Simulating GPIO pin ${pin} ON for ${duration}ms`)
-  return new Promise((resolve) => setTimeout(resolve, duration))
 }
 
-const controlGpio = async (pin: number, duration: number) => {
-  console.log(`[v0] Attempting to control GPIO pin ${pin} for ${duration}ms`)
+// Diese Funktion würde auf dem Server laufen und die GPIO-Pins des Raspberry Pi steuern
+export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
+  console.log(`Bereite Cocktail zu: ${cocktail.name} (${size}ml)`)
 
-  // Für Raspberry Pi: Verwende das Python-Steuerungsskript
-  if (typeof window === "undefined") {
-    try {
-      const { exec } = require("child_process")
-      const { promisify } = require("util")
-      const execPromise = promisify(exec)
-      const path = require("path")
+  // Prüfe zuerst, ob genügend von allen Zutaten vorhanden ist
+  const levelCheck = await updateLevelsAfterCocktail(cocktail, size)
 
-      // Verwende das Python-Skript zur Steuerung der Pumpe
-      const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
-      const roundedDuration = Math.round(duration)
+  if (!levelCheck.success) {
+    // Nicht genügend Zutaten vorhanden
+    const missingIngredients = levelCheck.insufficientIngredients
+    throw new Error(`Nicht genügend Zutaten vorhanden: ${missingIngredients.join(", ")}`)
+  }
 
-      console.log(`[v0] Executing: python3 ${PUMP_CONTROL_SCRIPT} activate ${pin} ${roundedDuration}`)
+  // Skaliere das Rezept auf die gewünschte Größe
+  const scaledRecipe = scaleRecipe(cocktail, size)
 
-      const { stdout, stderr } = await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pin} ${roundedDuration}`)
+  // Teile die Zutaten in zwei Gruppen auf: Grenadine und alle anderen
+  const grenadineItems = scaledRecipe.filter((item) => item.ingredientId === "grenadine")
+  const otherItems = scaledRecipe.filter((item) => item.ingredientId !== "grenadine")
 
-      if (stdout) console.log(`[v0] Python output: ${stdout}`)
-      if (stderr) console.log(`[v0] Python stderr: ${stderr}`)
+  // Aktiviere zuerst alle Zutaten außer Grenadine gleichzeitig
+  const otherPumpPromises = otherItems.map((item) => {
+    // Finde die Pumpe, die diese Zutat enthält
+    const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId)
 
-      console.log(`[v0] GPIO pin ${pin} controlled successfully for ${duration}ms`)
-    } catch (error) {
-      console.error(`[v0] GPIO control error: ${error}`)
-      // Fallback zur Simulation
-      console.log(`[v0] Falling back to simulation for GPIO pin ${pin}`)
-      await simulateGpioControl(pin, duration)
+    if (!pump) {
+      console.error(`Keine Pumpe für Zutat ${item.ingredientId} konfiguriert!`)
+      return Promise.resolve()
     }
-  } else {
-    // Browser: Simulation
-    console.log(`[v0] Browser environment detected, using simulation`)
-    await simulateGpioControl(pin, duration)
+
+    // Berechne, wie lange die Pumpe laufen muss
+    const pumpTimeMs = (item.amount / pump.flowRate) * 1000
+
+    console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
+
+    // Aktiviere die Pumpe
+    return activatePump(pump.pin, pumpTimeMs)
+  })
+
+  // Warte, bis alle Pumpen außer Grenadine aktiviert wurden
+  await Promise.all(otherPumpPromises)
+
+  // Wenn Grenadine im Rezept ist, warte 2 Sekunden und füge es dann hinzu
+  if (grenadineItems.length > 0) {
+    console.log("Warte 2 Sekunden vor dem Hinzufügen von Grenadine...")
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    // Füge Grenadine hinzu
+    for (const item of grenadineItems) {
+      const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId)
+
+      if (!pump) {
+        console.error(`Keine Pumpe für Zutat ${item.ingredientId} konfiguriert!`)
+        continue
+      }
+
+      // Berechne, wie lange die Pumpe laufen muss
+      const pumpTimeMs = (item.amount / pump.flowRate) * 1000
+
+      console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
+
+      // Aktiviere die Pumpe
+      await activatePump(pump.pin, pumpTimeMs)
+    }
+  }
+
+  return { success: true }
+}
+
+// Funktion zum Zubereiten eines einzelnen Shots
+export async function makeSingleShot(ingredientId: string, amount = 40) {
+  console.log(`Bereite Shot zu: ${ingredientId} (${amount}ml)`)
+
+  // Prüfe zuerst, ob genügend von der Zutat vorhanden ist
+  const levelCheck = await updateLevelAfterShot(ingredientId, amount)
+
+  if (!levelCheck.success) {
+    throw new Error(`Nicht genügend ${ingredientId} vorhanden!`)
+  }
+
+  // Finde die Pumpe für diese Zutat
+  const pumpConfig = await getPumpConfig()
+  const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
+
+  if (!pump) {
+    throw new Error(`Keine Pumpe für Zutat ${ingredientId} konfiguriert!`)
+  }
+
+  // Berechne, wie lange die Pumpe laufen muss
+  const pumpTimeMs = (amount / pump.flowRate) * 1000
+
+  console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${amount}ml für ${pumpTimeMs}ms aktivieren`)
+
+  // Aktiviere die Pumpe
+  await activatePump(pump.pin, pumpTimeMs)
+
+  return { success: true }
+}
+
+// Diese Funktion aktiviert eine Pumpe für eine bestimmte Zeit
+async function activatePump(pin: number, durationMs: number) {
+  try {
+    console.log(`Aktiviere Pumpe an Pin ${pin} für ${durationMs}ms`)
+
+    // Verwende das Python-Skript zur Steuerung der Pumpe
+    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const roundedDuration = Math.round(durationMs)
+
+    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pin} ${roundedDuration}`)
+
+    return true
+  } catch (error) {
+    console.error(`Fehler beim Aktivieren der Pumpe an Pin ${pin}:`, error)
+    throw error
   }
 }
 
-// Simulate API calls
-export const getAllCocktails = async (): Promise<Cocktail[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log("Fetching all cocktails (simulated)")
-      const deletedIds = getDeletedCocktailIds()
+// Funktion zum Testen einer einzelnen Pumpe
+export async function testPump(pumpId: number) {
+  try {
+    // In einer echten Implementierung würden wir hier die entsprechende Pumpe für eine kurze Zeit aktivieren
+    console.log(`Teste Pumpe ${pumpId}`)
 
-      // Immer von den ursprünglichen defaultCocktails ausgehen und gelöschte herausfiltern
-      const filteredCocktails = defaultCocktails
-        .filter((cocktail) => !deletedIds.includes(cocktail.id))
-        .map((cocktail) => ({
-          ...cocktail,
-          recipe: cocktail.recipe.map((item) => ({
-            ...item,
-            type: (item as any).type || "automatic",
-            instruction: (item as any).instruction || "",
-          })),
-        }))
+    // Simuliere eine kurze Verzögerung
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      // Aktualisiere auch currentCocktails für Konsistenz
-      currentCocktails = filteredCocktails
-
-      resolve(filteredCocktails)
-    }, 500)
-  })
+    return { success: true }
+  } catch (error) {
+    console.error(`Fehler beim Testen der Pumpe ${pumpId}:`, error)
+    throw error
+  }
 }
 
-export const getPumpConfig = async (): Promise<PumpConfig[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log("Fetching pump configuration (simulated)")
-      resolve(currentPumpConfig)
-    }, 300)
-  })
+// Funktion zur Kalibrierung einer Pumpe (läuft für exakt 2 Sekunden)
+export async function calibratePump(pumpId: number, durationMs: number) {
+  try {
+    // Finde die Pumpe in der Konfiguration
+    console.log(`Kalibriere Pumpe ${pumpId} für ${durationMs}ms`)
+
+    const pumpConfig = await getPumpConfig()
+    const pump = pumpConfig.find((p) => p.id === pumpId)
+
+    if (!pump) {
+      throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
+    }
+
+    console.log(`Gefundene Pumpe: ${JSON.stringify(pump)}`)
+
+    // Aktiviere die Pumpe über das Python-Skript
+    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const roundedDuration = Math.round(durationMs)
+
+    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`)
+
+    console.log(`Pumpe ${pumpId} erfolgreich kalibriert`)
+
+    return { success: true }
+  } catch (error) {
+    console.error(`Fehler bei der Kalibrierung der Pumpe ${pumpId}:`, error)
+    throw error
+  }
 }
 
-export const saveRecipe = async (cocktail: Cocktail): Promise<void> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const index = currentCocktails.findIndex((c) => c.id === cocktail.id)
-      if (index > -1) {
-        currentCocktails[index] = cocktail
-        console.log(`Cocktail "${cocktail.name}" updated (simulated)`)
-      } else {
-        currentCocktails.push(cocktail)
-        console.log(`Cocktail "${cocktail.name}" added (simulated)`)
+// Funktion zum Reinigen einer Pumpe
+export async function cleanPump(pumpId: number, durationMs: number) {
+  try {
+    console.log(`Reinige Pumpe ${pumpId} für ${durationMs}ms`)
+
+    // Finde die Pumpe in der Konfiguration
+    const pumpConfig = await getPumpConfig()
+    const pump = pumpConfig.find((p) => p.id === pumpId)
+
+    if (!pump) {
+      throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
+    }
+
+    // Aktiviere die Pumpe über das Python-Skript
+    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const roundedDuration = Math.round(durationMs)
+
+    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`)
+
+    console.log(`Pumpe ${pumpId} erfolgreich gereinigt`)
+
+    return { success: true }
+  } catch (error) {
+    console.error(`Fehler bei der Reinigung der Pumpe ${pumpId}:`, error)
+    throw error
+  }
+}
+
+// Pfad zur JSON-Datei für die Pumpenkonfiguration
+const PUMP_CONFIG_PATH = path.join(process.cwd(), "data", "pump-config.json")
+
+// Pfad zur JSON-Datei für die Cocktail-Rezepte
+const COCKTAILS_PATH = path.join(process.cwd(), "data", "custom-cocktails.json")
+
+// Funktion zum Laden der Pumpenkonfiguration
+export async function getPumpConfig(): Promise<PumpConfig[]> {
+  try {
+    // Prüfe, ob die Datei existiert
+    if (fs.existsSync(PUMP_CONFIG_PATH)) {
+      // Lese die Datei
+      const data = fs.readFileSync(PUMP_CONFIG_PATH, "utf8")
+      return JSON.parse(data)
+    } else {
+      // Wenn die Datei nicht existiert, lade die Standardkonfiguration
+      const { pumpConfig } = await import("@/data/pump-config")
+
+      // Speichere die Standardkonfiguration in der JSON-Datei
+      fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
+      fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+
+      return pumpConfig
+    }
+  } catch (error) {
+    console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
+
+    // Fallback: Lade die Standardkonfiguration
+    const { pumpConfig } = await import("@/data/pump-config")
+    return pumpConfig
+  }
+}
+
+// Funktion zum Speichern der Pumpen-Konfiguration
+export async function savePumpConfig(pumpConfig: PumpConfig[]) {
+  try {
+    console.log("Speichere Pumpen-Konfiguration:", pumpConfig)
+
+    // Stelle sicher, dass das Verzeichnis existiert
+    fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
+
+    // Speichere die Konfiguration in der JSON-Datei
+    fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+
+    console.log("Pumpen-Konfiguration erfolgreich gespeichert")
+    return { success: true }
+  } catch (error) {
+    console.error("Fehler beim Speichern der Pumpen-Konfiguration:", error)
+    throw error
+  }
+}
+
+// Funktion zum Laden aller Cocktails (Standard + benutzerdefinierte)
+export async function getAllCocktails(): Promise<Cocktail[]> {
+  try {
+    // Lade die Standard-Cocktails
+    const { cocktails: defaultCocktails } = await import("@/data/cocktails")
+
+    // Keine zusätzlichen Cocktails definieren
+    const additionalCocktails: Cocktail[] = []
+
+    // Erstelle eine Map für die Cocktails, um Duplikate zu vermeiden
+    const cocktailMap = new Map<string, Cocktail>()
+
+    // Füge zuerst die Standard-Cocktails hinzu und ersetze "rum" durch "brauner rum"
+    for (const cocktail of defaultCocktails) {
+      // Überspringe den ursprünglichen Malibu Ananas, da wir eine aktualisierte Version haben
+      // Überspringe auch Gin Tonic und Cuba Libre
+      if (cocktail.id === "malibu-ananas" || cocktail.id === "gin-tonic" || cocktail.id === "cuba-libre") continue
+
+      // Erstelle eine Kopie des Cocktails
+      const updatedCocktail = { ...cocktail }
+
+      // Aktualisiere die Zutaten-Textliste
+      updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
+        ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
+          ? ingredient.replace("Rum", "Brauner Rum")
+          : ingredient,
+      )
+
+      // Füge den aktualisierten Cocktail zur Map hinzu
+      cocktailMap.set(cocktail.id, updatedCocktail)
+    }
+
+    // Füge die zusätzlichen Cocktails hinzu (in diesem Fall leer)
+    for (const cocktail of additionalCocktails) {
+      cocktailMap.set(cocktail.id, cocktail)
+    }
+
+    // Prüfe, ob die Datei für benutzerdefinierte Cocktails existiert
+    if (fs.existsSync(COCKTAILS_PATH)) {
+      // Lese die Datei
+      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+      const customCocktails: Cocktail[] = JSON.parse(data)
+
+      // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
+      for (const cocktail of customCocktails) {
+        // Erstelle eine Kopie des Cocktails
+        const updatedCocktail = { ...cocktail }
+
+        // Aktualisiere die Zutaten-Textliste
+        updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
+          ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
+            ? ingredient.replace("Rum", "Brauner Rum")
+            : ingredient,
+        )
+
+        // Füge den aktualisierten Cocktail zur Map hinzu
+        cocktailMap.set(cocktail.id, updatedCocktail)
       }
-      resolve()
-    }, 500)
-  })
+    }
+
+    // Konvertiere die Map zurück in ein Array
+    return Array.from(cocktailMap.values())
+  } catch (error) {
+    console.error("Fehler beim Laden der Cocktails:", error)
+
+    // Fallback: Lade nur die Standard-Cocktails
+    const { cocktails } = await import("@/data/cocktails")
+    return cocktails
+  }
 }
 
-export const deleteRecipe = async (cocktailId: string): Promise<void> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const deletedIds = getDeletedCocktailIds()
-      if (!deletedIds.includes(cocktailId)) {
-        deletedIds.push(cocktailId)
-        saveDeletedCocktailIds(deletedIds)
-      }
+// Funktion zum Speichern eines Cocktail-Rezepts
+export async function saveRecipe(cocktail: Cocktail) {
+  try {
+    console.log("Speichere Rezept:", cocktail)
 
-      // Entferne auch aus der aktuellen Liste
-      currentCocktails = currentCocktails.filter((c) => c.id !== cocktailId)
-      console.log(`Cocktail with ID "${cocktailId}" deleted permanently (simulated)`)
-      resolve()
-    }, 300)
-  })
+    // Stelle sicher, dass das Verzeichnis existiert
+    fs.mkdirSync(path.dirname(COCKTAILS_PATH), { recursive: true })
+
+    // Lade bestehende benutzerdefinierte Cocktails oder erstelle ein leeres Array
+    let customCocktails: Cocktail[] = []
+    if (fs.existsSync(COCKTAILS_PATH)) {
+      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+      customCocktails = JSON.parse(data)
+    }
+
+    // Prüfe, ob der Cocktail bereits existiert
+    const index = customCocktails.findIndex((c) => c.id === cocktail.id)
+
+    if (index !== -1) {
+      // Aktualisiere den bestehenden Cocktail
+      customCocktails[index] = cocktail
+    } else {
+      // Füge den neuen Cocktail hinzu
+      customCocktails.push(cocktail)
+    }
+
+    // Speichere die aktualisierten Cocktails
+    fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(customCocktails, null, 2), "utf8")
+
+    console.log("Rezept erfolgreich gespeichert")
+    return { success: true }
+  } catch (error) {
+    console.error("Fehler beim Speichern des Rezepts:", error)
+    throw error
+  }
+}
+
+// Funktion zum Löschen eines Cocktail-Rezepts
+export async function deleteRecipe(cocktailId: string) {
+  try {
+    console.log(`Lösche Rezept mit ID: ${cocktailId}`)
+
+    // Prüfe, ob die Datei existiert
+    if (!fs.existsSync(COCKTAILS_PATH)) {
+      return { success: false, error: "Keine benutzerdefinierten Cocktails gefunden" }
+    }
+
+    // Lade bestehende benutzerdefinierte Cocktails
+    const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+    const customCocktails: Cocktail[] = JSON.parse(data)
+
+    // Prüfe, ob der Cocktail existiert
+    const index = customCocktails.findIndex((c) => c.id === cocktailId)
+
+    if (index === -1) {
+      return { success: false, error: `Cocktail mit ID ${cocktailId} nicht gefunden` }
+    }
+
+    // Entferne den Cocktail
+    customCocktails.splice(index, 1)
+
+    // Speichere die aktualisierten Cocktails
+    fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(customCocktails, null, 2), "utf8")
+
+    console.log(`Rezept mit ID ${cocktailId} erfolgreich gelöscht`)
+    return { success: true }
+  } catch (error) {
+    console.error("Fehler beim Löschen des Rezepts:", error)
+    throw error
+  }
 }
 
 export const updatePumpConfig = async (config: PumpConfig[]): Promise<void> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      currentPumpConfig = config
-      console.log("Pump configuration updated (simulated)")
-      resolve()
-    }, 300)
-  })
-}
-
-export const makeCocktail = async (
-  cocktail: Cocktail,
-  pumpConfig: PumpConfig[],
-  selectedSize: number,
-): Promise<void> => {
-  console.log(`[v0] Starting to make cocktail: ${cocktail.name} (${selectedSize}ml)`)
-  console.log(
-    `[v0] Available pumps:`,
-    pumpConfig.map((p) => `${p.id}: ${p.ingredient} (enabled: ${p.enabled})`),
-  )
-
-  const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
-  if (totalRecipeVolume === 0) {
-    throw new Error("Rezept hat keine Zutaten oder Gesamtvolumen ist Null.")
-  }
-  const scaleFactor = selectedSize / totalRecipeVolume
-  console.log(`[v0] Scale factor: ${scaleFactor} (${selectedSize}ml / ${totalRecipeVolume}ml)`)
-
-  const usedIngredients: { ingredientId: string; amount: number }[] = []
-
-  for (const item of cocktail.recipe) {
-    const ingredient = ingredients.find((i) => i.id === item.ingredientId)
-    const scaledAmount = Math.round(item.amount * scaleFactor)
-
-    console.log(`[v0] Processing ingredient: ${item.ingredientId}, amount: ${scaledAmount}ml, type: ${item.type}`)
-
-    if (item.type === "automatic") {
-      const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId && p.enabled)
-      console.log(`[v0] Looking for pump with ingredient: ${item.ingredientId}`)
-      console.log(`[v0] Found pump:`, pump ? `${pump.id} (pin: ${pump.pin}, flowRate: ${pump.flowRate})` : "none")
-
-      if (!pump) {
-        throw new Error(`Pumpe für Zutat "${ingredient?.name || item.ingredientId}" nicht konfiguriert.`)
-      }
-
-      const duration = (scaledAmount / pump.flowRate) * 1000 // ml / (ml/s) * 1000ms/s = ms
-      console.log(
-        `[v0] Dispensing ${scaledAmount}ml of ${ingredient?.name || item.ingredientId} using pump ${pump.id} (GPIO ${pump.pin}) for ${duration}ms`,
-      )
-
-      await controlGpio(pump.pin, duration)
-
-      usedIngredients.push({ ingredientId: item.ingredientId, amount: scaledAmount })
-
-      if (item.ingredientId === "grenadine") {
-        console.log("[v0] Waiting 2 seconds after adding grenadine for proper layering effect...")
-        await new Promise((resolve) => setTimeout(resolve, 2000))
-      }
-    } else {
-      console.log(
-        `[v0] Manuelle Zutat: ${scaledAmount}ml ${ingredient?.name || item.ingredientId}. Anleitung: ${item.instruction || "Keine spezielle Anleitung."}`,
-      )
-    }
-  }
-
-  try {
-    console.log(`[v0] Updating ingredient levels after cocktail preparation`)
-    const response = await fetch("/api/ingredient-levels", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "updateAfterCocktail",
-        usedIngredients,
-      }),
-    })
-
-    if (!response.ok) {
-      console.error(`[v0] Failed to update ingredient levels: ${response.statusText}`)
-    } else {
-      console.log(`[v0] Ingredient levels updated successfully`)
-    }
-  } catch (error) {
-    console.error(`[v0] Error updating ingredient levels:`, error)
-  }
-
-  console.log(`[v0] Finished making cocktail: ${cocktail.name}`)
-}
-
-export const makeSingleShot = async (
-  ingredientId: string,
-  amountMl: number,
-  pumpConfig: PumpConfig[],
-): Promise<void> => {
-  console.log(`[v0] Making single shot: ${amountMl}ml of ${ingredientId}`)
-  const pump = pumpConfig.find((p) => p.ingredient === ingredientId && p.enabled)
-  if (!pump) {
-    throw new Error(`Pumpe für Zutat "${ingredientId}" nicht konfiguriert.`)
-  }
-
-  const duration = (amountMl / pump.flowRate) * 1000 // ml / (ml/s) * 1000ms/s = ms
-  console.log(
-    `[v0] Shot preparation: ${amountMl}ml ${ingredientId} (Pump ${pump.id}, GPIO ${pump.pin}) for ${duration}ms`,
-  )
-  await controlGpio(pump.pin, duration)
-
-  try {
-    console.log(`[v0] Updating ingredient levels after shot`)
-    const response = await fetch("/api/ingredient-levels", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "updateAfterCocktail",
-        usedIngredients: [{ ingredientId, amount: amountMl }],
-      }),
-    })
-
-    if (!response.ok) {
-      console.error(`[v0] Failed to update ingredient levels: ${response.statusText}`)
-    } else {
-      console.log(`[v0] Ingredient levels updated successfully`)
-    }
-  } catch (error) {
-    console.error(`[v0] Error updating ingredient levels:`, error)
-  }
-
-  console.log(`[v0] Shot of ${ingredientId} completed.`)
+  await savePumpConfig(config)
 }
 
 export const activatePumpForDuration = async (
@@ -286,48 +420,13 @@ export const activatePumpForDuration = async (
   durationMs: number,
   pumpConfig: PumpConfig[],
 ): Promise<void> => {
-  console.log(`[v0] Activating pump with ID: ${pumpId} for ${durationMs}ms`)
+  console.log(`Aktiviere Pumpe mit ID: ${pumpId} für ${durationMs}ms`)
   const pump = pumpConfig.find((p) => p.id.toString() === pumpId)
   if (!pump) {
     throw new Error(`Pumpe mit ID "${pumpId}" nicht gefunden.`)
   }
 
-  console.log(`[v0] Found pump: ${pump.id} (GPIO ${pump.pin})`)
-  await controlGpio(pump.pin, durationMs)
-  console.log(`[v0] Pump ${pump.id} deactivated.`)
-}
-
-export const calibratePump = async (pumpId: string, duration: number): Promise<void> => {
-  console.log(`[v0] Calibrating pump with ID: ${pumpId} for ${duration}ms`)
-  const pump = currentPumpConfig.find((p) => p.id.toString() === pumpId)
-  if (!pump) {
-    throw new Error(`Pumpe mit ID "${pumpId}" nicht gefunden.`)
-  }
-
-  console.log(`[v0] Calibrating pump ${pump.id} (GPIO ${pump.pin})`)
-  await controlGpio(pump.pin, duration)
-  console.log(`[v0] Calibration of pump ${pump.id} completed.`)
-}
-
-export const cleanPump = async (pumpId: number, duration: number): Promise<void> => {
-  console.log(`[v0] Cleaning pump with ID: ${pumpId} for ${duration}ms`)
-  const pump = currentPumpConfig.find((p) => p.id === pumpId)
-  if (!pump) {
-    throw new Error(`Pumpe mit ID "${pumpId}" nicht gefunden.`)
-  }
-
-  console.log(`[v0] Cleaning pump ${pump.id} (GPIO ${pump.pin})`)
-  await controlGpio(pump.pin, duration)
-  console.log(`[v0] Cleaning of pump ${pump.id} completed.`)
-}
-
-// Added functions
-export const savePumpConfig = async (config: PumpConfig[]): Promise<void> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      currentPumpConfig = config
-      console.log("Pump configuration saved (simulated)")
-      resolve()
-    }, 300)
-  })
+  console.log(`Gefundene Pumpe: ${pump.id} (GPIO ${pump.pin})`)
+  await activatePump(pump.pin, durationMs)
+  console.log(`Pumpe ${pump.id} deaktiviert.`)
 }
