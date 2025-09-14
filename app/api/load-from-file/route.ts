@@ -35,25 +35,21 @@ export async function POST() {
 
       console.log("[v0] ✅ Successfully loaded data from file:", Object.keys(data).length, "ingredients")
 
-      const { setIngredientLevels, resetCache } = await import("@/lib/ingredient-level-service")
-
-      // Konvertiere die Daten in das richtige Format
-      const levels = Object.entries(data).map(([ingredientId, levelData]: [string, any]) => ({
-        ingredientId,
-        currentAmount: levelData.currentAmount || 0,
-        capacity: levelData.capacity || 1000,
-        lastRefill: new Date(levelData.lastRefill || new Date()),
-      }))
-
-      // Setze die Füllstände direkt im Service
-      await setIngredientLevels(levels)
-
-      return NextResponse.json({
-        success: true,
-        message: "Daten erfolgreich aus Datei geladen und Cache aktualisiert",
-        data: data,
-        path: filePath,
+      // Normalisieren in dein IngredientLevel-Schema:
+      type Raw = { name?: string; currentAmount?: number; capacity?: number; lastRefill?: string | number | Date }
+      const levels = Object.entries(data).map(([key, raw]: [string, Raw]) => {
+        // Falls key schon numerisch ist, ersetze die nächste Zeile durch: const pumpId = Number(key)
+        const pumpId = Number(String(key).replace(/[^\d]/g, ""))
+        return {
+          pumpId,
+          ingredient: raw?.name ?? `Zutat ${pumpId}`,
+          containerSize: Number(raw?.capacity ?? 1000),
+          currentLevel: Number(raw?.currentAmount ?? 0),
+          lastUpdated: raw?.lastRefill ? new Date(raw.lastRefill) : new Date(),
+        }
       })
+
+      return NextResponse.json({ levels })
     } catch (error) {
       console.log("[v0] ❌ Error reading file:", error)
       return NextResponse.json({

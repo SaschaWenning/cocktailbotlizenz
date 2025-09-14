@@ -22,6 +22,20 @@ const getDefaultLevels = (): IngredientLevel[] => {
   }))
 }
 
+const LEVELS_UPDATED_EVENT = "ingredient-levels:updated"
+function emitLevelsUpdated() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(LEVELS_UPDATED_EVENT))
+  }
+}
+
+export function onIngredientLevelsUpdated(cb: () => void) {
+  if (typeof window === "undefined") return () => {}
+  const handler = () => cb()
+  window.addEventListener(LEVELS_UPDATED_EVENT, handler)
+  return () => window.removeEventListener(LEVELS_UPDATED_EVENT, handler)
+}
+
 // Load levels from localStorage with fallback to defaults
 export const getIngredientLevels = (): IngredientLevel[] => {
   if (typeof window === "undefined") return getDefaultLevels()
@@ -50,6 +64,7 @@ export const saveIngredientLevels = async (levels: IngredientLevel[]): Promise<v
   try {
     // Save to localStorage immediately
     localStorage.setItem(STORAGE_KEY, JSON.stringify(levels))
+    emitLevelsUpdated()
 
     // Attempt to save to file for Raspberry Pi
     try {
@@ -141,6 +156,14 @@ export const resetAllLevels = async (): Promise<void> => {
 // Set levels from external source (file load)
 export const setIngredientLevels = async (newLevels: IngredientLevel[]): Promise<void> => {
   await saveIngredientLevels(newLevels)
+}
+
+export async function restoreIngredientLevelsFromFile(): Promise<IngredientLevel[]> {
+  const res = await fetch("/api/load-from-file", { method: "POST" })
+  if (!res.ok) throw new Error("Restore fehlgeschlagen")
+  const { levels } = (await res.json()) as { levels: IngredientLevel[] }
+  await setIngredientLevels(levels) // -> saveIngredientLevels -> emitLevelsUpdated
+  return levels
 }
 
 // Clear cache (for compatibility)
