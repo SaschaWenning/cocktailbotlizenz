@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Loader2, Droplets, Check, AlertTriangle, Settings } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
-import { cleanPump } from "@/lib/cocktail-machine"
 
 interface PumpCleaningProps {
   pumpConfig: PumpConfig[]
@@ -65,10 +64,14 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
     setCleaningStatus("complete")
   }
 
-  // Funktion zum Reinigen einer Pumpe mit Unterstützung für Pausen
   const cleanPumpWithPauseSupport = async (pumpId: number, duration: number) => {
     try {
-      await cleanPump(pumpId, duration)
+      const response = await fetch("/api/clean-pump", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pumpId, duration }),
+      })
+      if (!response.ok) throw new Error("Failed to clean pump")
     } catch (error) {
       throw error
     }
@@ -82,12 +85,16 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
     setPumpsDone([])
   }
 
-  // Manuelle Einzelpumpen-Reinigung
   const cleanSinglePump = async (pumpId: number) => {
     setManualCleaningPumps((prev) => new Set(prev).add(pumpId))
 
     try {
-      await cleanPump(pumpId, 10000) // 10 Sekunden
+      const response = await fetch("/api/clean-pump", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pumpId, duration: 10000 }),
+      })
+      if (!response.ok) throw new Error("Failed to clean pump")
       console.log(`Pumpe ${pumpId} manuell gereinigt`)
     } catch (error) {
       console.error(`Fehler beim manuellen Reinigen der Pumpe ${pumpId}:`, error)

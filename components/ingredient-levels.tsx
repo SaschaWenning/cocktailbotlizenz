@@ -11,14 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, RefreshCw, AlertTriangle, Droplet, Wine, Coffee } from "lucide-react"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
-import {
-  getIngredientLevels,
-  refillAllIngredients,
-  updateIngredientLevel,
-  updateIngredientCapacity,
-} from "@/lib/ingredient-level-service"
 import type { PumpConfig } from "@/types/pump-config"
-import { getAllIngredients } from "@/lib/ingredients"
 import { VirtualKeyboard } from "@/components/virtual-keyboard"
 
 interface IngredientLevelsProps {
@@ -50,7 +43,14 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     setLoading(true)
     try {
       console.log("[v0] Loading ingredient levels...")
-      const [levelsData, ingredientsData] = await Promise.all([getIngredientLevels(), getAllIngredients()])
+      const [levelsResponse, ingredientsResponse] = await Promise.all([
+        fetch("/api/ingredient-levels"),
+        fetch("/api/ingredients"),
+      ])
+
+      const levelsData = levelsResponse.ok ? await levelsResponse.json() : []
+      const ingredientsData = ingredientsResponse.ok ? await ingredientsResponse.json() : []
+
       setLevels(levelsData)
       setAllIngredients(ingredientsData)
       console.log("[v0] Loaded levels:", levelsData.length, "ingredients:", ingredientsData.length)
@@ -71,7 +71,15 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     try {
       console.log("[v0] Updating capacity for", ingredientId, "to", newCapacity)
 
-      const updatedLevel = await updateIngredientCapacity(ingredientId, newCapacity)
+      const response = await fetch("/api/ingredient-levels/capacity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredientId, capacity: newCapacity }),
+      })
+
+      if (!response.ok) throw new Error("Failed to update capacity")
+
+      const updatedLevel = await response.json()
 
       setLevels((prev) => {
         const existingIndex = prev.findIndex((level) => level.ingredientId === ingredientId)
@@ -112,7 +120,15 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     try {
       console.log("[v0] Updating fill level for", ingredientId, "to", newAmount)
 
-      const updatedLevel = await updateIngredientLevel(ingredientId, newAmount)
+      const response = await fetch("/api/ingredient-levels/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredientId, amount: newAmount }),
+      })
+
+      if (!response.ok) throw new Error("Failed to update fill level")
+
+      const updatedLevel = await response.json()
       updatedLevel.capacity = capacity
 
       setLevels((prev) => {
@@ -148,7 +164,14 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     setSaving("all")
     try {
       console.log("[v0] Refilling all ingredients...")
-      const updatedLevels = await refillAllIngredients()
+
+      const response = await fetch("/api/ingredient-levels/refill-all", {
+        method: "POST",
+      })
+
+      if (!response.ok) throw new Error("Failed to refill all ingredients")
+
+      const updatedLevels = await response.json()
       setLevels(updatedLevels)
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
@@ -167,26 +190,12 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     try {
       console.log("[v0] Starting manual save to file...")
 
-      // Hole aktuelle Daten
-      const currentLevels = await getIngredientLevels()
-
-      // Konvertiere zu Speicherformat
-      const saveData: Record<string, any> = {}
-      currentLevels.forEach((level) => {
-        saveData[level.ingredientId] = {
-          currentAmount: level.currentAmount,
-          capacity: level.capacity,
-          lastRefill: level.lastRefill,
-        }
-      })
-
-      // Sende an manuelle Speicher-API
       const response = await fetch("/api/save-to-file", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(saveData),
+        body: JSON.stringify({}),
       })
 
       const result = await response.json()
@@ -211,7 +220,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     try {
       console.log("[v0] Starting manual load from file...")
 
-      // Sende an manuelle Lade-API
       const response = await fetch("/api/load-from-file", {
         method: "POST",
         headers: {
@@ -228,7 +236,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
           ([ingredientId, data]: [string, any]) => ({
             ingredientId,
             currentAmount: data.currentAmount || 0,
-            capacity: data.capacity || 0, // Verwende 0 statt 1000 als Standard
+            capacity: data.capacity || 0,
             lastRefill: new Date(data.lastRefill || new Date()),
           }),
         )
@@ -248,7 +256,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
           return updatedLevels
         })
 
-        // Zeige Erfolg an
         setShowSuccess(true)
         setTimeout(() => setShowSuccess(false), 3000)
 
@@ -299,7 +306,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
   const connectedIngredientIds = pumpConfig.filter((pump) => pump.enabled).map((pump) => pump.ingredient)
 
   const pumpBasedLevels = pumpConfig
-    .filter((pump) => pump.enabled) // Nur aktivierte Pumpen anzeigen
+    .filter((pump) => pump.enabled)
     .map((pump) => {
       const existingLevel = levels.find((level) => level.ingredientId === pump.ingredient)
 

@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Check, AlertCircle, GlassWater } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
-import { makeSingleShot } from "@/lib/cocktail-machine"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { getAllIngredients } from "@/lib/ingredients"
 import PasswordModal from "./password-modal"
@@ -109,7 +108,16 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
         })
       }, 200)
 
-      await makeSingleShot(selectedIngredient, shotSize, pumpConfig)
+      const response = await fetch("/api/make-shot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredientId: selectedIngredient, amount: shotSize }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to make shot")
+      }
 
       clearInterval(intervalId)
       setProgress(100)

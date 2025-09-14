@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Cocktail } from "@/types/cocktail"
 import { getAllIngredients } from "@/lib/ingredients"
-import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X, ArrowLeft, Check, ArrowUp, Lock } from "lucide-react"
 import FileBrowser from "./file-browser"
 
@@ -113,7 +112,16 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
         }),
       }
 
-      await saveRecipe(newCocktail)
+      const response = await fetch("/api/save-recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCocktail),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save recipe")
+      }
+
       onSave(newCocktail)
       onClose()
       setName("")

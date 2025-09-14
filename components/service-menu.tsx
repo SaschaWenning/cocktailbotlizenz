@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Lock, Settings } from "lucide-react"
 import PumpCleaning from "@/components/pump-cleaning"
+import PumpVenting from "@/components/pump-venting"
 import PumpCalibration from "@/components/pump-calibration"
 import IngredientLevels from "@/components/ingredient-levels"
-import QuickShotSelector from "@/components/quick-shot-selector"
 import PasswordModal from "@/components/password-modal"
 import { IngredientManager } from "@/components/ingredient-manager"
 import TabConfigSettings from "@/components/tab-config-settings"
@@ -183,13 +183,7 @@ export default function ServiceMenu({
         )
       case "venting":
       case "entlueften":
-        return (
-          <QuickShotSelector
-            pumpConfig={pumpConfig}
-            ingredientLevels={ingredientLevels}
-            onShotComplete={onShotComplete}
-          />
-        )
+        return <PumpVenting pumpConfig={pumpConfig} />
       case "levels":
       case "fuellstaende":
         return <IngredientLevels pumpConfig={pumpConfig} onLevelsUpdated={onLevelsUpdated} />
