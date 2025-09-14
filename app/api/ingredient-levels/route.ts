@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import path from "path"
+import fs from "fs"
 import type { IngredientLevel } from "@/types/ingredient-level"
 
 const RASPBERRY_PI_DATA_DIR = "/home/pi/cocktailbot/cocktailbot-main/data"
@@ -9,17 +10,8 @@ let cachedIngredientLevels: IngredientLevel[] | null = null
 
 async function getFileSystem() {
   try {
-    // Versuche zuerst require() für Node.js Umgebungen
-    if (typeof require !== "undefined") {
-      const fs = require("fs").promises
-      console.log("[v0] Dateisystem über require() verfügbar")
-      return fs
-    }
-
-    // Fallback zu import() für moderne Umgebungen
-    const fs = await import("fs/promises")
-    console.log("[v0] Dateisystem über import() verfügbar")
-    return fs
+    console.log("[v0] Dateisystem über ES6 import verfügbar")
+    return fs.promises
   } catch (error) {
     console.log("[v0] Dateisystem nicht verfügbar:", error.message)
     return null

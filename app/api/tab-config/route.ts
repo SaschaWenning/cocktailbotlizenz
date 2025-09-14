@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
+import fs from "fs"
+import path from "path"
 import { type AppConfig, defaultTabConfig } from "@/lib/tab-config"
 
 export const dynamic = "force-dynamic"
@@ -59,31 +61,22 @@ function saveLocalStorageConfig(config: AppConfig): void {
 
 async function getStoredConfig(): Promise<AppConfig> {
   try {
-    let fs: any = null
-    let path: any = null
-
     try {
-      // Versuche fs zu laden - funktioniert nur auf echtem Server
-      fs = require("fs").promises
-      path = require("path")
-    } catch (error) {
-      console.log("[v0] Dateisystem nicht verfügbar:", error.message)
-    }
-
-    if (fs && path) {
       // Dateisystem verfügbar - verwende Datei
       const CONFIG_FILE_PATH = path.join(process.cwd(), "data", "tab-config.json")
 
       try {
         const dataDir = path.dirname(CONFIG_FILE_PATH)
-        await fs.mkdir(dataDir, { recursive: true })
-        const data = await fs.readFile(CONFIG_FILE_PATH, "utf-8")
+        await fs.promises.mkdir(dataDir, { recursive: true })
+        const data = await fs.promises.readFile(CONFIG_FILE_PATH, "utf-8")
         const parsedConfig = JSON.parse(data)
         console.log("[v0] Tab config loaded from file:", parsedConfig)
         return validateAndUpdateConfig(parsedConfig)
       } catch (fileError) {
         console.log("[v0] No existing tab config file found, trying localStorage fallback")
       }
+    } catch (error) {
+      console.log("[v0] Dateisystem nicht verfügbar:", error.message)
     }
 
     // Fallback zu localStorage
@@ -104,28 +97,19 @@ async function getStoredConfig(): Promise<AppConfig> {
 
 async function saveStoredConfig(config: AppConfig): Promise<void> {
   try {
-    let fs: any = null
-    let path: any = null
-
     try {
-      // Versuche fs zu laden - funktioniert nur auf echtem Server
-      fs = require("fs").promises
-      path = require("path")
-    } catch (error) {
-      console.log("[v0] Dateisystem nicht verfügbar:", error.message)
-    }
-
-    if (fs && path) {
       // Dateisystem verfügbar - speichere in Datei
       try {
         const CONFIG_FILE_PATH = path.join(process.cwd(), "data", "tab-config.json")
         const dataDir = path.dirname(CONFIG_FILE_PATH)
-        await fs.mkdir(dataDir, { recursive: true })
-        await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2))
+        await fs.promises.mkdir(dataDir, { recursive: true })
+        await fs.promises.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2))
         console.log("[v0] Tab config saved to file:", CONFIG_FILE_PATH)
       } catch (fileError) {
         console.log("[v0] Could not save to file:", fileError.message)
       }
+    } catch (error) {
+      console.log("[v0] Dateisystem nicht verfügbar:", error.message)
     }
 
     // Immer auch in localStorage speichern

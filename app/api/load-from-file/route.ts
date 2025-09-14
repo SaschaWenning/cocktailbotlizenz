@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server"
+import fs from "fs"
 
 export async function POST() {
   try {
     console.log("[v0] 🔄 Starting manual load from file...")
 
-    // Versuche Node.js fs zu verwenden
-    let fs: any
     try {
-      fs = require("fs")
       console.log("[v0] ✅ Node.js fs module loaded successfully")
     } catch (error) {
       console.log("[v0] ❌ Node.js fs not available:", error)
