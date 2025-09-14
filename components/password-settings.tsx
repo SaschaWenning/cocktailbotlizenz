@@ -17,19 +17,12 @@ export default function PasswordSettings() {
   const [isEditing, setIsEditing] = useState(false)
   const { toast } = useToast()
 
-  // Load custom password on component mount
   useEffect(() => {
-    const loadCustomPassword = async () => {
+    const loadCustomPassword = () => {
       try {
-        const response = await fetch("/api/load-from-file", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filename: "custom-password.json" }),
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setCustomPassword(data.password || "")
+        const savedPassword = localStorage.getItem("customPassword")
+        if (savedPassword) {
+          setCustomPassword(savedPassword)
         }
       } catch (error) {
         console.error("Fehler beim Laden des benutzerdefinierten Passworts:", error)
@@ -39,29 +32,17 @@ export default function PasswordSettings() {
     loadCustomPassword()
   }, [])
 
-  const handleSavePassword = async () => {
+  const handleSavePassword = () => {
     try {
-      const response = await fetch("/api/save-to-file", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: "custom-password.json",
-          data: { password: newPassword },
-        }),
+      localStorage.setItem("customPassword", newPassword)
+      setCustomPassword(newPassword)
+      setNewPassword("")
+      setIsEditing(false)
+      setShowKeyboard(false)
+      toast({
+        title: "Passwort gespeichert",
+        description: "Das benutzerdefinierte Passwort wurde erfolgreich gespeichert.",
       })
-
-      if (response.ok) {
-        setCustomPassword(newPassword)
-        setNewPassword("")
-        setIsEditing(false)
-        setShowKeyboard(false)
-        toast({
-          title: "Passwort gespeichert",
-          description: "Das benutzerdefinierte Passwort wurde erfolgreich gespeichert.",
-        })
-      } else {
-        throw new Error("Fehler beim Speichern")
-      }
     } catch (error) {
       console.error("Fehler beim Speichern des Passworts:", error)
       toast({
@@ -135,7 +116,7 @@ export default function PasswordSettings() {
               onClick={handleStartEdit}
               className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
             >
-              Passwort ändern
+              Passwort eingeben
             </Button>
           ) : (
             <div className="space-y-4">

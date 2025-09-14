@@ -28,25 +28,12 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
       setError(false)
       setShowKeyboard(true)
 
-      // Load custom password
-      const loadCustomPassword = async () => {
-        try {
-          const response = await fetch("/api/load-from-file", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ filename: "custom-password.json" }),
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            setCustomPassword(data.password || "")
-          }
-        } catch (error) {
-          console.error("Fehler beim Laden des benutzerdefinierten Passworts:", error)
-        }
+      try {
+        const savedPassword = localStorage.getItem("customPassword")
+        setCustomPassword(savedPassword || "")
+      } catch (error) {
+        console.error("Fehler beim Laden des benutzerdefinierten Passworts:", error)
       }
-
-      loadCustomPassword()
     }
   }, [isOpen])
 
