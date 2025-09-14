@@ -520,7 +520,7 @@ export default function Home() {
       }
 
       const level = ingredientLevels.find((l) => l.ingredientId === recipeItem.ingredientId)
-      const availableAmount = level?.currentAmount || 0
+      const availableAmount = level?.currentLevel || 0
 
       if (availableAmount < requiredAmount) {
         const ingredient = allIngredientsData.find((i) => i.id === recipeItem.ingredientId)
@@ -1055,6 +1055,16 @@ export default function Home() {
     console.log("[v0] Reloading tab configuration...")
     await loadTabConfig()
   }
+
+  useEffect(() => {
+    const syncLevels = async () => {
+      if (pumpConfig && pumpConfig.length > 0) {
+        const { syncLevelsWithPumpConfig } = await import("@/lib/ingredient-level-service")
+        await syncLevelsWithPumpConfig(pumpConfig)
+      }
+    }
+    syncLevels()
+  }, [pumpConfig])
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">

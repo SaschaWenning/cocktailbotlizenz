@@ -3,6 +3,7 @@
 export interface IngredientLevel {
   pumpId: number
   ingredient: string
+  ingredientId: string
   currentLevel: number
   containerSize: number
   lastUpdated: Date
@@ -16,6 +17,7 @@ const getDefaultLevels = (): IngredientLevel[] => {
   return Array.from({ length: 20 }, (_, i) => ({
     pumpId: i + 1,
     ingredient: `Zutat ${i + 1}`,
+    ingredientId: `ingredient-${i + 1}`,
     currentLevel: 1000,
     containerSize: 1000,
     lastUpdated: new Date(),
@@ -113,6 +115,7 @@ export const updateIngredientName = async (pumpId: number, newName: string): Pro
 
   if (levelIndex !== -1) {
     levels[levelIndex].ingredient = newName || `Zutat ${pumpId}`
+    levels[levelIndex].ingredientId = newName || `ingredient-${pumpId}`
     levels[levelIndex].lastUpdated = new Date()
     await saveIngredientLevels(levels)
   }
@@ -169,4 +172,25 @@ export async function restoreIngredientLevelsFromFile(): Promise<IngredientLevel
 // Clear cache (for compatibility)
 export const resetCache = (): void => {
   // No cache to reset in this implementation
+}
+
+export const syncLevelsWithPumpConfig = async (pumpConfig: any[]): Promise<void> => {
+  const levels = getIngredientLevels()
+  let updated = false
+
+  for (const pump of pumpConfig) {
+    const levelIndex = levels.findIndex((l) => l.pumpId === pump.id)
+    if (levelIndex !== -1) {
+      // Update ingredientId from pump config
+      if (levels[levelIndex].ingredientId !== pump.ingredient) {
+        levels[levelIndex].ingredientId = pump.ingredient
+        levels[levelIndex].ingredient = pump.ingredient.replace(/^custom-\d+-/, "")
+        updated = true
+      }
+    }
+  }
+
+  if (updated) {
+    await saveIngredientLevels(levels)
+  }
 }

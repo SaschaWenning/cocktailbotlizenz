@@ -2,13 +2,29 @@
 
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
-import { updateLevelsAfterCocktail, updateLevelAfterShot } from "@/lib/ingredient-level-service"
 import fs from "fs"
 import path from "path"
 import { exec } from "child_process"
 import { promisify } from "util"
 
 const execPromise = promisify(exec)
+
+const updateLevelsAfterCocktailServer = async (ingredients: { pumpId: number; amount: number }[]): Promise<void> => {
+  // This would update levels on the server side via API calls
+  try {
+    await fetch("/api/ingredient-levels/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ingredients }),
+    })
+  } catch (error) {
+    console.error("Error updating levels:", error)
+  }
+}
+
+const updateLevelAfterShotServer = async (pumpId: number, amount: number): Promise<void> => {
+  await updateLevelsAfterCocktailServer([{ pumpId, amount }])
+}
 
 // Skaliert die Zutatenmengen proportional zur gewünschten Gesamtmenge
 function scaleRecipe(cocktail: Cocktail, targetSize: number) {
@@ -29,21 +45,15 @@ function scaleRecipe(cocktail: Cocktail, targetSize: number) {
 export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
   console.log(`Bereite Cocktail zu: ${cocktail.name} (${size}ml)`)
 
-  // Prüfe zuerst, ob genügend von allen Zutaten vorhanden ist
-  const levelCheck = await updateLevelsAfterCocktail(cocktail, size)
-
-  if (!levelCheck.success) {
-    // Nicht genügend Zutaten vorhanden
-    const missingIngredients = levelCheck.insufficientIngredients
-    throw new Error(`Nicht genügend Zutaten vorhanden: ${missingIngredients.join(", ")}`)
-  }
-
   // Skaliere das Rezept auf die gewünschte Größe
   const scaledRecipe = scaleRecipe(cocktail, size)
 
   // Teile die Zutaten in zwei Gruppen auf: Grenadine und alle anderen
   const grenadineItems = scaledRecipe.filter((item) => item.ingredientId === "grenadine")
   const otherItems = scaledRecipe.filter((item) => item.ingredientId !== "grenadine")
+
+  // Sammle Pumpen-Updates für Level-Reduktion
+  const levelUpdates: { pumpId: number; amount: number }[] = []
 
   // Aktiviere zuerst alle Zutaten außer Grenadine gleichzeitig
   const otherPumpPromises = otherItems.map((item) => {
@@ -59,6 +69,9 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
     const pumpTimeMs = (item.amount / pump.flowRate) * 1000
 
     console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
+
+    // Füge zur Level-Update-Liste hinzu
+    levelUpdates.push({ pumpId: pump.id, amount: item.amount })
 
     // Aktiviere die Pumpe
     return activatePump(pump.pin, pumpTimeMs)
@@ -86,27 +99,25 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
 
       console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
 
+      // Füge zur Level-Update-Liste hinzu
+      levelUpdates.push({ pumpId: pump.id, amount: item.amount })
+
       // Aktiviere die Pumpe
       await activatePump(pump.pin, pumpTimeMs)
     }
   }
 
+  // Aktualisiere die Füllstände
+  await updateLevelsAfterCocktailServer(levelUpdates)
+
   return { success: true }
 }
 
 // Funktion zum Zubereiten eines einzelnen Shots
-export async function makeSingleShot(ingredientId: string, amount = 40) {
+export async function makeSingleShot(ingredientId: string, amount = 40, pumpConfig: PumpConfig[]) {
   console.log(`Bereite Shot zu: ${ingredientId} (${amount}ml)`)
 
-  // Prüfe zuerst, ob genügend von der Zutat vorhanden ist
-  const levelCheck = await updateLevelAfterShot(ingredientId, amount)
-
-  if (!levelCheck.success) {
-    throw new Error(`Nicht genügend ${ingredientId} vorhanden!`)
-  }
-
   // Finde die Pumpe für diese Zutat
-  const pumpConfig = await getPumpConfig()
   const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
 
   if (!pump) {
@@ -120,6 +131,9 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
 
   // Aktiviere die Pumpe
   await activatePump(pump.pin, pumpTimeMs)
+
+  // Aktualisiere den Füllstand
+  await updateLevelAfterShotServer(pump.id, amount)
 
   return { success: true }
 }
