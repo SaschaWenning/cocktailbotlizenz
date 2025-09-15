@@ -245,14 +245,6 @@ export function IngredientLevels() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-xl text-[hsl(var(--cocktail-text))] font-bold flex justify-between items-center">
                     <span className="truncate">{displayName}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleNameEdit(level.pumpId)}
-                      className="text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] p-2"
-                    >
-                      ✏️
-                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -265,7 +257,7 @@ export function IngredientLevels() {
                         onClick={() => handleLevelEdit(level.pumpId)}
                         className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
                       >
-                        {level.currentLevel}ml ✏️
+                        {level.currentLevel}ml
                       </Button>
                     </div>
                     <div className="bg-[hsl(var(--cocktail-card-border))] rounded-full h-3 overflow-hidden">
@@ -287,7 +279,7 @@ export function IngredientLevels() {
                       onClick={() => handleSizeEdit(level.pumpId)}
                       className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
                     >
-                      {level.containerSize}ml ✏️
+                      {level.containerSize}ml
                     </Button>
                   </div>
 
@@ -316,7 +308,6 @@ export function IngredientLevels() {
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
                   className="text-sm text-center font-semibold border-2 focus:border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))] h-8"
-                  readOnly
                 />
 
                 <div className="scale-65 origin-center -my-6">
