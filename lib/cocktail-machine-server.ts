@@ -437,8 +437,8 @@ export async function makeShotAction(ingredient: string, pumpConfig: PumpConfig[
   await activatePump(pump.pin, pumpTimeMs)
 
   try {
-    const { updateIngredientLevels } = await import("@/lib/ingredient-levels")
-    await updateIngredientLevels([{ pumpId: pump.id, amount: size }])
+    const { updateLevelsAfterCocktail } = await import("@/lib/ingredient-level-service")
+    await updateLevelsAfterCocktail([{ pumpId: pump.id, amount: size }])
     console.log("[v0] Füllstände direkt aktualisiert")
   } catch (error) {
     console.error("Error updating levels:", error)
