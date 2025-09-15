@@ -396,16 +396,12 @@ export async function activatePumpForDurationAction(
 
 export async function ventPumpAction(pumpId: number, durationMs: number) {
   try {
-    console.log(`Entlüfte Pumpe ${pumpId} für ${durationMs}ms`)
-
     const pumpConfig = await getPumpConfig()
     const pump = pumpConfig.find((p) => p.id === pumpId)
 
     if (!pump) {
       throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
     }
-
-    console.log(`Gefundene Pumpe: ${JSON.stringify(pump)}`)
 
     // Aktiviere die Pumpe über das Python-Skript
     const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
@@ -440,23 +436,10 @@ export async function makeShotAction(ingredient: string, pumpConfig: PumpConfig[
   // Aktiviere die Pumpe
   await activatePump(pump.pin, pumpTimeMs)
 
-  // Aktualisiere den Füllstand über API
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/ingredient-levels/update`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: [{ pumpId: pump.id, amount: size }] }),
-      },
-    )
-
-    if (response.ok) {
-      const data = await response.json()
-      console.log("[v0] Füllstände erfolgreich aktualisiert:", data.levels?.length || 0, "Levels")
-    } else {
-      console.error("Fehler beim Aktualisieren der Füllstände:", response.statusText)
-    }
+    const { updateIngredientLevels } = await import("@/lib/ingredient-levels")
+    await updateIngredientLevels([{ pumpId: pump.id, amount: size }])
+    console.log("[v0] Füllstände direkt aktualisiert")
   } catch (error) {
     console.error("Error updating levels:", error)
   }
