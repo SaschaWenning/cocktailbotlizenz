@@ -14,6 +14,7 @@ import {
   updateIngredientName,
   resetAllLevels,
   onIngredientLevelsUpdated,
+  setIngredientLevels,
   type IngredientLevel,
 } from "@/lib/ingredient-level-service"
 
@@ -57,7 +58,7 @@ export function IngredientLevels() {
         if (data.success && data.levels) {
           addDebugLog(`Setting ${data.levels.length} levels from API`)
           setLevels(data.levels)
-          localStorage.setItem("ingredient-levels", JSON.stringify(data.levels))
+          await setIngredientLevels(data.levels)
           return
         } else {
           addDebugLog(`API response invalid: success=${data.success}, levels=${!!data.levels}`)
