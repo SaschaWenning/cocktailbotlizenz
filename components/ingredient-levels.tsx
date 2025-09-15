@@ -306,7 +306,7 @@ export function IngredientLevels() {
               <div className="p-2 space-y-2 overflow-y-auto flex-1">
                 <Input
                   value={tempValue}
-                  onChange={(e) => setTempValue(e.target.value)}
+                  readOnly
                   className="text-sm text-center font-semibold border-2 focus:border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))] h-8"
                 />
 
@@ -318,6 +318,8 @@ export function IngredientLevels() {
                         setTempValue((prev) => prev.slice(0, -1))
                       } else if (key === "Clear") {
                         setTempValue("")
+                      } else if (key === "Space" && editingName) {
+                        setTempValue((prev) => prev + " ")
                       } else if (editingName || (!editingName && /^[\d.]$/.test(key))) {
                         setTempValue((prev) => prev + key)
                       }
