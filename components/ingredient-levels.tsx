@@ -313,17 +313,8 @@ export function IngredientLevels() {
                 <div className="scale-65 origin-center -my-6">
                   <VirtualKeyboard
                     layout={editingName ? "alphanumeric" : "numeric"}
-                    onKeyPress={(key) => {
-                      if (key === "Backspace") {
-                        setTempValue((prev) => prev.slice(0, -1))
-                      } else if (key === "Clear") {
-                        setTempValue("")
-                      } else if (key === "Space" && editingName) {
-                        setTempValue((prev) => prev + " ")
-                      } else if (editingName || (!editingName && /^[\d.]$/.test(key))) {
-                        setTempValue((prev) => prev + key)
-                      }
-                    }}
+                    value={tempValue}
+                    onChange={setTempValue}
                   />
                 </div>
 
