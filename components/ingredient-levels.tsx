@@ -30,13 +30,12 @@ export function IngredientLevels() {
 
   const addDebugLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
-    setDebugLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 19)]) // Keep last 20 logs
+    setDebugLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 19)])
   }
 
   useEffect(() => {
     loadLevels()
     const unsubscribe = onIngredientLevelsUpdated(loadLevels)
-
     const interval = setInterval(loadLevels, 10000)
 
     return () => {
@@ -47,38 +46,37 @@ export function IngredientLevels() {
 
   const loadLevels = async () => {
     try {
-      addDebugLog("🔄 Loading levels from API...")
+      addDebugLog("Loading levels from API...")
       const response = await fetch("/api/ingredient-levels")
-      addDebugLog(`📡 API response status: ${response.status}`)
+      addDebugLog(`API response status: ${response.status}`)
 
       if (response.ok) {
         const data = await response.json()
-        addDebugLog(`📦 API response: ${JSON.stringify(data).substring(0, 100)}...`)
+        addDebugLog(`API response: ${JSON.stringify(data).substring(0, 100)}...`)
 
         if (data.success && data.levels) {
-          addDebugLog(`✅ Setting ${data.levels.length} levels from API`)
+          addDebugLog(`Setting ${data.levels.length} levels from API`)
           setLevels(data.levels)
           localStorage.setItem("ingredient-levels", JSON.stringify(data.levels))
           return
         } else {
-          addDebugLog(`❌ API response invalid: success=${data.success}, levels=${!!data.levels}`)
+          addDebugLog(`API response invalid: success=${data.success}, levels=${!!data.levels}`)
         }
       } else {
-        addDebugLog(`❌ API request failed with status ${response.status}`)
+        addDebugLog(`API request failed with status ${response.status}`)
       }
     } catch (error) {
-      addDebugLog(`💥 API error: ${error}`)
+      addDebugLog(`API error: ${error}`)
     }
 
-    // Fallback to localStorage
-    addDebugLog("🔄 Falling back to localStorage")
+    addDebugLog("Falling back to localStorage")
     const currentLevels = getIngredientLevels()
-    addDebugLog(`💾 localStorage has ${currentLevels.length} levels`)
+    addDebugLog(`localStorage has ${currentLevels.length} levels`)
     setLevels(currentLevels)
   }
 
   const handleManualRefresh = async () => {
-    addDebugLog("🔄 Manual refresh triggered")
+    addDebugLog("Manual refresh triggered")
     setIsRefreshing(true)
     await loadLevels()
     setTimeout(() => setIsRefreshing(false), 500)
@@ -88,7 +86,6 @@ export function IngredientLevels() {
     const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
     if (!pump) return ingredientId
 
-    // Convert ingredient ID to display name
     return ingredientId
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -124,25 +121,25 @@ export function IngredientLevels() {
 
   const handleSave = async () => {
     try {
-      addDebugLog("💾 Saving changes...")
+      addDebugLog("Saving changes...")
       if (editingLevel) {
         const newLevel = Number.parseInt(tempValue) || 0
-        addDebugLog(`📝 Updating level for pump ${editingLevel} to ${newLevel}ml`)
+        addDebugLog(`Updating level for pump ${editingLevel} to ${newLevel}ml`)
         await updateIngredientLevel(editingLevel, newLevel)
       } else if (editingSize) {
         const newSize = Number.parseInt(tempValue) || 100
-        addDebugLog(`📏 Updating size for pump ${editingSize} to ${newSize}ml`)
+        addDebugLog(`Updating size for pump ${editingSize} to ${newSize}ml`)
         await updateContainerSize(editingSize, newSize)
       } else if (editingName) {
-        addDebugLog(`🏷️ Updating name for pump ${editingName} to ${tempValue}`)
+        addDebugLog(`Updating name for pump ${editingName} to ${tempValue}`)
         await updateIngredientName(editingName, tempValue)
       }
 
-      addDebugLog("🔄 Reloading levels after save...")
-      await loadLevels() // Reload to show changes
+      addDebugLog("Reloading levels after save...")
+      await loadLevels()
       handleCancel()
     } catch (error) {
-      addDebugLog(`💥 Save error: ${error}`)
+      addDebugLog(`Save error: ${error}`)
     }
   }
 
@@ -156,11 +153,11 @@ export function IngredientLevels() {
 
   const handleResetAll = async () => {
     try {
-      addDebugLog("🔄 Resetting all levels...")
+      addDebugLog("Resetting all levels...")
       await resetAllLevels()
       await loadLevels()
     } catch (error) {
-      addDebugLog(`💥 Reset error: ${error}`)
+      addDebugLog(`Reset error: ${error}`)
     }
   }
 
@@ -183,12 +180,12 @@ export function IngredientLevels() {
           <div className="flex gap-3">
             <Button
               onClick={() => setShowDebug(!showDebug)}
-              className={`${showDebug ? 'bg-[hsl(var(--cocktail-primary))]' : 'bg-[hsl(var(--cocktail-card-bg))]'} hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold`
+              className={`${showDebug ? "bg-[hsl(var(--cocktail-primary))]" : "bg-[hsl(var(--cocktail-card-bg))]"} hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold`}
             >
               <Bug className="h-4 w-4 mr-2" />
               Debug
-            </Button>\
-            <Button\
+            </Button>
+            <Button
               onClick={handleManualRefresh}
               disabled={isRefreshing}
               className="bg-[hsl(var(--cocktail-card-bg))] hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold"
