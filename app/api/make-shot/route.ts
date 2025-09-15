@@ -3,17 +3,19 @@ import { makeShotAction, getPumpConfig } from "@/lib/cocktail-machine-server"
 
 export async function POST(request: NextRequest) {
   try {
-    const { ingredient, size } = await request.json()
+    const body = await request.json()
+    const ingredient: string | undefined = body.ingredient ?? body.ingredientId
+    const size: number = body.size ?? body.amount ?? 40
+    const pumpConfig = body.pumpConfig ?? (await getPumpConfig())
 
-    const pumpConfig = await getPumpConfig()
+    if (!ingredient) {
+      return NextResponse.json({ success: false, error: "Missing ingredient/ingredientId" }, { status: 400 })
+    }
+
     const result = await makeShotAction(ingredient, pumpConfig, size)
-
     return NextResponse.json(result)
   } catch (error) {
     console.error("Error making shot:", error)
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to make shot" },
-      { status: 500 },
-    )
+    return NextResponse.json({ success: false, error: "Failed to make shot" }, { status: 500 })
   }
 }

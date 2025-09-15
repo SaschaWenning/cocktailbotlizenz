@@ -75,7 +75,7 @@ export async function GET() {
     return NextResponse.json(config)
   } catch (error) {
     console.error("[v0] Error in tab config GET:", error)
-    return NextResponse.json(defaultTabConfig)
+    return NextResponse.json(defaultTabConfig, { status: 200 })
   }
 }
 
