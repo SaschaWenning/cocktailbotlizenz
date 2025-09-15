@@ -15,18 +15,13 @@ const ensureDataDir = () => {
 // GET - Load ingredient levels from file
 export async function GET() {
   try {
-    console.log("[v0] GET ingredient-levels: Starting request")
-    console.log("[v0] GET ingredient-levels: FILE_PATH =", FILE_PATH)
-
     ensureDataDir()
 
     if (fs.existsSync(FILE_PATH)) {
-      console.log("[v0] GET ingredient-levels: File exists, reading...")
-      const data = fs.readFileSync(FILE_PATH, "utf8")
-      console.log("[v0] GET ingredient-levels: Raw data length:", data.length)
-
-      const levels = JSON.parse(data)
-      console.log("[v0] GET ingredient-levels: Parsed", levels.length, "levels")
+      const raw = fs.readFileSync(FILE_PATH, "utf8")
+      const parsed = JSON.parse(raw)
+      // Backward-compat: file might be { levels: [...] } or direct array
+      const levels = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.levels) ? parsed.levels : []
 
       return NextResponse.json({
         success: true,
@@ -37,12 +32,10 @@ export async function GET() {
       })
     }
 
-    console.log("[v0] GET ingredient-levels: File doesn't exist, returning empty array")
-    // Return empty array if file doesn't exist
+    // If file doesn't exist, return empty array
     return NextResponse.json({ success: true, levels: [] })
   } catch (error) {
     console.error("[v0] Error loading ingredient levels:", error)
-    console.error("[v0] Error stack:", error instanceof Error ? error.stack : "No stack trace")
     return NextResponse.json(
       {
         success: false,
@@ -57,7 +50,15 @@ export async function GET() {
 // POST - Save ingredient levels to file
 export async function POST(request: NextRequest) {
   try {
-    const levels = await request.json()
+    const body = await request.json()
+    const levels = Array.isArray(body) ? body : Array.isArray(body?.levels) ? body.levels : null
+
+    if (!levels) {
+      return NextResponse.json(
+        { success: false, message: "Invalid body: expected array or { levels: [] }" },
+        { status: 400 },
+      )
+    }
 
     ensureDataDir()
     fs.writeFileSync(FILE_PATH, JSON.stringify(levels, null, 2))
