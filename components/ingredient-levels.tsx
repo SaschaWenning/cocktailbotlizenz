@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,21 +29,49 @@ export function IngredientLevels() {
   const [showDebug, setShowDebug] = useState(false)
   const [debugLogs, setDebugLogs] = useState<string[]>([])
 
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const unsubscribeRef = useRef<(() => void) | null>(null)
+
   const addDebugLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
     setDebugLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 19)])
   }
 
+  const isEditing = editingLevel !== null || editingSize !== null || editingName !== null
+
   useEffect(() => {
+    if (unsubscribeRef.current) {
+      try {
+        unsubscribeRef.current()
+      } catch {}
+      unsubscribeRef.current = null
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+
+    if (isEditing) {
+      return
+    }
+
     loadLevels()
-    const unsubscribe = onIngredientLevelsUpdated(loadLevels)
-    const interval = setInterval(loadLevels, 10000)
+    unsubscribeRef.current = onIngredientLevelsUpdated(loadLevels)
+    intervalRef.current = setInterval(loadLevels, 10000)
 
     return () => {
-      unsubscribe()
-      clearInterval(interval)
+      if (unsubscribeRef.current) {
+        try {
+          unsubscribeRef.current()
+        } catch {}
+        unsubscribeRef.current = null
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
     }
-  }, [])
+  }, [editingLevel, editingSize, editingName])
 
   const loadLevels = async () => {
     try {
