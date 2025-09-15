@@ -4,15 +4,17 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { RefreshCw, Bug } from "lucide-react"
+import { RefreshCw, Bug, Plus } from "lucide-react"
 import { VirtualKeyboard } from "@/components/virtual-keyboard"
 import { pumpConfig } from "@/data/pump-config"
+import { ingredients } from "@/data/ingredients"
 import {
   getIngredientLevels,
   updateIngredientLevel,
   updateContainerSize,
   updateIngredientName,
   resetAllLevels,
+  refillIngredient,
   onIngredientLevelsUpdated,
   setIngredientLevels,
   type IngredientLevel,
@@ -162,6 +164,21 @@ export function IngredientLevels() {
     }
   }
 
+  const handleRefillIngredient = async (pumpId: number) => {
+    try {
+      addDebugLog(`Refilling ingredient for pump ${pumpId}...`)
+      await refillIngredient(pumpId)
+      await loadLevels()
+    } catch (error) {
+      addDebugLog(`Refill error: ${error}`)
+    }
+  }
+
+  const isAlcoholicIngredient = (ingredientId: string): boolean => {
+    const ingredient = ingredients.find((ing) => ing.id === ingredientId)
+    return ingredient?.alcoholic || false
+  }
+
   const getProgressColor = (percentage: number) => {
     if (percentage > 50) return "bg-[hsl(var(--cocktail-primary))]"
     if (percentage > 20) return "bg-[hsl(var(--cocktail-warning))]"
@@ -172,6 +189,8 @@ export function IngredientLevels() {
     const pump = pumpConfig.find((p) => p.id === level.pumpId)
     return pump?.enabled !== false
   })
+
+  const displayLevels = enabledLevels.slice(0, 18)
 
   return (
     <div className="min-h-screen bg-[hsl(var(--cocktail-bg))] p-6">
@@ -232,10 +251,11 @@ export function IngredientLevels() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {enabledLevels.map((level) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayLevels.map((level) => {
             const percentage = (level.currentLevel / level.containerSize) * 100
             const displayName = getIngredientDisplayName(level.ingredient)
+            const isAlcoholic = isAlcoholicIngredient(level.ingredient)
 
             return (
               <Card
@@ -244,29 +264,19 @@ export function IngredientLevels() {
               >
                 <CardHeader className="pb-3">
                   <CardTitle className="text-xl text-[hsl(var(--cocktail-text))] font-bold flex justify-between items-center">
-                    <span className="truncate">{displayName}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleNameEdit(level.pumpId)}
-                      className="text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] p-2"
-                    >
-                      ✏️
-                    </Button>
+                    <div className="flex flex-col">
+                      <span className="truncate">{displayName}</span>
+                      <span className="text-xs text-[hsl(var(--cocktail-text-muted))]">
+                        {isAlcoholic ? "🍺 Alkoholisch (700ml)" : "🥤 Alkoholfrei (1000ml)"}
+                      </span>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
                       <span>Füllstand:</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleLevelEdit(level.pumpId)}
-                        className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
-                      >
-                        {level.currentLevel}ml ✏️
-                      </Button>
+                      <span className="text-[hsl(var(--cocktail-text))] font-semibold">{level.currentLevel}ml</span>
                     </div>
                     <div className="bg-[hsl(var(--cocktail-card-border))] rounded-full h-3 overflow-hidden">
                       <div
@@ -281,15 +291,16 @@ export function IngredientLevels() {
 
                   <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
                     <span>Behältergröße:</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleSizeEdit(level.pumpId)}
-                      className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
-                    >
-                      {level.containerSize}ml ✏️
-                    </Button>
+                    <span className="text-[hsl(var(--cocktail-text))] font-semibold">{level.containerSize}ml</span>
                   </div>
+
+                  <Button
+                    onClick={() => handleRefillIngredient(level.pumpId)}
+                    className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-2 rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Auffüllen ({isAlcoholic ? "700ml" : "1000ml"})
+                  </Button>
 
                   <div className="text-xs text-[hsl(var(--cocktail-text-muted))] text-center">
                     Aktualisiert: {new Date(level.lastUpdated).toLocaleString()}
