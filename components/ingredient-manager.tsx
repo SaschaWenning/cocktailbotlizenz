@@ -8,12 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Trash2, Plus, ArrowUp, Lock, ArrowLeft, X, Check } from "lucide-react"
 import type { Ingredient } from "@/types/pump"
+import { useLanguage } from "@/lib/i18n"
 
 interface IngredientManagerProps {
   onClose: () => void
 }
 
 export function IngredientManager({ onClose }: IngredientManagerProps) {
+  const { t } = useLanguage()
+
   const [customIngredients, setCustomIngredients] = useState<Ingredient[]>([])
   const [newIngredient, setNewIngredient] = useState({
     name: "",
@@ -35,7 +38,7 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
         setCustomIngredients(JSON.parse(stored))
       }
     } catch (error) {
-      console.error("Fehler beim Laden der benutzerdefinierten Zutaten:", error)
+      console.error(t("errorLoadingIngredients"), error)
     }
   }
 
@@ -44,7 +47,7 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
       localStorage.setItem("customIngredients", JSON.stringify(ingredients))
       setCustomIngredients(ingredients)
     } catch (error) {
-      console.error("Fehler beim Speichern der benutzerdefinierten Zutaten:", error)
+      console.error(t("errorSavingIngredients"), error)
     }
   }
 
@@ -95,7 +98,6 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
     } else {
       let processedKey = key
       if (key.length === 1 && key.match(/[A-Za-z]/)) {
-        // Für Buchstaben: prüfe Shift und Caps Lock Status
         const shouldBeUppercase = (isShiftActive && !isCapsLockActive) || (!isShiftActive && isCapsLockActive)
         processedKey = shouldBeUppercase ? key.toUpperCase() : key.toLowerCase()
       }
@@ -156,22 +158,21 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
           {!showKeyboard ? (
             <>
               <CardHeader className="flex-shrink-0">
-                <CardTitle className="text-white">Zutaten verwalten</CardTitle>
+                <CardTitle className="text-white">{t("manageIngredients")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6 overflow-auto flex-1">
-                {/* Neue Zutat hinzufügen */}
                 <div className="space-y-4 p-4 border border-[hsl(var(--cocktail-card-border))] rounded-lg bg-[hsl(var(--cocktail-card-bg))]">
-                  <h3 className="font-semibold text-white">Neue Zutat hinzufügen</h3>
+                  <h3 className="font-semibold text-white">{t("addNewIngredient")}</h3>
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="ingredient-name" className="text-white">
-                        Name der Zutat
+                        {t("ingredientName")}
                       </Label>
                       <Input
                         id="ingredient-name"
                         value={newIngredient.name}
                         readOnly
-                        placeholder="z.B. Erdbeersaft"
+                        placeholder={t("ingredientPlaceholder")}
                         className="bg-white text-black border-[hsl(var(--cocktail-card-border))] placeholder:text-gray-400 cursor-pointer"
                         onClick={openKeyboard}
                       />
@@ -184,20 +185,19 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
                         className="scale-50 data-[state=checked]:bg-[#00ff00]"
                       />
                       <Label htmlFor="ingredient-alcoholic" className="text-white text-sm">
-                        Alkoholisch
+                        {t("alcoholic")}
                       </Label>
                     </div>
                     <Button onClick={addIngredient} className="h-8 px-4 bg-[#00ff00] text-black hover:bg-[#00cc00]">
                       <Plus className="w-4 h-4 mr-2" />
-                      Zutat hinzufügen
+                      {t("addIngredient")}
                     </Button>
                   </div>
                 </div>
 
-                {/* Benutzerdefinierte Zutaten anzeigen */}
                 {customIngredients.length > 0 && (
                   <div className="space-y-4">
-                    <h3 className="font-semibold text-white">Ihre benutzerdefinierten Zutaten</h3>
+                    <h3 className="font-semibold text-white">{t("customIngredients")}</h3>
                     <div className="space-y-2">
                       {customIngredients.map((ingredient) => (
                         <div
@@ -207,7 +207,7 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
                           <div>
                             <span className="font-medium text-white">{ingredient.name}</span>
                             <span className="ml-2 text-sm text-[hsl(var(--cocktail-text))]">
-                              {ingredient.alcoholic ? "(Alkoholisch)" : "(Alkoholfrei)"}
+                              {ingredient.alcoholic ? `(${t("alcoholic")})` : `(${t("nonAlcoholic")})`}
                             </span>
                           </div>
                           <Button
@@ -226,18 +226,17 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
               </CardContent>
               <div className="flex-shrink-0 p-6 pt-0">
                 <Button onClick={handleClose} className="h-8 px-4 bg-[#00ff00] text-black hover:bg-[#00cc00]">
-                  Schließen
+                  {t("close")}
                 </Button>
               </div>
             </>
           ) : (
             <div className="flex gap-3 my-2 h-[85vh] p-2">
-              {/* Tastatur links */}
               <div className="flex-1 flex flex-col">
                 <div className="text-center mb-2">
-                  <h3 className="text-base font-semibold text-white mb-1">Zutatennamen eingeben</h3>
+                  <h3 className="text-base font-semibold text-white mb-1">{t("enterIngredientName")}</h3>
                   <div className="bg-white text-black text-base p-2 rounded mb-2 min-h-[40px] break-all">
-                    {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
+                    {keyboardValue || <span className="text-gray-400">{t("inputPlaceholder")}</span>}
                   </div>
                 </div>
 
@@ -268,7 +267,6 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
                 </div>
               </div>
 
-              {/* Action Buttons rechts */}
               <div className="flex flex-col gap-2 w-24">
                 <Button
                   type="button"
@@ -311,7 +309,7 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
                   onClick={handleKeyboardCancel}
                   className="h-16 bg-gray-700 hover:bg-gray-600 text-white flex flex-col items-center justify-center"
                 >
-                  <span className="text-xs">Cancel</span>
+                  <span className="text-xs">{t("cancel")}</span>
                 </Button>
                 <Button
                   type="button"
@@ -319,7 +317,7 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
                   className="h-16 bg-green-700 hover:bg-green-600 text-white flex flex-col items-center justify-center"
                 >
                   <Check className="h-4 w-4" />
-                  <span className="text-xs">OK</span>
+                  <span className="text-xs">{t("ok")}</span>
                 </Button>
               </div>
             </div>

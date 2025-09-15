@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Lock } from "lucide-react"
+import { useLanguage } from "@/lib/i18n" // Import useLanguage hook
 import AlphaKeyboard from "./alpha-keyboard"
 
 interface PasswordModalProps {
@@ -17,6 +18,7 @@ interface PasswordModalProps {
 }
 
 export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordModalProps) {
+  const { t } = useLanguage() // Add translation hook
   const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
   const [showKeyboard, setShowKeyboard] = useState(true)
@@ -70,26 +72,34 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
-            Passwort erforderlich
+            {t.language === "en" ? "Password Required" : "Passwort erforderlich"}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Bitte gib das Passwort ein, um Rezepte zu bearbeiten:</Label>
+            <Label htmlFor="password">
+              {t.language === "en"
+                ? "Please enter the password to edit recipes:"
+                : "Bitte gib das Passwort ein, um Rezepte zu bearbeiten:"}
+            </Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${error ? "border-[hsl(var(--cocktail-error))]" : ""}`}
-              placeholder="Passwort eingeben"
+              placeholder={t.enterPassword}
               autoComplete="off"
               readOnly
               onFocus={() => setShowKeyboard(true)}
             />
             {error && (
-              <p className="text-[hsl(var(--cocktail-error))] text-sm">Falsches Passwort. Bitte versuche es erneut.</p>
+              <p className="text-[hsl(var(--cocktail-error))] text-sm">
+                {t.language === "en"
+                  ? "Wrong password. Please try again."
+                  : "Falsches Passwort. Bitte versuche es erneut."}
+              </p>
             )}
           </div>
 
@@ -110,13 +120,13 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
               className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
               onClick={onClose}
             >
-              Abbrechen
+              {t.cancel}
             </Button>
             <Button
               type="submit"
               className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
             >
-              Bestätigen
+              {t.language === "en" ? "Confirm" : "Bestätigen"}
             </Button>
           </DialogFooter>
         </form>

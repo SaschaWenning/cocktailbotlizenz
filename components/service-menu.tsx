@@ -14,10 +14,10 @@ import CocktailGrid from "@/components/cocktail-grid"
 import ShotSelector from "@/components/shot-selector"
 import RecipeCreator from "@/components/recipe-creator"
 import HiddenCocktailsManager from "@/components/hidden-cocktails-manager"
-import LanguageSelector from "@/components/language-selector"
-import { useI18n } from "@/components/i18n-provider"
-import PasswordModal from "@/components/password-modal"
+import PasswordModal from "@/components/password-modal" // Import PasswordModal component
+import LanguageSettings from "@/components/language-settings" // Import LanguageSettings Komponente
 import { restoreIngredientLevelsFromFile } from "@/lib/ingredient-level-service"
+import { useLanguage } from "@/lib/i18n" // Import useLanguage hook
 import type { AppConfig } from "@/lib/tab-config"
 import type { PumpConfig } from "@/types/pump"
 import type { IngredientLevel } from "@/types/ingredient-level"
@@ -52,7 +52,7 @@ export default function ServiceMenu({
   onNewRecipe,
   onTabConfigReload,
 }: ServiceMenuProps) {
-  const { t } = useI18n()
+  const { t } = useLanguage() // Add translation hook
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [activeServiceTab, setActiveServiceTab] = useState("")
@@ -97,6 +97,7 @@ export default function ServiceMenu({
           "shots",
           "recipe-creator",
           "hidden-cocktails",
+          "language",
         ])
         setActiveServiceTab("levels")
       }
@@ -153,7 +154,7 @@ export default function ServiceMenu({
       case "recipe-creator":
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">{t("new_recipe")}</h3>
+            <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">{t.newRecipe}</h3>
             <RecipeCreator
               isOpen={true}
               asTab={true}
@@ -198,15 +199,19 @@ export default function ServiceMenu({
           <div className="space-y-6">
             <PasswordSettings />
             <div className="bg-[hsl(var(--cocktail-card-bg))] rounded-xl p-6 border border-[hsl(var(--cocktail-card-border))]">
-              <h3 className="text-lg font-semibold text-[hsl(var(--cocktail-text))] mb-4">{t("restore_levels")}</h3>
-              <p className="text-[hsl(var(--cocktail-text-muted))] mb-4">{t("restore_levels_description")}</p>
+              <h3 className="text-lg font-semibold text-[hsl(var(--cocktail-text))] mb-4">{t.restoreFromFile}</h3>
+              <p className="text-[hsl(var(--cocktail-text-muted))] mb-4">
+                {t.language === "en"
+                  ? "Load saved fill levels from file and overwrite current values."
+                  : "Lade gespeicherte Füllstände aus der Datei und überschreibe die aktuellen Werte."}
+              </p>
               <Button
                 onClick={handleRestoreClick}
                 disabled={restoring}
                 className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
               >
                 <Download className="h-4 w-4 mr-2" />
-                {restoring ? t("restoring") : t("restore_from_file")}
+                {restoring ? t.restoring : t.restoreFromFile}
               </Button>
             </div>
             <TabConfigSettings
@@ -245,6 +250,16 @@ export default function ServiceMenu({
             }}
           />
         )
+      case "language":
+      case "sprache":
+        return (
+          <LanguageSettings
+            onClose={() => {
+              const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"
+              setActiveServiceTab(firstTab)
+            }}
+          />
+        )
       default:
         return null
     }
@@ -268,14 +283,14 @@ export default function ServiceMenu({
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <Lock className="h-16 w-16 text-[hsl(var(--cocktail-text-muted))]" />
-        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{t("service_menu_locked")}</h2>
-        <p className="text-[hsl(var(--cocktail-text-muted))] text-center">{t("enter_password_to_unlock")}</p>
+        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{t.serviceLocked}</h2>
+        <p className="text-[hsl(var(--cocktail-text-muted))] text-center">{t.passwordRequired}</p>
         <Button
           onClick={handleUnlockClick}
           className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold px-8 py-3"
         >
           <Lock className="h-4 w-4 mr-2" />
-          {t("unlock")}
+          {t.unlock}
         </Button>
 
         {showPasswordModal && (
@@ -290,47 +305,42 @@ export default function ServiceMenu({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="mb-2">
-        <LanguageSelector />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{t.serviceMenu}</h2>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setActiveServiceTab("settings")}
+            className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            {t.settings}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsUnlocked(false)}
+            className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+          >
+            <Lock className="h-4 w-4 mr-2" />
+            {t.lock}
+          </Button>
+        </div>
       </div>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{t("service_menu")}</h2>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setActiveServiceTab("settings")}
-              className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              {t("settings")}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsUnlocked(false)}
-              className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-            >
-              <Lock className="h-4 w-4 mr-2" />
-              {t("lock")}
-            </Button>
+
+      <div className="mb-6">
+        <nav className="service-tabs-list">
+          <div className="flex overflow-x-auto space-x-3 pb-2">
+            {tabConfig &&
+              serviceTabs.map((tabId) => {
+                const tab = tabConfig.tabs.find((t) => t.id === tabId)
+                return tab ? renderServiceTabButton(tab.id, tab.name) : null
+              })}
           </div>
-        </div>
-
-        <div className="mb-6">
-          <nav className="service-tabs-list">
-            <div className="flex overflow-x-auto space-x-3 pb-2">
-              {tabConfig &&
-                serviceTabs.map((tabId) => {
-                  const tab = tabConfig.tabs.find((t) => t.id === tabId)
-                  return tab ? renderServiceTabButton(tab.id, tab.name) : null
-                })}
-            </div>
-          </nav>
-        </div>
-
-        <div className="min-h-[60vh]">{renderServiceContent()}</div>
+        </nav>
       </div>
+
+      <div className="min-h-[60vh]">{renderServiceContent()}</div>
     </div>
   )
 }
