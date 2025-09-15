@@ -66,7 +66,7 @@ export const getIngredientLevels = (): IngredientLevel[] => {
   return getDefaultLevels()
 }
 
-// Save levels to localStorage and attempt file backup
+// Save levels to localStorage and API
 export const saveIngredientLevels = async (levels: IngredientLevel[]): Promise<void> => {
   try {
     console.log(
@@ -77,16 +77,21 @@ export const saveIngredientLevels = async (levels: IngredientLevel[]): Promise<v
     localStorage.setItem(STORAGE_KEY, JSON.stringify(levels))
     emitLevelsUpdated()
 
-    // Attempt to save to file for Raspberry Pi
+    // Save to server via API
     try {
-      await fetch("/api/ingredient-levels", {
+      const response = await fetch("/api/ingredient-levels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(levels),
+        body: JSON.stringify({ levels }),
       })
-      console.log("[v0] Successfully saved levels to file")
-    } catch (fileError) {
-      console.warn("Could not save to file, using localStorage only:", fileError)
+
+      if (response.ok) {
+        console.log("[v0] Successfully saved levels to server")
+      } else {
+        console.warn("Could not save to server, using localStorage only:", response.statusText)
+      }
+    } catch (apiError) {
+      console.warn("Could not save to server, using localStorage only:", apiError)
     }
   } catch (error) {
     console.error("Error saving ingredient levels:", error)
@@ -184,7 +189,7 @@ export const refillAllIngredients = async (): Promise<void> => {
   await resetAllLevels()
 }
 
-// Set levels from external source (file load)
+// Set levels from external source (API load)
 export const setIngredientLevels = async (newLevels: IngredientLevel[]): Promise<void> => {
   await saveIngredientLevels(newLevels)
 }
@@ -193,7 +198,7 @@ export async function restoreIngredientLevelsFromFile(): Promise<IngredientLevel
   const res = await fetch("/api/load-from-file", { method: "POST" })
   if (!res.ok) throw new Error("Restore fehlgeschlagen")
   const { levels } = (await res.json()) as { levels: IngredientLevel[] }
-  await setIngredientLevels(levels) // -> saveIngredientLevels -> emitLevelsUpdated
+  await setIngredientLevels(levels)
   return levels
 }
 
