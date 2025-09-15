@@ -20,14 +20,21 @@ export async function GET() {
     if (fs.existsSync(FILE_PATH)) {
       const data = fs.readFileSync(FILE_PATH, "utf8")
       const levels = JSON.parse(data)
-      return NextResponse.json(levels)
+
+      return NextResponse.json({
+        success: true,
+        levels: levels.map((level: any) => ({
+          ...level,
+          lastUpdated: new Date(level.lastUpdated),
+        })),
+      })
     }
 
     // Return empty array if file doesn't exist
-    return NextResponse.json([])
+    return NextResponse.json({ success: true, levels: [] })
   } catch (error) {
     console.error("Error loading ingredient levels:", error)
-    return NextResponse.json({ error: "Failed to load ingredient levels" }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Failed to load ingredient levels" }, { status: 500 })
   }
 }
 

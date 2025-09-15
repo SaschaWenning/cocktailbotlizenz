@@ -160,6 +160,30 @@ export default function Home() {
 
   const loadIngredientLevels = async () => {
     try {
+      console.log("[v0] Loading ingredient levels from server...")
+
+      // Versuche zuerst vom Server zu laden
+      const response = await fetch("/api/ingredient-levels")
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.levels.length > 0) {
+          console.log("[v0] Loaded levels from server:", data.levels)
+          setIngredientLevels(
+            data.levels.map((level: any) => ({
+              ...level,
+              currentAmount: level.currentLevel, // Map currentLevel to currentAmount for compatibility
+            })),
+          )
+
+          // Prüfe auf niedrige Füllstände
+          const lowLevels = data.levels.filter((level: any) => level.currentLevel < 100)
+          setLowIngredients(lowLevels.map((level: any) => level.ingredientId))
+          return
+        }
+      }
+
+      // Fallback zu localStorage
+      console.log("[v0] Falling back to localStorage...")
       const levels = await getIngredientLevels()
       setIngredientLevels(levels)
 
@@ -459,11 +483,9 @@ export default function Home() {
 
       setShowSuccess(true)
 
-      console.log("[v0] Waiting for server update, then reloading levels...")
-      setTimeout(async () => {
-        await loadIngredientLevels()
-        console.log("[v0] Ingredient levels after cocktail:", ingredientLevels)
-      }, 2000)
+      console.log("[v0] Reloading levels immediately after cocktail...")
+      await loadIngredientLevels()
+      console.log("[v0] Ingredient levels after cocktail:", ingredientLevels)
 
       setTimeout(
         () => {

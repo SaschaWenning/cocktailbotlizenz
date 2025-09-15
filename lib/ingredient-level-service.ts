@@ -10,7 +10,6 @@ export interface IngredientLevel {
 }
 
 const STORAGE_KEY = "cocktail-ingredient-levels"
-const FILE_PATH = "/data/ingredient-levels.json"
 
 // Default levels for all 20 pumps
 const getDefaultLevels = (): IngredientLevel[] => {
