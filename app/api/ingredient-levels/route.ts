@@ -15,13 +15,18 @@ const ensureDataDir = () => {
 // GET - Load ingredient levels from file
 export async function GET() {
   try {
-    console.log("[v0] GET ingredient-levels: Loading from", FILE_PATH)
+    console.log("[v0] GET ingredient-levels: Starting request")
+    console.log("[v0] GET ingredient-levels: FILE_PATH =", FILE_PATH)
+
     ensureDataDir()
 
     if (fs.existsSync(FILE_PATH)) {
+      console.log("[v0] GET ingredient-levels: File exists, reading...")
       const data = fs.readFileSync(FILE_PATH, "utf8")
+      console.log("[v0] GET ingredient-levels: Raw data length:", data.length)
+
       const levels = JSON.parse(data)
-      console.log("[v0] GET ingredient-levels: Loaded", levels.length, "levels")
+      console.log("[v0] GET ingredient-levels: Parsed", levels.length, "levels")
 
       return NextResponse.json({
         success: true,
@@ -37,7 +42,15 @@ export async function GET() {
     return NextResponse.json({ success: true, levels: [] })
   } catch (error) {
     console.error("[v0] Error loading ingredient levels:", error)
-    return NextResponse.json({ success: false, error: "Failed to load ingredient levels" }, { status: 500 })
+    console.error("[v0] Error stack:", error instanceof Error ? error.stack : "No stack trace")
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to load ingredient levels",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
 
