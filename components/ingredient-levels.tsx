@@ -276,7 +276,12 @@ export function IngredientLevels() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
                       <span>Füllstand:</span>
-                      <span className="text-[hsl(var(--cocktail-text))] font-semibold">{level.currentLevel}ml</span>
+                      <button
+                        onClick={() => handleLevelEdit(level.pumpId)}
+                        className="text-[hsl(var(--cocktail-text))] font-semibold hover:text-[hsl(var(--cocktail-primary))] transition-colors cursor-pointer"
+                      >
+                        {level.currentLevel}ml ✏️
+                      </button>
                     </div>
                     <div className="bg-[hsl(var(--cocktail-card-border))] rounded-full h-3 overflow-hidden">
                       <div
@@ -291,7 +296,12 @@ export function IngredientLevels() {
 
                   <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
                     <span>Behältergröße:</span>
-                    <span className="text-[hsl(var(--cocktail-text))] font-semibold">{level.containerSize}ml</span>
+                    <button
+                      onClick={() => handleSizeEdit(level.pumpId)}
+                      className="text-[hsl(var(--cocktail-text))] font-semibold hover:text-[hsl(var(--cocktail-primary))] transition-colors cursor-pointer"
+                    >
+                      {level.containerSize}ml ✏️
+                    </button>
                   </div>
 
                   <Button
