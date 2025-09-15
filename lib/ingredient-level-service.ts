@@ -11,13 +11,6 @@ export interface IngredientLevel {
 
 const STORAGE_KEY = "cocktail-ingredient-levels"
 
-import { ingredients } from "@/data/ingredients"
-
-const getDefaultContainerSize = (ingredientId: string): number => {
-  const ingredient = ingredients.find((ing) => ing.id === ingredientId)
-  return ingredient?.alcoholic ? 700 : 1000
-}
-
 // Default levels for all 20 pumps
 const getDefaultLevels = (): IngredientLevel[] => {
   return Array.from({ length: 20 }, (_, i) => ({
@@ -214,25 +207,6 @@ export const resetCache = (): void => {
   // No cache to reset in this implementation
 }
 
-export const refillIngredient = async (pumpId: number): Promise<void> => {
-  const levels = getIngredientLevels()
-  const levelIndex = levels.findIndex((l) => l.pumpId === pumpId)
-
-  if (levelIndex !== -1) {
-    const level = levels[levelIndex]
-    // Bestimme die passende Behältergröße basierend auf der Zutat
-    const appropriateSize = getDefaultContainerSize(level.ingredientId)
-
-    // Aktualisiere sowohl Füllstand als auch Behältergröße falls nötig
-    levels[levelIndex].currentLevel = appropriateSize
-    levels[levelIndex].containerSize = appropriateSize
-    levels[levelIndex].lastUpdated = new Date()
-
-    await saveIngredientLevels(levels)
-    console.log(`[v0] Refilled pump ${pumpId} to ${appropriateSize}ml (${level.ingredient})`)
-  }
-}
-
 export const syncLevelsWithPumpConfig = async (pumpConfig: any[]): Promise<void> => {
   console.log("[v0] Syncing levels with pump config:", pumpConfig.length, "pumps")
   const levels = getIngredientLevels()
@@ -248,13 +222,6 @@ export const syncLevelsWithPumpConfig = async (pumpConfig: any[]): Promise<void>
         )
         levels[levelIndex].ingredientId = pump.ingredient
         levels[levelIndex].ingredient = pump.ingredient.replace(/^custom-\d+-/, "")
-
-        const appropriateSize = getDefaultContainerSize(pump.ingredient)
-        if (levels[levelIndex].containerSize !== appropriateSize) {
-          levels[levelIndex].containerSize = appropriateSize
-          console.log(`[v0] Updated container size for pump ${pump.id} to ${appropriateSize}ml`)
-        }
-
         updated = true
       }
     }
