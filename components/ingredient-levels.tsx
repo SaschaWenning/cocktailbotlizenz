@@ -301,16 +301,16 @@ export function IngredientLevels() {
 
         {showKeyboard && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-              <div className="bg-[hsl(var(--cocktail-primary))] p-6">
-                <h3 className="text-xl font-bold text-black">
+            <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="bg-[hsl(var(--cocktail-primary))] p-4 flex-shrink-0">
+                <h3 className="text-lg font-bold text-black">
                   {editingLevel && "Füllstand bearbeiten"}
                   {editingSize && "Behältergröße bearbeiten"}
                   {editingName && "Zutat bearbeiten"}
                 </h3>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-4 space-y-3 overflow-y-auto flex-1">
                 <Input
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
@@ -318,30 +318,32 @@ export function IngredientLevels() {
                   readOnly
                 />
 
-                <VirtualKeyboard
-                  layout={editingName ? "alphanumeric" : "numeric"}
-                  onKeyPress={(key) => {
-                    if (key === "Backspace") {
-                      setTempValue((prev) => prev.slice(0, -1))
-                    } else if (key === "Clear") {
-                      setTempValue("")
-                    } else if (editingName || (!editingName && /^[\d.]$/.test(key))) {
-                      setTempValue((prev) => prev + key)
-                    }
-                  }}
-                />
+                <div className="scale-90 origin-center">
+                  <VirtualKeyboard
+                    layout={editingName ? "alphanumeric" : "numeric"}
+                    onKeyPress={(key) => {
+                      if (key === "Backspace") {
+                        setTempValue((prev) => prev.slice(0, -1))
+                      } else if (key === "Clear") {
+                        setTempValue("")
+                      } else if (editingName || (!editingName && /^[\d.]$/.test(key))) {
+                        setTempValue((prev) => prev + key)
+                      }
+                    }}
+                  />
+                </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-2 pt-2">
                   <Button
                     onClick={handleSave}
-                    className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-3 rounded-xl"
+                    className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-2 rounded-xl text-sm"
                   >
                     Speichern
                   </Button>
                   <Button
                     onClick={handleCancel}
                     variant="outline"
-                    className="flex-1 border-2 border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] font-semibold py-3 rounded-xl bg-transparent text-[hsl(var(--cocktail-text))]"
+                    className="flex-1 border-2 border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] font-semibold py-2 rounded-xl bg-transparent text-[hsl(var(--cocktail-text))] text-sm"
                   >
                     Abbrechen
                   </Button>
