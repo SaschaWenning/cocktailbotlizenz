@@ -2,7 +2,6 @@
 
 import type React from "react"
 import { useEffect } from "react"
-import { I18nProvider } from "@/components/i18n-provider"
 
 export default function ClientWrapper({
   children,
@@ -74,5 +73,5 @@ export default function ClientWrapper({
     }
   }, [])
 
-  return <I18nProvider>{children}</I18nProvider>
+  return <>{children}</>
 }
