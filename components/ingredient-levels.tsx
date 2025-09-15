@@ -300,25 +300,25 @@ export function IngredientLevels() {
         </div>
 
         {showKeyboard && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="bg-[hsl(var(--cocktail-primary))] p-4 flex-shrink-0">
-                <h3 className="text-lg font-bold text-black">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-1">
+            <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-xl shadow-2xl max-w-xs w-full mx-1 max-h-[95vh] overflow-hidden flex flex-col">
+              <div className="bg-[hsl(var(--cocktail-primary))] p-2 flex-shrink-0">
+                <h3 className="text-sm font-bold text-black">
                   {editingLevel && "Füllstand bearbeiten"}
                   {editingSize && "Behältergröße bearbeiten"}
                   {editingName && "Zutat bearbeiten"}
                 </h3>
               </div>
 
-              <div className="p-4 space-y-3 overflow-y-auto flex-1">
+              <div className="p-2 space-y-2 overflow-y-auto flex-1">
                 <Input
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
-                  className="text-lg text-center font-semibold border-2 focus:border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))]"
+                  className="text-sm text-center font-semibold border-2 focus:border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))] h-8"
                   readOnly
                 />
 
-                <div className="scale-90 origin-center">
+                <div className="scale-65 origin-center -my-6">
                   <VirtualKeyboard
                     layout={editingName ? "alphanumeric" : "numeric"}
                     onKeyPress={(key) => {
@@ -333,17 +333,17 @@ export function IngredientLevels() {
                   />
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-1">
                   <Button
                     onClick={handleSave}
-                    className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-2 rounded-xl text-sm"
+                    className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-1 rounded-lg text-xs h-8"
                   >
                     Speichern
                   </Button>
                   <Button
                     onClick={handleCancel}
                     variant="outline"
-                    className="flex-1 border-2 border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] font-semibold py-2 rounded-xl bg-transparent text-[hsl(var(--cocktail-text))] text-sm"
+                    className="flex-1 border-2 border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] font-semibold py-1 rounded-lg bg-transparent text-[hsl(var(--cocktail-text))] text-xs h-8"
                   >
                     Abbrechen
                   </Button>
