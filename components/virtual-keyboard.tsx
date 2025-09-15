@@ -58,9 +58,6 @@ export function VirtualKeyboard({
     if (onBackspace) {
       onBackspace()
     }
-    if (onKeyPress) {
-      onKeyPress("Backspace")
-    }
   }
 
   const handleClear = () => {
@@ -69,9 +66,6 @@ export function VirtualKeyboard({
     }
     if (onClear) {
       onClear()
-    }
-    if (onKeyPress) {
-      onKeyPress("Clear")
     }
   }
 
@@ -99,6 +93,11 @@ export function VirtualKeyboard({
         <Button onClick={handleClear} className="flex-1 h-10 text-base bg-yellow-600 text-white hover:bg-yellow-700">
           <X className="h-5 w-5" />
         </Button>
+        {onConfirm && (
+          <Button onClick={onConfirm} className="flex-1 h-10 text-base bg-green-600 text-white hover:bg-green-700">
+            ✓
+          </Button>
+        )}
       </div>
     </div>
   )
