@@ -393,3 +393,73 @@ export async function activatePumpForDurationAction(
   await activatePump(pump.pin, durationMs)
   console.log(`Pumpe ${pump.id} deaktiviert.`)
 }
+
+export async function ventPumpAction(pumpId: number, durationMs: number) {
+  try {
+    console.log(`Entlüfte Pumpe ${pumpId} für ${durationMs}ms`)
+
+    const pumpConfig = await getPumpConfig()
+    const pump = pumpConfig.find((p) => p.id === pumpId)
+
+    if (!pump) {
+      throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
+    }
+
+    console.log(`Gefundene Pumpe: ${JSON.stringify(pump)}`)
+
+    // Aktiviere die Pumpe über das Python-Skript
+    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const roundedDuration = Math.round(durationMs)
+
+    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`)
+
+    console.log(`Pumpe ${pumpId} erfolgreich entlüftet`)
+
+    return { success: true }
+  } catch (error) {
+    console.error(`Fehler beim Entlüften der Pumpe ${pumpId}:`, error)
+    throw error
+  }
+}
+
+export async function makeShotAction(ingredient: string, pumpConfig: PumpConfig[], size = 40) {
+  console.log(`Bereite Shot zu: ${ingredient} (${size}ml)`)
+
+  // Finde die Pumpe für diese Zutat
+  const pump = pumpConfig.find((p) => p.ingredient === ingredient)
+
+  if (!pump) {
+    throw new Error(`Keine Pumpe für Zutat ${ingredient} konfiguriert!`)
+  }
+
+  // Berechne, wie lange die Pumpe laufen muss
+  const pumpTimeMs = (size / pump.flowRate) * 1000
+
+  console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${size}ml für ${pumpTimeMs}ms aktivieren`)
+
+  // Aktiviere die Pumpe
+  await activatePump(pump.pin, pumpTimeMs)
+
+  // Aktualisiere den Füllstand über API
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/ingredient-levels/update`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients: [{ pumpId: pump.id, amount: size }] }),
+      },
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      console.log("[v0] Füllstände erfolgreich aktualisiert:", data.levels?.length || 0, "Levels")
+    } else {
+      console.error("Fehler beim Aktualisieren der Füllstände:", response.statusText)
+    }
+  } catch (error) {
+    console.error("Error updating levels:", error)
+  }
+
+  return { success: true }
+}

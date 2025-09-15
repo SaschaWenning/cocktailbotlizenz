@@ -1,13 +1,13 @@
-import { makeSingleShot } from "@/lib/cocktail-machine"
+import { type NextRequest, NextResponse } from "next/server"
+import { makeShotAction } from "@/lib/cocktail-machine-server"
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { ingredientId, amount, pumpConfig } = await request.json()
-
-    const result = await makeSingleShot(ingredientId, amount, pumpConfig)
-    return Response.json(result)
+    const { ingredient, pumpConfig, size } = await request.json()
+    const result = await makeShotAction(ingredient, pumpConfig, size)
+    return NextResponse.json(result)
   } catch (error) {
-    console.error("Fehler bei der Shot-Zubereitung:", error)
-    return Response.json({ error: error instanceof Error ? error.message : "Unbekannter Fehler" }, { status: 500 })
+    console.error("Error making shot:", error)
+    return NextResponse.json({ success: false, error: "Failed to make shot" }, { status: 500 })
   }
 }
