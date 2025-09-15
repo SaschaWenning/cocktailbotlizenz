@@ -56,7 +56,7 @@ export async function calibratePump(pumpId: number, durationMs: number) {
 }
 
 export async function cleanPump(pumpId: number, durationMs: number) {
-  const response = await fetch("/api/clean-pump", {
+  const response = await fetch("/api/vent-pump", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ pumpId, durationMs }),

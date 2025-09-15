@@ -437,11 +437,22 @@ export async function makeShotAction(ingredient: string, pumpConfig: PumpConfig[
   await activatePump(pump.pin, pumpTimeMs)
 
   try {
-    const { updateLevelsAfterCocktail } = await import("@/lib/ingredient-level-service")
-    await updateLevelsAfterCocktail([{ pumpId: pump.id, amount: size }])
-    console.log("[v0] Füllstände direkt aktualisiert")
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/ingredient-levels/update`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients: [{ pumpId: pump.id, amount: size }] }),
+      },
+    )
+    if (!response.ok) {
+      console.error("Failed to update levels after shot:", response.statusText)
+    } else {
+      const data = await response.json()
+      console.log("[v0] Füllstände erfolgreich aktualisiert:", data.levels?.length || 0, "Levels")
+    }
   } catch (error) {
-    console.error("Error updating levels:", error)
+    console.error("Error updating levels after shot:", error)
   }
 
   return { success: true }
