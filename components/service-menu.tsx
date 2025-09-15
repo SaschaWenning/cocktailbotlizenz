@@ -14,6 +14,7 @@ import CocktailGrid from "@/components/cocktail-grid"
 import ShotSelector from "@/components/shot-selector"
 import RecipeCreator from "@/components/recipe-creator"
 import HiddenCocktailsManager from "@/components/hidden-cocktails-manager"
+import PasswordModal from "@/components/password-modal" // Import PasswordModal component
 import { restoreIngredientLevelsFromFile } from "@/lib/ingredient-level-service"
 import type { AppConfig } from "@/lib/tab-config"
 import type { PumpConfig } from "@/types/pump"
@@ -263,6 +264,33 @@ export default function ServiceMenu({
       {tabName}
     </Button>
   )
+
+  if (!isUnlocked) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <Lock className="h-16 w-16 text-[hsl(var(--cocktail-text-muted))]" />
+        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Servicemenü gesperrt</h2>
+        <p className="text-[hsl(var(--cocktail-text-muted))] text-center">
+          Bitte geben Sie das Passwort ein, um auf das Servicemenü zuzugreifen.
+        </p>
+        <Button
+          onClick={handleUnlockClick}
+          className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold px-8 py-3"
+        >
+          <Lock className="h-4 w-4 mr-2" />
+          Entsperren
+        </Button>
+
+        {showPasswordModal && (
+          <PasswordModal
+            isOpen={showPasswordModal}
+            onClose={() => setShowPasswordModal(false)}
+            onSuccess={handlePasswordSuccess}
+          />
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

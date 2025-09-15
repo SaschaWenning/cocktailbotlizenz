@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { RefreshCw } from "lucide-react"
 import { VirtualKeyboard } from "@/components/virtual-keyboard"
 import { pumpConfig } from "@/data/pump-config"
 import {
@@ -23,13 +24,13 @@ export function IngredientLevels() {
   const [editingName, setEditingName] = useState<number | null>(null)
   const [tempValue, setTempValue] = useState("")
   const [showKeyboard, setShowKeyboard] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
     loadLevels()
     const unsubscribe = onIngredientLevelsUpdated(loadLevels)
 
-    // Auto-refresh every 5 seconds to catch server updates
-    const interval = setInterval(loadLevels, 5000)
+    const interval = setInterval(loadLevels, 10000)
 
     return () => {
       unsubscribe()
@@ -54,6 +55,12 @@ export function IngredientLevels() {
     // Fallback to localStorage
     const currentLevels = getIngredientLevels()
     setLevels(currentLevels)
+  }
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true)
+    await loadLevels()
+    setTimeout(() => setIsRefreshing(false), 500)
   }
 
   const getIngredientDisplayName = (ingredientId: string) => {
@@ -131,9 +138,9 @@ export function IngredientLevels() {
   }
 
   const getProgressColor = (percentage: number) => {
-    if (percentage > 50) return "bg-green-500"
-    if (percentage > 20) return "bg-yellow-500"
-    return "bg-red-500"
+    if (percentage > 50) return "bg-[hsl(var(--cocktail-primary))]"
+    if (percentage > 20) return "bg-[hsl(var(--cocktail-warning))]"
+    return "bg-[hsl(var(--cocktail-error))]"
   }
 
   const enabledLevels = levels.filter((level) => {
@@ -142,16 +149,26 @@ export function IngredientLevels() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-6">
+    <div className="min-h-screen bg-[hsl(var(--cocktail-bg))] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-4xl font-bold text-white">Füllstände</h1>
-          <Button
-            onClick={handleResetAll}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold"
-          >
-            Alle zurücksetzen
-          </Button>
+          <h1 className="text-4xl font-bold text-[hsl(var(--cocktail-text))]">Füllstände</h1>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="bg-[hsl(var(--cocktail-card-bg))] hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+              Aktualisieren
+            </Button>
+            <Button
+              onClick={handleResetAll}
+              className="bg-[hsl(var(--cocktail-error))] hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold"
+            >
+              Alle zurücksetzen
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -162,16 +179,16 @@ export function IngredientLevels() {
             return (
               <Card
                 key={level.pumpId}
-                className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300"
+                className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] transition-all duration-300"
               >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-xl text-white font-bold flex justify-between items-center">
+                  <CardTitle className="text-xl text-[hsl(var(--cocktail-text))] font-bold flex justify-between items-center">
                     <span className="truncate">{displayName}</span>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => handleNameEdit(level.pumpId)}
-                      className="text-white hover:bg-white/20 p-2"
+                      className="text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] p-2"
                     >
                       ✏️
                     </Button>
@@ -179,39 +196,41 @@ export function IngredientLevels() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-white/80">
+                    <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
                       <span>Füllstand:</span>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleLevelEdit(level.pumpId)}
-                        className="h-6 px-2 text-white hover:bg-white/20"
+                        className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
                       >
                         {level.currentLevel}ml ✏️
                       </Button>
                     </div>
-                    <div className="bg-white/20 rounded-full h-3 overflow-hidden">
+                    <div className="bg-[hsl(var(--cocktail-card-border))] rounded-full h-3 overflow-hidden">
                       <div
                         className={`h-full transition-all duration-500 ${getProgressColor(percentage)}`}
                         style={{ width: `${Math.min(percentage, 100)}%` }}
                       />
                     </div>
-                    <div className="text-center text-sm text-white/60">{percentage.toFixed(0)}%</div>
+                    <div className="text-center text-sm text-[hsl(var(--cocktail-text-muted))]">
+                      {percentage.toFixed(0)}%
+                    </div>
                   </div>
 
-                  <div className="flex justify-between text-sm text-white/80">
+                  <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
                     <span>Behältergröße:</span>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => handleSizeEdit(level.pumpId)}
-                      className="h-6 px-2 text-white hover:bg-white/20"
+                      className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
                     >
                       {level.containerSize}ml ✏️
                     </Button>
                   </div>
 
-                  <div className="text-xs text-white/40 text-center">
+                  <div className="text-xs text-[hsl(var(--cocktail-text-muted))] text-center">
                     Aktualisiert: {new Date(level.lastUpdated).toLocaleString()}
                   </div>
                 </CardContent>
@@ -222,9 +241,9 @@ export function IngredientLevels() {
 
         {showKeyboard && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6">
-                <h3 className="text-xl font-bold text-white">
+            <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+              <div className="bg-[hsl(var(--cocktail-primary))] p-6">
+                <h3 className="text-xl font-bold text-black">
                   {editingLevel && "Füllstand bearbeiten"}
                   {editingSize && "Behältergröße bearbeiten"}
                   {editingName && "Zutat bearbeiten"}
@@ -235,7 +254,7 @@ export function IngredientLevels() {
                 <Input
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
-                  className="text-lg text-center font-semibold border-2 focus:border-purple-500"
+                  className="text-lg text-center font-semibold border-2 focus:border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))]"
                   readOnly
                 />
 
@@ -245,7 +264,7 @@ export function IngredientLevels() {
                       setTempValue((prev) => prev.slice(0, -1))
                     } else if (key === "Clear") {
                       setTempValue("")
-                    } else if (editingName || (!editingName && /^\\d$/.test(key))) {
+                    } else if (editingName || (!editingName && /^\d$/.test(key))) {
                       setTempValue((prev) => prev + key)
                     }
                   }}
@@ -256,14 +275,14 @@ export function IngredientLevels() {
                 <div className="flex gap-3 pt-4">
                   <Button
                     onClick={handleSave}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 rounded-xl"
+                    className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-3 rounded-xl"
                   >
                     Speichern
                   </Button>
                   <Button
                     onClick={handleCancel}
                     variant="outline"
-                    className="flex-1 border-2 border-gray-300 hover:bg-gray-100 font-semibold py-3 rounded-xl bg-transparent"
+                    className="flex-1 border-2 border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] font-semibold py-3 rounded-xl bg-transparent text-[hsl(var(--cocktail-text))]"
                   >
                     Abbrechen
                   </Button>
