@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { RefreshCw } from "lucide-react"
+import { RefreshCw, Bug } from "lucide-react"
 import { VirtualKeyboard } from "@/components/virtual-keyboard"
 import { pumpConfig } from "@/data/pump-config"
 import {
@@ -25,6 +25,13 @@ export function IngredientLevels() {
   const [tempValue, setTempValue] = useState("")
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showDebug, setShowDebug] = useState(false)
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setDebugLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 19)]) // Keep last 20 logs
+  }
 
   useEffect(() => {
     loadLevels()
@@ -40,24 +47,38 @@ export function IngredientLevels() {
 
   const loadLevels = async () => {
     try {
+      addDebugLog("🔄 Loading levels from API...")
       const response = await fetch("/api/ingredient-levels")
+      addDebugLog(`📡 API response status: ${response.status}`)
+
       if (response.ok) {
         const data = await response.json()
+        addDebugLog(`📦 API response: ${JSON.stringify(data).substring(0, 100)}...`)
+
         if (data.success && data.levels) {
+          addDebugLog(`✅ Setting ${data.levels.length} levels from API`)
           setLevels(data.levels)
+          localStorage.setItem("ingredient-levels", JSON.stringify(data.levels))
           return
+        } else {
+          addDebugLog(`❌ API response invalid: success=${data.success}, levels=${!!data.levels}`)
         }
+      } else {
+        addDebugLog(`❌ API request failed with status ${response.status}`)
       }
     } catch (error) {
-      console.error("Failed to load levels from server:", error)
+      addDebugLog(`💥 API error: ${error}`)
     }
 
     // Fallback to localStorage
+    addDebugLog("🔄 Falling back to localStorage")
     const currentLevels = getIngredientLevels()
+    addDebugLog(`💾 localStorage has ${currentLevels.length} levels`)
     setLevels(currentLevels)
   }
 
   const handleManualRefresh = async () => {
+    addDebugLog("🔄 Manual refresh triggered")
     setIsRefreshing(true)
     await loadLevels()
     setTimeout(() => setIsRefreshing(false), 500)
@@ -103,20 +124,25 @@ export function IngredientLevels() {
 
   const handleSave = async () => {
     try {
+      addDebugLog("💾 Saving changes...")
       if (editingLevel) {
         const newLevel = Number.parseInt(tempValue) || 0
+        addDebugLog(`📝 Updating level for pump ${editingLevel} to ${newLevel}ml`)
         await updateIngredientLevel(editingLevel, newLevel)
       } else if (editingSize) {
         const newSize = Number.parseInt(tempValue) || 100
+        addDebugLog(`📏 Updating size for pump ${editingSize} to ${newSize}ml`)
         await updateContainerSize(editingSize, newSize)
       } else if (editingName) {
+        addDebugLog(`🏷️ Updating name for pump ${editingName} to ${tempValue}`)
         await updateIngredientName(editingName, tempValue)
       }
 
+      addDebugLog("🔄 Reloading levels after save...")
       await loadLevels() // Reload to show changes
       handleCancel()
     } catch (error) {
-      console.error("Error saving:", error)
+      addDebugLog(`💥 Save error: ${error}`)
     }
   }
 
@@ -130,10 +156,11 @@ export function IngredientLevels() {
 
   const handleResetAll = async () => {
     try {
+      addDebugLog("🔄 Resetting all levels...")
       await resetAllLevels()
       await loadLevels()
     } catch (error) {
-      console.error("Error resetting levels:", error)
+      addDebugLog(`💥 Reset error: ${error}`)
     }
   }
 
@@ -155,6 +182,13 @@ export function IngredientLevels() {
           <h1 className="text-4xl font-bold text-[hsl(var(--cocktail-text))]">Füllstände</h1>
           <div className="flex gap-3">
             <Button
+              onClick={() => setShowDebug(!showDebug)}
+              className={`${showDebug ? 'bg-[hsl(var(--cocktail-primary))]' : 'bg-[hsl(var(--cocktail-card-bg))]'} hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold`
+            >
+              <Bug className="h-4 w-4 mr-2" />
+              Debug
+            </Button>\
+            <Button\
               onClick={handleManualRefresh}
               disabled={isRefreshing}
               className="bg-[hsl(var(--cocktail-card-bg))] hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold"
@@ -170,6 +204,35 @@ export function IngredientLevels() {
             </Button>
           </div>
         </div>
+
+        {showDebug && (
+          <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
+            <CardHeader>
+              <CardTitle className="text-[hsl(var(--cocktail-text))] flex items-center gap-2">
+                <Bug className="h-5 w-5" />
+                Debug Logs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-black rounded-lg p-4 max-h-60 overflow-y-auto">
+                <div className="font-mono text-sm space-y-1">
+                  {debugLogs.length === 0 ? (
+                    <div className="text-gray-500">Keine Debug-Logs verfügbar</div>
+                  ) : (
+                    debugLogs.map((log, index) => (
+                      <div key={index} className="text-green-400">
+                        {log}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-[hsl(var(--cocktail-text-muted))]">
+                Aktuelle Levels: {levels.length} | Letzte Aktualisierung: {new Date().toLocaleTimeString()}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {enabledLevels.map((level) => {
@@ -259,17 +322,16 @@ export function IngredientLevels() {
                 />
 
                 <VirtualKeyboard
+                  layout={editingName ? "alphanumeric" : "numeric"}
                   onKeyPress={(key) => {
                     if (key === "Backspace") {
                       setTempValue((prev) => prev.slice(0, -1))
                     } else if (key === "Clear") {
                       setTempValue("")
-                    } else if (editingName || (!editingName && /^\d$/.test(key))) {
+                    } else if (editingName || (!editingName && /^[\d.]$/.test(key))) {
                       setTempValue((prev) => prev + key)
                     }
                   }}
-                  showNumbers={!editingName}
-                  showLetters={!!editingName}
                 />
 
                 <div className="flex gap-3 pt-4">
