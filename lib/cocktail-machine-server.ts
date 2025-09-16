@@ -15,57 +15,79 @@ const PUMP_CONFIG_PATH = path.join(process.cwd(), "data", "pump-config.json")
 // Pfad zur JSON-Datei für die Cocktail-Rezepte
 const COCKTAILS_PATH = path.join(process.cwd(), "data", "custom-cocktails.json")
 
-// Funktion zum Laden der Pumpenkonfiguration
 export async function getPumpConfig(): Promise<PumpConfig[]> {
   try {
+    // Stelle sicher, dass das data Verzeichnis existiert
+    const dataDir = path.dirname(PUMP_CONFIG_PATH)
+    if (!fs.existsSync(dataDir)) {
+      console.log("[v0] Creating data directory:", dataDir)
+      fs.mkdirSync(dataDir, { recursive: true })
+    }
+
     // Prüfe, ob die Datei existiert
     if (fs.existsSync(PUMP_CONFIG_PATH)) {
       // Lese die Datei
       const data = fs.readFileSync(PUMP_CONFIG_PATH, "utf8")
-      return JSON.parse(data)
+      const parsedConfig = JSON.parse(data)
+      console.log("[v0] Loaded pump config from file:", parsedConfig.length, "pumps")
+      return parsedConfig
     } else {
+      console.log("[v0] No pump config file found, creating default config")
       // Wenn die Datei nicht existiert, lade die Standardkonfiguration
       const { pumpConfig } = await import("@/data/pump-config")
 
       // Speichere die Standardkonfiguration in der JSON-Datei
-      fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
       fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+      console.log("[v0] Default pump config saved to file")
 
       return pumpConfig
     }
   } catch (error) {
-    console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
+    console.error("[v0] Error in getPumpConfig:", error)
 
-    // Fallback: Lade die Standardkonfiguration
-    const { pumpConfig } = await import("@/data/pump-config")
-    return pumpConfig
+    try {
+      // Fallback: Lade die Standardkonfiguration
+      const { pumpConfig } = await import("@/data/pump-config")
+      console.log("[v0] Using fallback pump config:", pumpConfig.length, "pumps")
+      return pumpConfig
+    } catch (fallbackError) {
+      console.error("[v0] Fallback pump config also failed:", fallbackError)
+      // Return empty array as last resort
+      return []
+    }
   }
 }
 
 // Funktion zum Speichern der Pumpen-Konfiguration
 export async function savePumpConfig(pumpConfig: PumpConfig[]) {
   try {
-    console.log("Speichere Pumpen-Konfiguration:", pumpConfig)
+    console.log("[v0] Saving pump configuration:", pumpConfig.length, "pumps")
 
     // Stelle sicher, dass das Verzeichnis existiert
-    fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
+    const dataDir = path.dirname(PUMP_CONFIG_PATH)
+    if (!fs.existsSync(dataDir)) {
+      console.log("[v0] Creating data directory for pump config:", dataDir)
+      fs.mkdirSync(dataDir, { recursive: true })
+    }
 
     // Speichere die Konfiguration in der JSON-Datei
     fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
 
-    console.log("Pumpen-Konfiguration erfolgreich gespeichert")
+    console.log("[v0] Pump configuration saved successfully")
     return { success: true }
   } catch (error) {
-    console.error("Fehler beim Speichern der Pumpen-Konfiguration:", error)
-    throw error
+    console.error("[v0] Error saving pump configuration:", error)
+    throw new Error(`Failed to save pump configuration: ${error.message}`)
   }
 }
 
-// Funktion zum Laden aller Cocktails (Standard + benutzerdefinierte)
 export async function getAllCocktails(): Promise<Cocktail[]> {
   try {
+    console.log("[v0] Loading all cocktails...")
+
     // Lade die Standard-Cocktails
     const { cocktails: defaultCocktails } = await import("@/data/cocktails")
+    console.log("[v0] Loaded default cocktails:", defaultCocktails.length)
 
     // Keine zusätzlichen Cocktails definieren
     const additionalCocktails: Cocktail[] = []
@@ -98,37 +120,60 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       cocktailMap.set(cocktail.id, cocktail)
     }
 
+    // Stelle sicher, dass das data Verzeichnis existiert
+    const dataDir = path.dirname(COCKTAILS_PATH)
+    if (!fs.existsSync(dataDir)) {
+      console.log("[v0] Creating data directory for cocktails:", dataDir)
+      fs.mkdirSync(dataDir, { recursive: true })
+    }
+
     // Prüfe, ob die Datei für benutzerdefinierte Cocktails existiert
     if (fs.existsSync(COCKTAILS_PATH)) {
-      // Lese die Datei
-      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
-      const customCocktails: Cocktail[] = JSON.parse(data)
+      try {
+        // Lese die Datei
+        const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+        const customCocktails: Cocktail[] = JSON.parse(data)
+        console.log("[v0] Loaded custom cocktails:", customCocktails.length)
 
-      // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
-      for (const cocktail of customCocktails) {
-        // Erstelle eine Kopie des Cocktails
-        const updatedCocktail = { ...cocktail }
+        // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
+        for (const cocktail of customCocktails) {
+          // Erstelle eine Kopie des Cocktails
+          const updatedCocktail = { ...cocktail }
 
-        // Aktualisiere die Zutaten-Textliste
-        updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
-          ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
-            ? ingredient.replace("Rum", "Brauner Rum")
-            : ingredient,
-        )
+          // Aktualisiere die Zutaten-Textliste
+          updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
+            ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
+              ? ingredient.replace("Rum", "Brauner Rum")
+              : ingredient,
+          )
 
-        // Füge den aktualisierten Cocktail zur Map hinzu
-        cocktailMap.set(cocktail.id, updatedCocktail)
+          // Füge den aktualisierten Cocktail zur Map hinzu
+          cocktailMap.set(cocktail.id, updatedCocktail)
+        }
+      } catch (customError) {
+        console.warn("[v0] Error reading custom cocktails file:", customError)
       }
+    } else {
+      console.log("[v0] No custom cocktails file found")
     }
 
     // Konvertiere die Map zurück in ein Array
-    return Array.from(cocktailMap.values())
+    const allCocktails = Array.from(cocktailMap.values())
+    console.log("[v0] Total cocktails loaded:", allCocktails.length)
+    return allCocktails
   } catch (error) {
-    console.error("Fehler beim Laden der Cocktails:", error)
+    console.error("[v0] Error in getAllCocktails:", error)
 
-    // Fallback: Lade nur die Standard-Cocktails
-    const { cocktails } = await import("@/data/cocktails")
-    return cocktails
+    try {
+      // Fallback: Lade nur die Standard-Cocktails
+      const { cocktails } = await import("@/data/cocktails")
+      console.log("[v0] Using fallback cocktails:", cocktails.length)
+      return cocktails
+    } catch (fallbackError) {
+      console.error("[v0] Fallback cocktails also failed:", fallbackError)
+      // Return empty array as last resort
+      return []
+    }
   }
 }
 
@@ -187,8 +232,53 @@ async function activatePump(pin: number, durationMs: number) {
   }
 }
 
+// Funktion zum Setzen des LED-Modus
+async function setLEDMode(mode: "making" | "finished" | "idle", config?: any) {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/led-control`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "led_command",
+        command: `set_${mode}`,
+        data: config || {},
+      }),
+    })
+
+    if (!response.ok) {
+      console.warn(`[v0] LED ${mode} mode failed:`, response.statusText)
+    } else {
+      console.log(`[v0] LED ${mode} mode activated successfully`)
+    }
+  } catch (error) {
+    console.warn(`[v0] LED ${mode} mode error:`, error)
+  }
+}
+
 export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
   console.log(`Bereite Cocktail zu: ${cocktail.name} (${size}ml)`)
+
+  try {
+    const makingConfig = {
+      color: "#ff8000",
+      brightness: 80,
+      blinking: true,
+      blinkSpeed: 300,
+      pattern: "pulse",
+    }
+
+    // Try to load saved settings
+    if (typeof window !== "undefined") {
+      const savedMaking = localStorage.getItem("led-making-config")
+      if (savedMaking) {
+        Object.assign(makingConfig, JSON.parse(savedMaking))
+      }
+    }
+
+    await setLEDMode("making", makingConfig)
+  } catch (error) {
+    console.warn("[v0] Failed to activate LED making mode:", error)
+  }
 
   // Skaliere das Rezept auf die gewünschte Größe
   const currentTotal = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
@@ -278,11 +368,90 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     console.error("Error updating levels:", error)
   }
 
+  try {
+    const finishedConfig = {
+      color: "#00ff00",
+      brightness: 100,
+      blinking: true,
+      blinkSpeed: 500,
+      pattern: "pulse",
+    }
+
+    // Try to load saved settings
+    if (typeof window !== "undefined") {
+      const savedFinished = localStorage.getItem("led-finished-config")
+      if (savedFinished) {
+        Object.assign(finishedConfig, JSON.parse(savedFinished))
+      }
+    }
+
+    await setLEDMode("finished", finishedConfig)
+
+    // Return to idle mode after 10 seconds
+    setTimeout(async () => {
+      try {
+        const idleSchemeIndex =
+          typeof window !== "undefined" ? Number.parseInt(localStorage.getItem("led-idle-scheme") || "0") : 0
+
+        const idleSchemes = [
+          {
+            color: "#00ff00",
+            brightness: 30,
+            blinking: false,
+            blinkSpeed: 1000,
+            pattern: "pulse",
+          },
+          {
+            color: "#0080ff",
+            brightness: 40,
+            blinking: false,
+            blinkSpeed: 2000,
+            pattern: "fade",
+          },
+          {
+            color: "#ff0000",
+            brightness: 50,
+            blinking: false,
+            blinkSpeed: 100,
+            pattern: "rainbow",
+          },
+          {
+            color: "#ff8000",
+            brightness: 60,
+            blinking: false,
+            blinkSpeed: 200,
+            pattern: "chase",
+          },
+        ]
+
+        const selectedScheme = idleSchemes[idleSchemeIndex] || idleSchemes[0]
+        await setLEDMode("idle", selectedScheme)
+      } catch (error) {
+        console.warn("[v0] Failed to return to idle LED mode:", error)
+      }
+    }, 10000)
+  } catch (error) {
+    console.warn("[v0] Failed to activate LED finished mode:", error)
+  }
+
   return { success: true }
 }
 
 export async function makeSingleShotAction(ingredientId: string, amount = 40, pumpConfig: PumpConfig[]) {
   console.log(`Bereite Shot zu: ${ingredientId} (${amount}ml)`)
+
+  try {
+    const makingConfig = {
+      color: "#ff8000",
+      brightness: 80,
+      blinking: true,
+      blinkSpeed: 300,
+      pattern: "solid",
+    }
+    await setLEDMode("making", makingConfig)
+  } catch (error) {
+    console.warn("[v0] Failed to activate LED making mode for shot:", error)
+  }
 
   // Finde die Pumpe für diese Zutat
   const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
@@ -318,6 +487,34 @@ export async function makeSingleShotAction(ingredientId: string, amount = 40, pu
     }
   } catch (error) {
     console.error("Error updating levels:", error)
+  }
+
+  try {
+    const finishedConfig = {
+      color: "#00ff00",
+      brightness: 100,
+      blinking: false,
+      blinkSpeed: 1000,
+      pattern: "solid",
+    }
+    await setLEDMode("finished", finishedConfig)
+
+    setTimeout(async () => {
+      try {
+        const idleConfig = {
+          color: "#00ff00",
+          brightness: 30,
+          blinking: false,
+          blinkSpeed: 1000,
+          pattern: "pulse",
+        }
+        await setLEDMode("idle", idleConfig)
+      } catch (error) {
+        console.warn("[v0] Failed to return to idle LED mode after shot:", error)
+      }
+    }, 5000)
+  } catch (error) {
+    console.warn("[v0] Failed to activate LED finished mode for shot:", error)
   }
 
   return { success: true }
@@ -421,6 +618,19 @@ export async function ventPumpAction(pumpId: number, durationMs: number) {
 export async function makeShotAction(ingredient: string, pumpConfig: PumpConfig[], size = 40) {
   console.log(`Bereite Shot zu: ${ingredient} (${size}ml)`)
 
+  try {
+    const makingConfig = {
+      color: "#ff8000",
+      brightness: 80,
+      blinking: true,
+      blinkSpeed: 300,
+      pattern: "solid",
+    }
+    await setLEDMode("making", makingConfig)
+  } catch (error) {
+    console.warn("[v0] Failed to activate LED making mode for shot:", error)
+  }
+
   // Finde die Pumpe für diese Zutat
   const pump = pumpConfig.find((p) => p.ingredient === ingredient)
 
@@ -453,6 +663,34 @@ export async function makeShotAction(ingredient: string, pumpConfig: PumpConfig[
     }
   } catch (error) {
     console.error("Error updating levels after shot:", error)
+  }
+
+  try {
+    const finishedConfig = {
+      color: "#00ff00",
+      brightness: 100,
+      blinking: false,
+      blinkSpeed: 1000,
+      pattern: "solid",
+    }
+    await setLEDMode("finished", finishedConfig)
+
+    setTimeout(async () => {
+      try {
+        const idleConfig = {
+          color: "#00ff00",
+          brightness: 30,
+          blinking: false,
+          blinkSpeed: 1000,
+          pattern: "pulse",
+        }
+        await setLEDMode("idle", idleConfig)
+      } catch (error) {
+        console.warn("[v0] Failed to return to idle LED mode after shot:", error)
+      }
+    }, 5000)
+  } catch (error) {
+    console.warn("[v0] Failed to activate LED finished mode for shot:", error)
   }
 
   return { success: true }

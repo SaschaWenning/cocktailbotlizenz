@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
-import { makeCocktail, getPumpConfig, saveRecipe } from "@/lib/cocktail-machine"
+import { makeCocktail, getPumpConfig, saveRecipe, getAllCocktails } from "@/lib/cocktail-machine"
 import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
@@ -30,15 +30,12 @@ import IngredientManager from "@/components/ingredient-manager"
 import PumpCalibration from "@/components/pump-calibration"
 import { Progress } from "@/components/ui/progress"
 import { Check, GlassWater } from "lucide-react"
-import { useLanguage } from "@/lib/i18n"
-import { getCocktailsByLanguage } from "@/data/cocktails"
+import { ledController } from "@/lib/led-controller"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
 
 export default function Home() {
-  const { t, language } = useLanguage()
-
   const [selectedCocktail, setSelectedCocktail] = useState<Cocktail | null>(null)
   const [selectedSize, setSelectedSize] = useState<number>(300)
   const [isMaking, setIsMaking] = useState(false)
@@ -118,6 +115,8 @@ export default function Home() {
           loadAllIngredients(),
           loadTabConfig(),
         ])
+
+        await initializeLEDIdleMode()
       } catch (error) {
         console.error("Fehler beim Laden der Daten:", error)
       } finally {
@@ -130,8 +129,8 @@ export default function Home() {
 
   const loadCocktails = async () => {
     console.log("[v0] Loading cocktails...")
-    const cocktails = getCocktailsByLanguage(language)
-    console.log("[v0] Loaded cocktails from getCocktailsByLanguage:", cocktails.length)
+    const cocktails = await getAllCocktails()
+    console.log("[v0] Loaded cocktails from getAllCocktails:", cocktails.length)
 
     // Load hidden cocktails from API instead of localStorage
     try {
@@ -1097,6 +1096,60 @@ export default function Home() {
     }
     syncLevels()
   }, [pumpConfig])
+
+  const initializeLEDIdleMode = async () => {
+    try {
+      const idleSchemeIndex = Number.parseInt(localStorage.getItem("led-idle-scheme") || "0")
+      const idleSchemes = [
+        {
+          name: "Sanftes Grün",
+          config: {
+            color: "#00ff00",
+            brightness: 30,
+            blinking: false,
+            blinkSpeed: 1000,
+            pattern: "pulse",
+          },
+        },
+        {
+          name: "Warmes Blau",
+          config: {
+            color: "#0080ff",
+            brightness: 40,
+            blinking: false,
+            blinkSpeed: 2000,
+            pattern: "fade",
+          },
+        },
+        {
+          name: "Regenbogen",
+          config: {
+            color: "#ff0000",
+            brightness: 50,
+            blinking: false,
+            blinkSpeed: 100,
+            pattern: "rainbow",
+          },
+        },
+        {
+          name: "Laufende Lichter",
+          config: {
+            color: "#ff8000",
+            brightness: 60,
+            blinking: false,
+            blinkSpeed: 200,
+            pattern: "chase",
+          },
+        },
+      ]
+
+      const selectedScheme = idleSchemes[idleSchemeIndex] || idleSchemes[0]
+      await ledController.setIdleMode(selectedScheme.config)
+      console.log(`[v0] LED idle mode initialized with scheme: ${selectedScheme.name}`)
+    } catch (error) {
+      console.warn("[v0] Failed to initialize LED idle mode:", error)
+    }
+  }
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">

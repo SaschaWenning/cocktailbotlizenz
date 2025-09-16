@@ -1,37 +1,13 @@
 import type { Cocktail } from "@/types/cocktail"
 
-export interface MultilingualCocktail extends Omit<Cocktail, "name" | "description" | "ingredients"> {
-  name: {
-    de: string
-    en: string
-  }
-  description: {
-    de: string
-    en: string
-  }
-  ingredients: {
-    de: string[]
-    en: string[]
-  }
-}
-
-export const multilingualCocktails: MultilingualCocktail[] = [
+export const cocktails: Cocktail[] = [
   {
     id: "big-john",
-    name: {
-      de: "Big John",
-      en: "Big John",
-    },
-    description: {
-      de: "Fruchtiger Cocktail mit Rum, Ananas und Maracuja",
-      en: "Fruity cocktail with rum, pineapple and passion fruit",
-    },
+    name: "Big John",
+    description: "Fruchtiger Cocktail mit Rum, Ananas und Maracuja",
     image: "/images/cocktails/big_john.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["60ml Rum", "120ml Ananassaft", "120ml Maracujasaft", "10ml Limettensaft"],
-      en: ["60ml Rum", "120ml Pineapple juice", "120ml Passion fruit juice", "10ml Lime juice"],
-    },
+    ingredients: ["60ml Rum", "120ml Ananassaft", "120ml Maracujasaft", "10ml Limettensaft"],
     recipe: [
       { ingredientId: "dark-rum", amount: 60 },
       { ingredientId: "pineapple-juice", amount: 120 },
@@ -41,20 +17,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "malibu-ananas",
-    name: {
-      de: "Malibu Ananas",
-      en: "Malibu Pineapple",
-    },
-    description: {
-      de: "Süßer Kokoslikör mit Ananassaft",
-      en: "Sweet coconut liqueur with pineapple juice",
-    },
+    name: "Malibu Ananas",
+    description: "Süßer Kokoslikör mit Ananassaft",
     image: "/images/cocktails/malibu_ananas.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["80ml Malibu", "220ml Ananassaft"],
-      en: ["80ml Malibu", "220ml Pineapple juice"],
-    },
+    ingredients: ["80ml Malibu", "220ml Ananassaft"],
     recipe: [
       { ingredientId: "malibu", amount: 80 },
       { ingredientId: "pineapple-juice", amount: 220 },
@@ -62,20 +29,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "malibu-sunrise",
-    name: {
-      de: "Malibu Sunrise",
-      en: "Malibu Sunrise",
-    },
-    description: {
-      de: "Kokoslikör mit Orangensaft und Grenadine",
-      en: "Coconut liqueur with orange juice and grenadine",
-    },
+    name: "Malibu Sunrise",
+    description: "Kokoslikör mit Orangensaft und Grenadine",
     image: "/images/cocktails/malibu_sunrise.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["80ml Malibu", "200ml Orangensaft", "10ml Limettensaft", "10ml Grenadine"],
-      en: ["80ml Malibu", "200ml Orange juice", "10ml Lime juice", "10ml Grenadine"],
-    },
+    ingredients: ["80ml Malibu", "200ml Orangensaft", "10ml Limettensaft", "10ml Grenadine"],
     recipe: [
       { ingredientId: "malibu", amount: 80 },
       { ingredientId: "orange-juice", amount: 200 },
@@ -85,20 +43,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "malibu-colada",
-    name: {
-      de: "Malibu Colada",
-      en: "Malibu Colada",
-    },
-    description: {
-      de: "Cremiger Cocktail mit Malibu und Ananas",
-      en: "Creamy cocktail with Malibu and pineapple",
-    },
+    name: "Malibu Colada",
+    description: "Cremiger Cocktail mit Malibu und Ananas",
     image: "/images/cocktails/malibu_colada.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["80ml Malibu", "150ml Ananassaft", "50ml Cream of Coconut (selbst hinzufügen)"],
-      en: ["80ml Malibu", "150ml Pineapple juice", "50ml Cream of Coconut (add manually)"],
-    },
+    ingredients: ["80ml Malibu", "150ml Ananassaft", "50ml Cream of Coconut (selbst hinzufügen)"],
     recipe: [
       { ingredientId: "malibu", amount: 80 },
       { ingredientId: "pineapple-juice", amount: 150 },
@@ -107,20 +56,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "peaches-cream",
-    name: {
-      de: "Peaches Cream",
-      en: "Peaches Cream",
-    },
-    description: {
-      de: "Fruchtiger Cocktail mit Pfirsichlikör und Vodka",
-      en: "Fruity cocktail with peach liqueur and vodka",
-    },
+    name: "Peaches Cream",
+    description: "Fruchtiger Cocktail mit Pfirsichlikör und Vodka",
     image: "/images/cocktails/peaches_cream.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["50ml Pfirsich Likör", "40ml Vodka", "200ml Orangensaft", "20ml Grenadine"],
-      en: ["50ml Peach liqueur", "40ml Vodka", "200ml Orange juice", "20ml Grenadine"],
-    },
+    ingredients: ["50ml Pfirsich Likör", "40ml Vodka", "200ml Orangensaft", "20ml Grenadine"],
     recipe: [
       { ingredientId: "peach-liqueur", amount: 50 },
       { ingredientId: "vodka", amount: 40 },
@@ -130,20 +70,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "planters-punch",
-    name: {
-      de: "Planters Punch",
-      en: "Planter's Punch",
-    },
-    description: {
-      de: "Klassischer Rum-Cocktail mit Fruchtsäften",
-      en: "Classic rum cocktail with fruit juices",
-    },
+    name: "Planters Punch",
+    description: "Klassischer Rum-Cocktail mit Fruchtsäften",
     image: "/images/cocktails/planters_punch.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["60ml Rum", "100ml Orangensaft", "20ml Limettensaft", "10ml Grenadine", "100ml Ananassaft"],
-      en: ["60ml Rum", "100ml Orange juice", "20ml Lime juice", "10ml Grenadine", "100ml Pineapple juice"],
-    },
+    ingredients: ["60ml Rum", "100ml Orangensaft", "20ml Limettensaft", "10ml Grenadine", "100ml Ananassaft"],
     recipe: [
       { ingredientId: "dark-rum", amount: 60 },
       { ingredientId: "orange-juice", amount: 100 },
@@ -154,20 +85,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "solero",
-    name: {
-      de: "Solero",
-      en: "Solero",
-    },
-    description: {
-      de: "Erfrischender Cocktail mit Maracuja und Vanille",
-      en: "Refreshing cocktail with passion fruit and vanilla",
-    },
+    name: "Solero",
+    description: "Erfrischender Cocktail mit Maracuja und Vanille",
     image: "/images/cocktails/solero.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["100ml Maracujasaft", "80ml Orangensaft", "20ml Limettensaft", "20ml Vanillesirup", "60ml Vodka"],
-      en: ["100ml Passion fruit juice", "80ml Orange juice", "20ml Lime juice", "20ml Vanilla syrup", "60ml Vodka"],
-    },
+    ingredients: ["100ml Maracujasaft", "80ml Orangensaft", "20ml Limettensaft", "20ml Vanillesirup", "60ml Vodka"],
     recipe: [
       { ingredientId: "passion-fruit-juice", amount: 100 },
       { ingredientId: "orange-juice", amount: 80 },
@@ -178,34 +100,18 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "sex-on-the-beach",
-    name: {
-      de: "Sex on the Beach",
-      en: "Sex on the Beach",
-    },
-    description: {
-      de: "Beliebter Cocktail mit Vodka und Pfirsichlikör",
-      en: "Popular cocktail with vodka and peach liqueur",
-    },
+    name: "Sex on the Beach",
+    description: "Beliebter Cocktail mit Vodka und Pfirsichlikör",
     image: "/images/cocktails/sex_on_the_beach.jpg",
     alcoholic: true,
-    ingredients: {
-      de: [
-        "50ml Vodka",
-        "30ml Pfirsich Likör",
-        "20ml Limettensaft",
-        "90ml Orangensaft",
-        "90ml Ananassaft",
-        "20ml Grenadine",
-      ],
-      en: [
-        "50ml Vodka",
-        "30ml Peach liqueur",
-        "20ml Lime juice",
-        "90ml Orange juice",
-        "90ml Pineapple juice",
-        "20ml Grenadine",
-      ],
-    },
+    ingredients: [
+      "50ml Vodka",
+      "30ml Pfirsich Likör",
+      "20ml Limettensaft",
+      "90ml Orangensaft",
+      "90ml Ananassaft",
+      "20ml Grenadine",
+    ],
     recipe: [
       { ingredientId: "vodka", amount: 50 },
       { ingredientId: "peach-liqueur", amount: 30 },
@@ -217,20 +123,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "mojito",
-    name: {
-      de: "Mojito",
-      en: "Mojito",
-    },
-    description: {
-      de: "Klassischer Cocktail mit Rum, Limette und Minze",
-      en: "Classic cocktail with rum, lime and mint",
-    },
+    name: "Mojito",
+    description: "Klassischer Cocktail mit Rum, Limette und Minze",
     image: "/images/cocktails/mojito.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["60ml Rum", "60ml Limettensaft", "100ml Sprudelwasser (manuell)", "Frische Minzblätter"],
-      en: ["60ml Rum", "60ml Lime juice", "100ml Soda water (manual)", "Fresh mint leaves"],
-    },
+    ingredients: ["60ml Rum", "60ml Limettensaft", "100ml Sprudelwasser (manuell)", "Frische Minzblätter"],
     recipe: [
       { ingredientId: "dark-rum", amount: 60 },
       { ingredientId: "lime-juice", amount: 60 },
@@ -240,20 +137,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "passion-colada",
-    name: {
-      de: "Passion Colada",
-      en: "Passion Colada",
-    },
-    description: {
-      de: "Exotischer Cocktail mit Rum, Malibu und Maracuja",
-      en: "Exotic cocktail with rum, Malibu and passion fruit",
-    },
+    name: "Passion Colada",
+    description: "Exotischer Cocktail mit Rum, Malibu und Maracuja",
     image: "/images/cocktails/passion_colada.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["40ml Rum", "40ml Malibu", "200ml Maracujasaft"],
-      en: ["40ml Rum", "40ml Malibu", "200ml Passion fruit juice"],
-    },
+    ingredients: ["40ml Rum", "40ml Malibu", "200ml Maracujasaft"],
     recipe: [
       { ingredientId: "dark-rum", amount: 40 },
       { ingredientId: "malibu", amount: 40 },
@@ -262,20 +150,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "gin-tonic",
-    name: {
-      de: "Gin & Tonic",
-      en: "Gin & Tonic",
-    },
-    description: {
-      de: "Klassischer Longdrink mit Gin und Tonic Water",
-      en: "Classic long drink with gin and tonic water",
-    },
+    name: "Gin & Tonic",
+    description: "Klassischer Longdrink mit Gin und Tonic Water",
     image: "/images/cocktails/gin_tonic.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["50ml Gin", "150ml Tonic Water", "Limettenscheibe"],
-      en: ["50ml Gin", "150ml Tonic water", "Lime slice"],
-    },
+    ingredients: ["50ml Gin", "150ml Tonic Water", "Limettenscheibe"],
     recipe: [
       { ingredientId: "gin", amount: 50 },
       { ingredientId: "tonic-water", amount: 150 },
@@ -283,20 +162,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "cuba-libre",
-    name: {
-      de: "Cuba Libre",
-      en: "Cuba Libre",
-    },
-    description: {
-      de: "Rum-Cola mit einem Spritzer Limette",
-      en: "Rum and cola with a splash of lime",
-    },
+    name: "Cuba Libre",
+    description: "Rum-Cola mit einem Spritzer Limette",
     image: "/images/cocktails/cuba_libre.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["50ml brauner Rum", "150ml Cola", "10ml Limettensaft"],
-      en: ["50ml Dark rum", "150ml Cola", "10ml Lime juice"],
-    },
+    ingredients: ["50ml brauner Rum", "150ml Cola", "10ml Limettensaft"],
     recipe: [
       { ingredientId: "dark-rum", amount: 50 },
       { ingredientId: "cola", amount: 150 },
@@ -305,36 +175,19 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "long-island-iced-tea",
-    name: {
-      de: "Long Island Iced Tea",
-      en: "Long Island Iced Tea",
-    },
-    description: {
-      de: "Klassischer, starker Cocktail mit fünf verschiedenen Spirituosen und Cola",
-      en: "Classic, strong cocktail with five different spirits and cola",
-    },
+    name: "Long Island Iced Tea",
+    description: "Klassischer, starker Cocktail mit fünf verschiedenen Spirituosen und Cola",
     image: "/images/cocktails/long_island_iced_tea.jpg",
     alcoholic: true,
-    ingredients: {
-      de: [
-        "15ml Brauner Rum",
-        "15ml Triple Sec",
-        "15ml Vodka",
-        "15ml Tequila",
-        "15ml Gin",
-        "30ml Limettensaft",
-        "150ml Cola (manuell)",
-      ],
-      en: [
-        "15ml Dark rum",
-        "15ml Triple Sec",
-        "15ml Vodka",
-        "15ml Tequila",
-        "15ml Gin",
-        "30ml Lime juice",
-        "150ml Cola (manual)",
-      ],
-    },
+    ingredients: [
+      "15ml Brauner Rum",
+      "15ml Triple Sec",
+      "15ml Vodka",
+      "15ml Tequila",
+      "15ml Gin",
+      "30ml Limettensaft",
+      "150ml Cola (manuell)",
+    ],
     recipe: [
       { ingredientId: "dark-rum", amount: 15 },
       { ingredientId: "triple-sec", amount: 15 },
@@ -347,34 +200,18 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "bahama-mama",
-    name: {
-      de: "Bahama Mama",
-      en: "Bahama Mama",
-    },
-    description: {
-      de: "Tropischer Cocktail mit Braunem Rum, Malibu und Fruchtsäften",
-      en: "Tropical cocktail with dark rum, Malibu and fruit juices",
-    },
+    name: "Bahama Mama",
+    description: "Tropischer Cocktail mit Braunem Rum, Malibu und Fruchtsäften",
     image: "/images/cocktails/bahama_mama.jpg",
     alcoholic: true,
-    ingredients: {
-      de: [
-        "50ml Brauner Rum",
-        "40ml Malibu",
-        "80ml Orangensaft",
-        "80ml Ananassaft",
-        "20ml Limettensaft",
-        "20ml Grenadine",
-      ],
-      en: [
-        "50ml Dark rum",
-        "40ml Malibu",
-        "80ml Orange juice",
-        "80ml Pineapple juice",
-        "20ml Lime juice",
-        "20ml Grenadine",
-      ],
-    },
+    ingredients: [
+      "50ml Brauner Rum",
+      "40ml Malibu",
+      "80ml Orangensaft",
+      "80ml Ananassaft",
+      "20ml Limettensaft",
+      "20ml Grenadine",
+    ],
     recipe: [
       { ingredientId: "dark-rum", amount: 50 },
       { ingredientId: "malibu", amount: 40 },
@@ -386,32 +223,17 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "swimming-pool",
-    name: {
-      de: "Swimming Pool",
-      en: "Swimming Pool",
-    },
-    description: {
-      de: "Blauer, tropischer Cocktail mit Vodka und Ananassaft",
-      en: "Blue, tropical cocktail with vodka and pineapple juice",
-    },
+    name: "Swimming Pool",
+    description: "Blauer, tropischer Cocktail mit Vodka und Ananassaft",
     image: "/images/cocktails/swimming_pool.jpg",
     alcoholic: true,
-    ingredients: {
-      de: [
-        "60ml Vodka",
-        "30ml Blue Curacao",
-        "180ml Ananassaft",
-        "20ml Sahne (manuell)",
-        "20ml Cream of Coconut (manuell)",
-      ],
-      en: [
-        "60ml Vodka",
-        "30ml Blue Curacao",
-        "180ml Pineapple juice",
-        "20ml Cream (manual)",
-        "20ml Cream of Coconut (manual)",
-      ],
-    },
+    ingredients: [
+      "60ml Vodka",
+      "30ml Blue Curacao",
+      "180ml Ananassaft",
+      "20ml Sahne (manuell)",
+      "20ml Cream of Coconut (manuell)",
+    ],
     recipe: [
       { ingredientId: "vodka", amount: 60 },
       { ingredientId: "blue-curacao", amount: 30 },
@@ -422,20 +244,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "tequila-sunrise",
-    name: {
-      de: "Tequila Sunrise",
-      en: "Tequila Sunrise",
-    },
-    description: {
-      de: "Klassischer Cocktail mit Tequila, Orangensaft und Grenadine",
-      en: "Classic cocktail with tequila, orange juice and grenadine",
-    },
+    name: "Tequila Sunrise",
+    description: "Klassischer Cocktail mit Tequila, Orangensaft und Grenadine",
     image: "/images/cocktails/tequila_sunrise.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["60ml Tequila", "220ml Orangensaft", "20ml Grenadine"],
-      en: ["60ml Tequila", "220ml Orange juice", "20ml Grenadine"],
-    },
+    ingredients: ["60ml Tequila", "220ml Orangensaft", "20ml Grenadine"],
     recipe: [
       { ingredientId: "tequila", amount: 60 },
       { ingredientId: "orange-juice", amount: 220 },
@@ -444,20 +257,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "touch-down",
-    name: {
-      de: "Touch Down",
-      en: "Touch Down",
-    },
-    description: {
-      de: "Fruchtiger Cocktail mit Braunem Rum, Triple Sec und Maracujasaft",
-      en: "Fruity cocktail with dark rum, Triple Sec and passion fruit juice",
-    },
+    name: "Touch Down",
+    description: "Fruchtiger Cocktail mit Braunem Rum, Triple Sec und Maracujasaft",
     image: "/images/cocktails/touch_down.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["60ml Brauner Rum", "40ml Triple Sec", "140ml Maracujasaft", "10ml Limettensaft", "20ml Grenadine"],
-      en: ["60ml Dark rum", "40ml Triple Sec", "140ml Passion fruit juice", "10ml Lime juice", "20ml Grenadine"],
-    },
+    ingredients: ["60ml Brauner Rum", "40ml Triple Sec", "140ml Maracujasaft", "10ml Limettensaft", "20ml Grenadine"],
     recipe: [
       { ingredientId: "dark-rum", amount: 60 },
       { ingredientId: "triple-sec", amount: 40 },
@@ -468,36 +272,19 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "zombie",
-    name: {
-      de: "Zombie",
-      en: "Zombie",
-    },
-    description: {
-      de: "Starker, fruchtiger Cocktail mit Braunem Rum und verschiedenen Fruchtsäften",
-      en: "Strong, fruity cocktail with dark rum and various fruit juices",
-    },
+    name: "Zombie",
+    description: "Starker, fruchtiger Cocktail mit Braunem Rum und verschiedenen Fruchtsäften",
     image: "/images/cocktails/zombie.jpg",
     alcoholic: true,
-    ingredients: {
-      de: [
-        "40ml Brauner Rum",
-        "30ml Triple Sec",
-        "80ml Ananassaft",
-        "50ml Orangensaft",
-        "20ml Limettensaft",
-        "50ml Maracujasaft",
-        "20ml Grenadine",
-      ],
-      en: [
-        "40ml Dark rum",
-        "30ml Triple Sec",
-        "80ml Pineapple juice",
-        "50ml Orange juice",
-        "20ml Lime juice",
-        "50ml Passion fruit juice",
-        "20ml Grenadine",
-      ],
-    },
+    ingredients: [
+      "40ml Brauner Rum",
+      "30ml Triple Sec",
+      "80ml Ananassaft",
+      "50ml Orangensaft",
+      "20ml Limettensaft",
+      "50ml Maracujasaft",
+      "20ml Grenadine",
+    ],
     recipe: [
       { ingredientId: "dark-rum", amount: 40 },
       { ingredientId: "triple-sec", amount: 30 },
@@ -510,20 +297,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "mai-tai",
-    name: {
-      de: "Mai Tai",
-      en: "Mai Tai",
-    },
-    description: {
-      de: "Klassischer Tiki-Cocktail mit braunem Rum und Mandelsirup",
-      en: "Classic Tiki cocktail with dark rum and almond syrup",
-    },
+    name: "Mai Tai",
+    description: "Klassischer Tiki-Cocktail mit braunem Rum und Mandelsirup",
     image: "/images/cocktails/mai_tai.jpg",
     alcoholic: true,
-    ingredients: {
-      de: ["60ml Brauner Rum", "15ml Orangenlikör", "50ml Ananassaft", "15ml Mandelsirup", "20ml Limettensaft"],
-      en: ["60ml Dark rum", "15ml Orange liqueur", "50ml Pineapple juice", "15ml Almond syrup", "20ml Lime juice"],
-    },
+    ingredients: ["60ml Brauner Rum", "15ml Orangenlikör", "50ml Ananassaft", "15ml Mandelsirup", "20ml Limettensaft"],
     recipe: [
       { ingredientId: "dark-rum", amount: 60 },
       { ingredientId: "triple-sec", amount: 15 },
@@ -532,23 +310,14 @@ export const multilingualCocktails: MultilingualCocktail[] = [
       { ingredientId: "lime-juice", amount: 20 },
     ],
   },
-  // Non-alcoholic cocktails
+  // Neue alkoholfreie Cocktails mit Bildern
   {
     id: "tropical-sunrise",
-    name: {
-      de: "Tropical Sunrise",
-      en: "Tropical Sunrise",
-    },
-    description: {
-      de: "Erfrischender alkoholfreier Cocktail mit Ananas, Orange und Grenadine",
-      en: "Refreshing non-alcoholic cocktail with pineapple, orange and grenadine",
-    },
+    name: "Tropical Sunrise",
+    description: "Erfrischender alkoholfreier Cocktail mit Ananas, Orange und Grenadine",
     image: "/images/cocktails/tropical-blend.png",
     alcoholic: false,
-    ingredients: {
-      de: ["120ml Ananassaft", "120ml Orangensaft", "20ml Grenadine", "10ml Limettensaft"],
-      en: ["120ml Pineapple juice", "120ml Orange juice", "20ml Grenadine", "10ml Lime juice"],
-    },
+    ingredients: ["120ml Ananassaft", "120ml Orangensaft", "20ml Grenadine", "10ml Limettensaft"],
     recipe: [
       { ingredientId: "pineapple-juice", amount: 120 },
       { ingredientId: "orange-juice", amount: 120 },
@@ -558,20 +327,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "passion-fizz",
-    name: {
-      de: "Passion Fizz",
-      en: "Passion Fizz",
-    },
-    description: {
-      de: "Sprudelnder alkoholfreier Cocktail mit Maracuja und Sodawasser",
-      en: "Sparkling non-alcoholic cocktail with passion fruit and soda water",
-    },
+    name: "Passion Fizz",
+    description: "Sprudelnder alkoholfreier Cocktail mit Maracuja und Sodawasser",
     image: "/images/cocktails/vibrant-passion-fizz.png",
     alcoholic: false,
-    ingredients: {
-      de: ["150ml Maracujasaft", "100ml Sprudelwasser (manuell)", "20ml Vanillesirup", "10ml Limettensaft"],
-      en: ["150ml Passion fruit juice", "100ml Soda water (manual)", "20ml Vanilla syrup", "10ml Lime juice"],
-    },
+    ingredients: ["150ml Maracujasaft", "100ml Sprudelwasser (manuell)", "20ml Vanillesirup", "10ml Limettensaft"],
     recipe: [
       { ingredientId: "passion-fruit-juice", amount: 150 },
       { ingredientId: "soda-water", amount: 100, manual: true, instructions: "100ml Sprudelwasser hinzufügen" },
@@ -581,20 +341,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "orange-vanilla-dream",
-    name: {
-      de: "Orange Vanilla Dream",
-      en: "Orange Vanilla Dream",
-    },
-    description: {
-      de: "Cremiger alkoholfreier Cocktail mit Orange und Vanille",
-      en: "Creamy non-alcoholic cocktail with orange and vanilla",
-    },
+    name: "Orange Vanilla Dream",
+    description: "Cremiger alkoholfreier Cocktail mit Orange und Vanille",
     image: "/images/cocktails/palm-glow.png",
     alcoholic: false,
-    ingredients: {
-      de: ["200ml Orangensaft", "30ml Vanillesirup", "70ml Sprudelwasser (manuell)"],
-      en: ["200ml Orange juice", "30ml Vanilla syrup", "70ml Soda water (manual)"],
-    },
+    ingredients: ["200ml Orangensaft", "30ml Vanillesirup", "70ml Sprudelwasser (manuell)"],
     recipe: [
       { ingredientId: "orange-juice", amount: 200 },
       { ingredientId: "vanilla-syrup", amount: 30 },
@@ -603,32 +354,17 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "citrus-splash",
-    name: {
-      de: "Citrus Splash",
-      en: "Citrus Splash",
-    },
-    description: {
-      de: "Fruchtiger alkoholfreier Cocktail mit Grenadine und Zitrusfrüchten",
-      en: "Fruity non-alcoholic cocktail with grenadine and citrus fruits",
-    },
+    name: "Citrus Splash",
+    description: "Fruchtiger alkoholfreier Cocktail mit Grenadine und Zitrusfrüchten",
     image: "/images/cocktails/citrus-splash.png",
     alcoholic: false,
-    ingredients: {
-      de: [
-        "30ml Grenadine",
-        "100ml Orangensaft",
-        "100ml Ananassaft",
-        "20ml Limettensaft",
-        "50ml Sprudelwasser (manuell)",
-      ],
-      en: [
-        "30ml Grenadine",
-        "100ml Orange juice",
-        "100ml Pineapple juice",
-        "20ml Lime juice",
-        "50ml Soda water (manual)",
-      ],
-    },
+    ingredients: [
+      "30ml Grenadine",
+      "100ml Orangensaft",
+      "100ml Ananassaft",
+      "20ml Limettensaft",
+      "50ml Sprudelwasser (manuell)",
+    ],
     recipe: [
       { ingredientId: "grenadine", amount: 30 },
       { ingredientId: "orange-juice", amount: 100 },
@@ -639,20 +375,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "pineapple-passion",
-    name: {
-      de: "Pineapple Passion",
-      en: "Pineapple Passion",
-    },
-    description: {
-      de: "Exotischer alkoholfreier Cocktail mit Ananas und Maracuja",
-      en: "Exotic non-alcoholic cocktail with pineapple and passion fruit",
-    },
+    name: "Pineapple Passion",
+    description: "Exotischer alkoholfreier Cocktail mit Ananas und Maracuja",
     image: "/images/cocktails/refreshing-citrus-cooler.png",
     alcoholic: false,
-    ingredients: {
-      de: ["150ml Ananassaft", "100ml Maracujasaft", "15ml Limettensaft", "15ml Vanillesirup"],
-      en: ["150ml Pineapple juice", "100ml Passion fruit juice", "15ml Lime juice", "15ml Vanilla syrup"],
-    },
+    ingredients: ["150ml Ananassaft", "100ml Maracujasaft", "15ml Limettensaft", "15ml Vanillesirup"],
     recipe: [
       { ingredientId: "pineapple-juice", amount: 150 },
       { ingredientId: "passion-fruit-juice", amount: 100 },
@@ -662,20 +389,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "citrus-cooler",
-    name: {
-      de: "Citrus Cooler",
-      en: "Citrus Cooler",
-    },
-    description: {
-      de: "Erfrischender alkoholfreier Cocktail mit Limette und Sodawasser",
-      en: "Refreshing non-alcoholic cocktail with lime and soda water",
-    },
+    name: "Citrus Cooler",
+    description: "Erfrischender alkoholfreier Cocktail mit Limette und Sodawasser",
     image: "/images/cocktails/citrus-swirl-sunset.png",
     alcoholic: false,
-    ingredients: {
-      de: ["40ml Limettensaft", "20ml Vanillesirup", "200ml Sprudelwasser (manuell)", "10ml Grenadine"],
-      en: ["40ml Lime juice", "20ml Vanilla syrup", "200ml Soda water (manual)", "10ml Grenadine"],
-    },
+    ingredients: ["40ml Limettensaft", "20ml Vanillesirup", "200ml Sprudelwasser (manuell)", "10ml Grenadine"],
     recipe: [
       { ingredientId: "lime-juice", amount: 40 },
       { ingredientId: "vanilla-syrup", amount: 20 },
@@ -685,20 +403,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "tropical-sunset",
-    name: {
-      de: "Tropical Sunset",
-      en: "Tropical Sunset",
-    },
-    description: {
-      de: "Schöner Farbverlauf mit Ananas, Orange und Grenadine",
-      en: "Beautiful color gradient with pineapple, orange and grenadine",
-    },
+    name: "Tropical Sunset",
+    description: "Schöner Farbverlauf mit Ananas, Orange und Grenadine",
     image: "/images/cocktails/tropical-sunset.png",
     alcoholic: false,
-    ingredients: {
-      de: ["120ml Ananassaft", "80ml Orangensaft", "15ml Grenadine"],
-      en: ["120ml Pineapple juice", "80ml Orange juice", "15ml Grenadine"],
-    },
+    ingredients: ["120ml Ananassaft", "80ml Orangensaft", "15ml Grenadine"],
     recipe: [
       { ingredientId: "pineapple-juice", amount: 120 },
       { ingredientId: "orange-juice", amount: 80 },
@@ -719,20 +428,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "pineapple-lime-fizz",
-    name: {
-      de: "Pineapple Lime Fizz",
-      en: "Pineapple Lime Fizz",
-    },
-    description: {
-      de: "Erfrischender Cocktail mit Ananas und Limette",
-      en: "Refreshing cocktail with pineapple and lime",
-    },
+    name: "Pineapple Lime Fizz",
+    description: "Erfrischender Cocktail mit Ananas und Limette",
     image: "/images/cocktails/pineapple-lime-fizz.png",
     alcoholic: false,
-    ingredients: {
-      de: ["150ml Ananassaft", "30ml Limettensaft", "10ml Vanillesirup"],
-      en: ["150ml Pineapple juice", "30ml Lime juice", "10ml Vanilla syrup"],
-    },
+    ingredients: ["150ml Ananassaft", "30ml Limettensaft", "10ml Vanillesirup"],
     recipe: [
       { ingredientId: "pineapple-juice", amount: 150 },
       { ingredientId: "lime-juice", amount: 30 },
@@ -753,20 +453,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "passion-paradise",
-    name: {
-      de: "Passion Paradise",
-      en: "Passion Paradise",
-    },
-    description: {
-      de: "Exotischer Cocktail mit Maracuja und tropischen Früchten",
-      en: "Exotic cocktail with passion fruit and tropical fruits",
-    },
+    name: "Passion Paradise",
+    description: "Exotischer Cocktail mit Maracuja und tropischen Früchten",
     image: "/images/cocktails/passion-paradise.png",
     alcoholic: false,
-    ingredients: {
-      de: ["100ml Maracujasaft", "80ml Ananassaft", "40ml Orangensaft", "15ml Mandelsirup"],
-      en: ["100ml Passion fruit juice", "80ml Pineapple juice", "40ml Orange juice", "15ml Almond syrup"],
-    },
+    ingredients: ["100ml Maracujasaft", "80ml Ananassaft", "40ml Orangensaft", "15ml Mandelsirup"],
     recipe: [
       { ingredientId: "passion-fruit-juice", amount: 100 },
       { ingredientId: "pineapple-juice", amount: 80 },
@@ -788,20 +479,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "vanilla-orange-dream",
-    name: {
-      de: "Vanilla Orange Dream",
-      en: "Vanilla Orange Dream",
-    },
-    description: {
-      de: "Cremiger Traum mit Vanille und Orange",
-      en: "Creamy dream with vanilla and orange",
-    },
+    name: "Vanilla Orange Dream",
+    description: "Cremiger Traum mit Vanille und Orange",
     image: "/images/cocktails/vanilla-orange-dream.png",
     alcoholic: false,
-    ingredients: {
-      de: ["120ml Orangensaft", "60ml Ananassaft", "25ml Vanillesirup", "10ml Limettensaft"],
-      en: ["120ml Orange juice", "60ml Pineapple juice", "25ml Vanilla syrup", "10ml Lime juice"],
-    },
+    ingredients: ["120ml Orangensaft", "60ml Ananassaft", "25ml Vanillesirup", "10ml Limettensaft"],
     recipe: [
       { ingredientId: "orange-juice", amount: 120 },
       { ingredientId: "pineapple-juice", amount: 60 },
@@ -823,20 +505,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "grenadine-sunrise",
-    name: {
-      de: "Grenadine Sunrise",
-      en: "Grenadine Sunrise",
-    },
-    description: {
-      de: "Wunderschöner Sonnenaufgang im Glas",
-      en: "Beautiful sunrise in a glass",
-    },
+    name: "Grenadine Sunrise",
+    description: "Wunderschöner Sonnenaufgang im Glas",
     image: "/images/cocktails/grenadine-sunrise.png",
     alcoholic: false,
-    ingredients: {
-      de: ["100ml Orangensaft", "80ml Ananassaft", "20ml Grenadine", "10ml Limettensaft"],
-      en: ["100ml Orange juice", "80ml Pineapple juice", "20ml Grenadine", "10ml Lime juice"],
-    },
+    ingredients: ["100ml Orangensaft", "80ml Ananassaft", "20ml Grenadine", "10ml Limettensaft"],
     recipe: [
       { ingredientId: "orange-juice", amount: 100 },
       { ingredientId: "pineapple-juice", amount: 80 },
@@ -858,20 +531,11 @@ export const multilingualCocktails: MultilingualCocktail[] = [
   },
   {
     id: "almond-citrus-cooler",
-    name: {
-      de: "Almond Citrus Cooler",
-      en: "Almond Citrus Cooler",
-    },
-    description: {
-      de: "Erfrischender Mandel-Zitrus Mix",
-      en: "Refreshing almond-citrus mix",
-    },
+    name: "Almond Citrus Cooler",
+    description: "Erfrischender Mandel-Zitrus Mix",
     image: "/images/cocktails/almond-citrus-cooler.png",
     alcoholic: false,
-    ingredients: {
-      de: ["80ml Orangensaft", "40ml Limettensaft", "60ml Ananassaft", "20ml Mandelsirup"],
-      en: ["80ml Orange juice", "40ml Lime juice", "60ml Pineapple juice", "20ml Almond syrup"],
-    },
+    ingredients: ["80ml Orangensaft", "40ml Limettensaft", "60ml Ananassaft", "20ml Mandelsirup"],
     recipe: [
       { ingredientId: "orange-juice", amount: 80 },
       { ingredientId: "lime-juice", amount: 40 },
@@ -892,19 +556,3 @@ export const multilingualCocktails: MultilingualCocktail[] = [
     ],
   },
 ]
-
-export const cocktails: Cocktail[] = multilingualCocktails.map((cocktail) => ({
-  ...cocktail,
-  name: cocktail.name.de,
-  description: cocktail.description.de,
-  ingredients: cocktail.ingredients.de,
-}))
-
-export function getCocktailsByLanguage(language: "de" | "en"): Cocktail[] {
-  return multilingualCocktails.map((cocktail) => ({
-    ...cocktail,
-    name: cocktail.name[language],
-    description: cocktail.description[language],
-    ingredients: cocktail.ingredients[language],
-  }))
-}

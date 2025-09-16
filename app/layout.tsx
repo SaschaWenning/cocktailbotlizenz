@@ -1,8 +1,8 @@
 import type React from "react"
 import "@/app/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { LanguageProvider } from "@/lib/i18n"
 import ClientWrapper from "./ClientWrapper"
+import { LanguageProvider } from "@/contexts/language-context"
 
 export const metadata = {
   title: "CocktailBot - Automatische Cocktailmaschine",
