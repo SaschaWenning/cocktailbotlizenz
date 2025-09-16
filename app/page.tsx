@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
-import { makeCocktail, getPumpConfig, saveRecipe, getAllCocktails } from "@/lib/cocktail-machine"
+import { makeCocktail, getPumpConfig, saveRecipe } from "@/lib/cocktail-machine"
 import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
@@ -30,11 +30,15 @@ import IngredientManager from "@/components/ingredient-manager"
 import PumpCalibration from "@/components/pump-calibration"
 import { Progress } from "@/components/ui/progress"
 import { Check, GlassWater } from "lucide-react"
+import { useLanguage } from "@/lib/i18n"
+import { getCocktailsByLanguage } from "@/data/cocktails"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
 
 export default function Home() {
+  const { t, language } = useLanguage()
+
   const [selectedCocktail, setSelectedCocktail] = useState<Cocktail | null>(null)
   const [selectedSize, setSelectedSize] = useState<number>(300)
   const [isMaking, setIsMaking] = useState(false)
@@ -126,8 +130,8 @@ export default function Home() {
 
   const loadCocktails = async () => {
     console.log("[v0] Loading cocktails...")
-    const cocktails = await getAllCocktails()
-    console.log("[v0] Loaded cocktails from getAllCocktails:", cocktails.length)
+    const cocktails = getCocktailsByLanguage(language)
+    console.log("[v0] Loaded cocktails from getCocktailsByLanguage:", cocktails.length)
 
     // Load hidden cocktails from API instead of localStorage
     try {
