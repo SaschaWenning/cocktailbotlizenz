@@ -15,9 +15,10 @@ import ShotSelector from "@/components/shot-selector"
 import RecipeCreator from "@/components/recipe-creator"
 import HiddenCocktailsManager from "@/components/hidden-cocktails-manager"
 import PasswordModal from "@/components/password-modal" // Import PasswordModal component
-import LanguageSettings from "@/components/language-settings" // Import LanguageSettings Komponente
+import LanguageSelector from "@/components/language-selector"
+import LEDSettings from "@/components/led-settings" // Import LED Settings component
 import { restoreIngredientLevelsFromFile } from "@/lib/ingredient-level-service"
-import { useLanguage } from "@/lib/i18n" // Import useLanguage hook
+import { useLanguage } from "@/contexts/language-context"
 import type { AppConfig } from "@/lib/tab-config"
 import type { PumpConfig } from "@/types/pump"
 import type { IngredientLevel } from "@/types/ingredient-level"
@@ -52,7 +53,7 @@ export default function ServiceMenu({
   onNewRecipe,
   onTabConfigReload,
 }: ServiceMenuProps) {
-  const { t } = useLanguage() // Add translation hook
+  const { t } = useLanguage()
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [activeServiceTab, setActiveServiceTab] = useState("")
@@ -97,7 +98,7 @@ export default function ServiceMenu({
           "shots",
           "recipe-creator",
           "hidden-cocktails",
-          "language",
+          "led-settings",
         ])
         setActiveServiceTab("levels")
       }
@@ -128,6 +129,10 @@ export default function ServiceMenu({
   }
 
   const renderServiceContent = () => {
+    if (activeServiceTab === "language") {
+      return <LanguageSelector />
+    }
+
     switch (activeServiceTab) {
       case "cocktails":
         return (
@@ -154,7 +159,7 @@ export default function ServiceMenu({
       case "recipe-creator":
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">{t.newRecipe}</h3>
+            <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">{t("service.new_recipe")}</h3>
             <RecipeCreator
               isOpen={true}
               asTab={true}
@@ -199,19 +204,17 @@ export default function ServiceMenu({
           <div className="space-y-6">
             <PasswordSettings />
             <div className="bg-[hsl(var(--cocktail-card-bg))] rounded-xl p-6 border border-[hsl(var(--cocktail-card-border))]">
-              <h3 className="text-lg font-semibold text-[hsl(var(--cocktail-text))] mb-4">{t.restoreFromFile}</h3>
-              <p className="text-[hsl(var(--cocktail-text-muted))] mb-4">
-                {t.language === "en"
-                  ? "Load saved fill levels from file and overwrite current values."
-                  : "Lade gespeicherte Füllstände aus der Datei und überschreibe die aktuellen Werte."}
-              </p>
+              <h3 className="text-lg font-semibold text-[hsl(var(--cocktail-text))] mb-4">
+                {t("service.restore_levels")}
+              </h3>
+              <p className="text-[hsl(var(--cocktail-text-muted))] mb-4">{t("service.restore_levels_description")}</p>
               <Button
                 onClick={handleRestoreClick}
                 disabled={restoring}
                 className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
               >
                 <Download className="h-4 w-4 mr-2" />
-                {restoring ? t.restoring : t.restoreFromFile}
+                {restoring ? t("service.restoring") : t("service.restore_from_file")}
               </Button>
             </div>
             <TabConfigSettings
@@ -250,10 +253,10 @@ export default function ServiceMenu({
             }}
           />
         )
-      case "language":
-      case "sprache":
+      case "led-settings":
+      case "beleuchtung":
         return (
-          <LanguageSettings
+          <LEDSettings
             onClose={() => {
               const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"
               setActiveServiceTab(firstTab)
@@ -283,14 +286,14 @@ export default function ServiceMenu({
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <Lock className="h-16 w-16 text-[hsl(var(--cocktail-text-muted))]" />
-        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{t.serviceLocked}</h2>
-        <p className="text-[hsl(var(--cocktail-text-muted))] text-center">{t.passwordRequired}</p>
+        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{t("service.locked")}</h2>
+        <p className="text-[hsl(var(--cocktail-text-muted))] text-center">{t("service.enter_password")}</p>
         <Button
           onClick={handleUnlockClick}
           className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold px-8 py-3"
         >
           <Lock className="h-4 w-4 mr-2" />
-          {t.unlock}
+          {t("service.unlock")}
         </Button>
 
         {showPasswordModal && (
@@ -307,15 +310,16 @@ export default function ServiceMenu({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{t.serviceMenu}</h2>
+        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{t("service.title")}</h2>
         <div className="flex gap-3">
+          <LanguageSelector />
           <Button
             variant="outline"
             onClick={() => setActiveServiceTab("settings")}
             className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
           >
             <Settings className="h-4 w-4 mr-2" />
-            {t.settings}
+            {t("nav.settings")}
           </Button>
           <Button
             variant="outline"
@@ -323,7 +327,7 @@ export default function ServiceMenu({
             className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
           >
             <Lock className="h-4 w-4 mr-2" />
-            {t.lock}
+            {t("service.lock")}
           </Button>
         </div>
       </div>

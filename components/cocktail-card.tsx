@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Cocktail } from "@/types/cocktail"
+import { useLanguage } from "@/contexts/language-context"
+import { useTranslatedCocktails } from "@/lib/translation-service"
 
 interface CocktailCardProps {
   cocktail: Cocktail
@@ -13,6 +15,8 @@ interface CocktailCardProps {
 export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
   const [imageSrc, setImageSrc] = useState<string>("")
   const [imageLoaded, setImageLoaded] = useState<boolean>(false)
+  const { t } = useLanguage()
+  const [translatedCocktail] = useTranslatedCocktails([cocktail])
 
   const findImagePath = async (cocktail: Cocktail): Promise<string> => {
     if (!cocktail.image) {
@@ -126,7 +130,7 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
       <div className="relative aspect-square overflow-hidden">
         <img
           src={imageSrc || "/placeholder.svg"}
-          alt={cocktail.name}
+          alt={translatedCocktail.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           onError={handleImageError}
           onLoad={handleImageLoad}
@@ -139,7 +143,7 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
 
         {/* Badge */}
         <Badge className="absolute top-3 right-3 bg-[hsl(var(--cocktail-primary))] text-black font-medium shadow-lg">
-          {cocktail.alcoholic ? "Alkoholisch" : "Alkoholfrei"}
+          {cocktail.alcoholic ? t("cocktails.alcoholic") : t("cocktails.non_alcoholic")}
         </Badge>
 
         {/* Debug Info */}
@@ -153,10 +157,10 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
       <CardContent className="p-4">
         <div className="space-y-2">
           <h3 className="font-bold text-lg text-[hsl(var(--cocktail-text))] line-clamp-1 group-hover:text-[hsl(var(--cocktail-primary))] transition-colors duration-200">
-            {cocktail.name}
+            {translatedCocktail.name}
           </h3>
           <p className="text-sm text-[hsl(var(--cocktail-text-muted))] line-clamp-2 leading-relaxed">
-            {cocktail.description}
+            {translatedCocktail.description}
           </p>
         </div>
       </CardContent>

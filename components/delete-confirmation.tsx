@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Loader2, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useLanguage } from "@/lib/i18n" // Import useLanguage hook
 import AlphaKeyboard from "./alpha-keyboard"
 
 interface DeleteConfirmationProps {
@@ -20,7 +19,6 @@ interface DeleteConfirmationProps {
 }
 
 export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktailName }: DeleteConfirmationProps) {
-  const { t } = useLanguage() // Add translation hook
   const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -77,42 +75,33 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-[hsl(var(--cocktail-error))]" />
-            {t.language === "en" ? "Delete Cocktail" : "Cocktail löschen"}
+            Cocktail löschen
           </DialogTitle>
         </DialogHeader>
 
         <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
           <AlertDescription className="text-[hsl(var(--cocktail-text))]">
-            {t.language === "en"
-              ? `Do you really want to delete the cocktail ${cocktailName}? This action cannot be undone.`
-              : `Möchtest du den Cocktail ${cocktailName} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`}
+            Möchtest du den Cocktail <strong>{cocktailName}</strong> wirklich löschen? Diese Aktion kann nicht
+            rückgängig gemacht werden.
           </AlertDescription>
         </Alert>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">
-              {t.language === "en"
-                ? "Please enter the password to confirm deletion:"
-                : "Bitte gib das Passwort ein, um das Löschen zu bestätigen:"}
-            </Label>
+            <Label htmlFor="password">Bitte gib das Passwort ein, um das Löschen zu bestätigen:</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${error ? "border-[hsl(var(--cocktail-error))]" : ""}`}
-              placeholder={t.enterPassword}
+              placeholder="Passwort eingeben"
               autoComplete="off"
               readOnly
               onFocus={() => setShowKeyboard(true)}
             />
             {error && (
-              <p className="text-[hsl(var(--cocktail-error))] text-sm">
-                {t.language === "en"
-                  ? "Wrong password. Please try again."
-                  : "Falsches Passwort. Bitte versuche es erneut."}
-              </p>
+              <p className="text-[hsl(var(--cocktail-error))] text-sm">Falsches Passwort. Bitte versuche es erneut.</p>
             )}
           </div>
 
@@ -133,16 +122,14 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
               className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
               onClick={onClose}
             >
-              {t.cancel}
+              Abbrechen
             </Button>
             <Button type="submit" variant="destructive" disabled={isDeleting}>
               {isDeleting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t.language === "en" ? "Deleting..." : "Wird gelöscht..."}
+                  Wird gelöscht...
                 </>
-              ) : t.language === "en" ? (
-                "Confirm Delete"
               ) : (
                 "Löschen bestätigen"
               )}
