@@ -213,11 +213,16 @@ export function IngredientLevels() {
       if (level) {
         addDebugLog(`Filling pump ${pumpId} to ${level.containerSize}ml`)
         await updateIngredientLevel(pumpId, level.containerSize)
-        await loadLevels()
+
+        setTimeout(async () => {
+          await loadLevels()
+          setIsFilling(false)
+        }, 500)
+      } else {
+        setIsFilling(false)
       }
     } catch (error) {
       addDebugLog(`Fill single error: ${error}`)
-    } finally {
       setIsFilling(false)
     }
   }
