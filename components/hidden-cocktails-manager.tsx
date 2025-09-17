@@ -85,13 +85,6 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">Ausgeblendete Cocktails verwalten</h3>
-        <Button
-          onClick={onClose}
-          variant="outline"
-          className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-        >
-          Zurück
-        </Button>
       </div>
 
       {hiddenCocktailsWithDetails.length === 0 ? (

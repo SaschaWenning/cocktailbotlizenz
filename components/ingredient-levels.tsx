@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { RefreshCw, Bug } from "lucide-react"
+import { Bug } from "lucide-react"
 import { VirtualKeyboard } from "@/components/virtual-keyboard"
 import { pumpConfig } from "@/data/pump-config"
 import {
@@ -190,6 +190,31 @@ export function IngredientLevels() {
     }
   }
 
+  const handleFillAll = async () => {
+    try {
+      addDebugLog("Filling all levels to container size...")
+      for (const level of levels) {
+        await updateIngredientLevel(level.pumpId, level.containerSize)
+      }
+      await loadLevels()
+    } catch (error) {
+      addDebugLog(`Fill all error: ${error}`)
+    }
+  }
+
+  const handleFillSingle = async (pumpId: number) => {
+    try {
+      const level = levels.find((l) => l.pumpId === pumpId)
+      if (level) {
+        addDebugLog(`Filling pump ${pumpId} to ${level.containerSize}ml`)
+        await updateIngredientLevel(pumpId, level.containerSize)
+        await loadLevels()
+      }
+    } catch (error) {
+      addDebugLog(`Fill single error: ${error}`)
+    }
+  }
+
   const getProgressColor = (percentage: number) => {
     if (percentage > 50) return "bg-[hsl(var(--cocktail-primary))]"
     if (percentage > 20) return "bg-[hsl(var(--cocktail-warning))]"
@@ -208,25 +233,10 @@ export function IngredientLevels() {
           <h1 className="text-4xl font-bold text-[hsl(var(--cocktail-text))]">Füllstände</h1>
           <div className="flex gap-3">
             <Button
-              onClick={() => setShowDebug(!showDebug)}
-              className={`${showDebug ? "bg-[hsl(var(--cocktail-primary))]" : "bg-[hsl(var(--cocktail-card-bg))]"} hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold`}
+              onClick={handleFillAll}
+              className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black px-6 py-3 rounded-xl font-semibold"
             >
-              <Bug className="h-4 w-4 mr-2" />
-              Debug
-            </Button>
-            <Button
-              onClick={handleManualRefresh}
-              disabled={isRefreshing}
-              className="bg-[hsl(var(--cocktail-card-bg))] hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-              Aktualisieren
-            </Button>
-            <Button
-              onClick={handleResetAll}
-              className="bg-[hsl(var(--cocktail-error))] hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold"
-            >
-              Alle zurücksetzen
+              Alle auffüllen
             </Button>
           </div>
         </div>
@@ -279,14 +289,23 @@ export function IngredientLevels() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
                       <span>Füllstand:</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleLevelEdit(level.pumpId)}
-                        className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
-                      >
-                        {level.currentLevel}ml
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleLevelEdit(level.pumpId)}
+                          className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                        >
+                          {level.currentLevel}ml
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleFillSingle(level.pumpId)}
+                          className="h-6 px-2 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black text-xs"
+                        >
+                          Auffüllen
+                        </Button>
+                      </div>
                     </div>
                     <div className="bg-[hsl(var(--cocktail-card-border))] rounded-full h-3 overflow-hidden">
                       <div
