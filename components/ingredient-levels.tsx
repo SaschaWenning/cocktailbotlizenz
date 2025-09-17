@@ -30,15 +30,26 @@ export function IngredientLevels() {
   const [debugLogs, setDebugLogs] = useState<string[]>([])
   const [isFilling, setIsFilling] = useState(false)
 
+  // Auto-Refresh während der Bearbeitung pausieren, danach fortsetzen
+  const isEditing = editingLevel !== null || editingSize !== null || editingName !== null
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
+  const fillingRef = useRef(false)
+  const editingRef = useRef(false)
+  const skipReloadUntil = useRef(0) // ts (ms). Solange now < ts: Reloads skippen
+
+  useEffect(() => {
+    fillingRef.current = isFilling
+  }, [isFilling])
+  useEffect(() => {
+    editingRef.current = isEditing
+  }, [isEditing])
 
   const addDebugLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
     setDebugLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 19)])
   }
-
-  const isEditing = editingLevel !== null || editingSize !== null || editingName !== null || isFilling
 
   useEffect(() => {
     if (unsubscribeRef.current) {
@@ -75,8 +86,9 @@ export function IngredientLevels() {
   }, [editingLevel, editingSize, editingName, isFilling])
 
   const loadLevels = async () => {
-    if (isFilling) {
-      addDebugLog("Skipping loadLevels during filling")
+    const nowTs = Date.now()
+    if (fillingRef.current || editingRef.current || nowTs < skipReloadUntil.current) {
+      addDebugLog("Skipping loadLevels: filling/editing or skip window active")
       return
     }
     try {
@@ -201,8 +213,10 @@ export function IngredientLevels() {
       addDebugLog("Filling all levels to container size (batch)…")
       const now = new Date()
       const next = levels.map((l) => ({ ...l, currentLevel: Math.max(0, l.containerSize), lastUpdated: now }))
+      // optimistisches UI-Update
       setLevels(next)
       await setIngredientLevels(next)
+      skipReloadUntil.current = Date.now() + 800
       addDebugLog("All levels filled and saved")
     } catch (error) {
       addDebugLog(`Fill all error: ${error}`)
@@ -226,6 +240,7 @@ export function IngredientLevels() {
       )
       setLevels(next)
       await setIngredientLevels(next)
+      skipReloadUntil.current = Date.now() + 800
     } catch (error) {
       addDebugLog(`Fill single error: ${error}`)
     } finally {
