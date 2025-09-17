@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { RefreshCw, Bug } from "lucide-react"
 import { VirtualKeyboard } from "@/components/virtual-keyboard"
-import { useLanguage } from "@/contexts/language-context"
 import { pumpConfig } from "@/data/pump-config"
 import {
   getIngredientLevels,
@@ -20,7 +19,6 @@ import {
 } from "@/lib/ingredient-level-service"
 
 export function IngredientLevels() {
-  const { t } = useLanguage()
   const [levels, setLevels] = useState<IngredientLevel[]>([])
   const [editingLevel, setEditingLevel] = useState<number | null>(null)
   const [editingSize, setEditingSize] = useState<number | null>(null)
@@ -207,14 +205,14 @@ export function IngredientLevels() {
     <div className="min-h-screen bg-[hsl(var(--cocktail-bg))] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-4xl font-bold text-[hsl(var(--cocktail-text))]">{t("ingredients.levels_title")}</h1>
+          <h1 className="text-4xl font-bold text-[hsl(var(--cocktail-text))]">Füllstände</h1>
           <div className="flex gap-3">
             <Button
               onClick={() => setShowDebug(!showDebug)}
               className={`${showDebug ? "bg-[hsl(var(--cocktail-primary))]" : "bg-[hsl(var(--cocktail-card-bg))]"} hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold`}
             >
               <Bug className="h-4 w-4 mr-2" />
-              {t("common.debug")}
+              Debug
             </Button>
             <Button
               onClick={handleManualRefresh}
@@ -222,13 +220,13 @@ export function IngredientLevels() {
               className="bg-[hsl(var(--cocktail-card-bg))] hover:bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] px-6 py-3 rounded-xl font-semibold"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-              {t("ingredients.refresh")}
+              Aktualisieren
             </Button>
             <Button
               onClick={handleResetAll}
               className="bg-[hsl(var(--cocktail-error))] hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold"
             >
-              {t("ingredients.reset_all")}
+              Alle zurücksetzen
             </Button>
           </div>
         </div>
@@ -280,15 +278,14 @@ export function IngredientLevels() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
-                      <span>{t("ingredients.level")}:</span>
+                      <span>Füllstand:</span>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleLevelEdit(level.pumpId)}
                         className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
                       >
-                        {level.currentLevel}
-                        {t("ingredients.ml")}
+                        {level.currentLevel}ml
                       </Button>
                     </div>
                     <div className="bg-[hsl(var(--cocktail-card-border))] rounded-full h-3 overflow-hidden">
@@ -303,20 +300,19 @@ export function IngredientLevels() {
                   </div>
 
                   <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
-                    <span>{t("ingredients.container")}:</span>
+                    <span>Behältergröße:</span>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => handleSizeEdit(level.pumpId)}
                       className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
                     >
-                      {level.containerSize}
-                      {t("ingredients.ml")}
+                      {level.containerSize}ml
                     </Button>
                   </div>
 
                   <div className="text-xs text-[hsl(var(--cocktail-text-muted))] text-center">
-                    {t("ingredients.updated")}: {new Date(level.lastUpdated).toLocaleString()}
+                    Aktualisiert: {new Date(level.lastUpdated).toLocaleString()}
                   </div>
                 </CardContent>
               </Card>
@@ -329,9 +325,9 @@ export function IngredientLevels() {
             <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-xl shadow-2xl max-w-xs w-full mx-1 max-h-[95vh] overflow-hidden flex flex-col">
               <div className="bg-[hsl(var(--cocktail-primary))] p-2 flex-shrink-0">
                 <h3 className="text-sm font-bold text-black">
-                  {editingLevel && t("ingredients.edit_level")}
-                  {editingSize && t("ingredients.edit_size")}
-                  {editingName && t("ingredients.edit_ingredient")}
+                  {editingLevel && "Füllstand bearbeiten"}
+                  {editingSize && "Behältergröße bearbeiten"}
+                  {editingName && "Zutat bearbeiten"}
                 </h3>
               </div>
 
@@ -355,14 +351,14 @@ export function IngredientLevels() {
                     onClick={handleSave}
                     className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-1 rounded-lg text-xs h-8"
                   >
-                    {t("ingredients.save")}
+                    Speichern
                   </Button>
                   <Button
                     onClick={handleCancel}
                     variant="outline"
                     className="flex-1 border-2 border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] font-semibold py-1 rounded-lg bg-transparent text-[hsl(var(--cocktail-text))] text-xs h-8"
                   >
-                    {t("ingredients.cancel")}
+                    Abbrechen
                   </Button>
                 </div>
               </div>

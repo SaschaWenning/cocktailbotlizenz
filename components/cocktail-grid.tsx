@@ -1,7 +1,6 @@
 "use client"
 
 import CocktailCard from "@/components/cocktail-card"
-import { useLanguage } from "@/contexts/language-context"
 import type { Cocktail } from "@/types/cocktail"
 
 interface CocktailGridProps {
@@ -17,8 +16,6 @@ export default function CocktailGrid({
   onImageEditClick,
   onDeleteCocktail,
 }: CocktailGridProps) {
-  const { t } = useLanguage()
-
   const handleCocktailClick = (cocktail: Cocktail) => {
     if (onCocktailSelect) {
       onCocktailSelect(cocktail)
@@ -28,7 +25,7 @@ export default function CocktailGrid({
   if (cocktails.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-[hsl(var(--cocktail-text-muted))] text-lg">{t("cocktails.no_cocktails")}</p>
+        <p className="text-[hsl(var(--cocktail-text-muted))] text-lg">Keine Cocktails gefunden.</p>
       </div>
     )
   }
