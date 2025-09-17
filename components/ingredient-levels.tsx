@@ -28,6 +28,7 @@ export function IngredientLevels() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
   const [debugLogs, setDebugLogs] = useState<string[]>([])
+  const [isFilling, setIsFilling] = useState(false)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
@@ -37,7 +38,7 @@ export function IngredientLevels() {
     setDebugLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 19)])
   }
 
-  const isEditing = editingLevel !== null || editingSize !== null || editingName !== null
+  const isEditing = editingLevel !== null || editingSize !== null || editingName !== null || isFilling
 
   useEffect(() => {
     if (unsubscribeRef.current) {
@@ -71,7 +72,7 @@ export function IngredientLevels() {
         intervalRef.current = null
       }
     }
-  }, [editingLevel, editingSize, editingName])
+  }, [editingLevel, editingSize, editingName, isFilling])
 
   const loadLevels = async () => {
     try {
@@ -192,6 +193,7 @@ export function IngredientLevels() {
 
   const handleFillAll = async () => {
     try {
+      setIsFilling(true)
       addDebugLog("Filling all levels to container size...")
       for (const level of levels) {
         await updateIngredientLevel(level.pumpId, level.containerSize)
@@ -199,11 +201,14 @@ export function IngredientLevels() {
       await loadLevels()
     } catch (error) {
       addDebugLog(`Fill all error: ${error}`)
+    } finally {
+      setIsFilling(false)
     }
   }
 
   const handleFillSingle = async (pumpId: number) => {
     try {
+      setIsFilling(true)
       const level = levels.find((l) => l.pumpId === pumpId)
       if (level) {
         addDebugLog(`Filling pump ${pumpId} to ${level.containerSize}ml`)
@@ -212,6 +217,8 @@ export function IngredientLevels() {
       }
     } catch (error) {
       addDebugLog(`Fill single error: ${error}`)
+    } finally {
+      setIsFilling(false)
     }
   }
 
