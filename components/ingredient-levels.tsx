@@ -52,7 +52,7 @@ export function IngredientLevels() {
       intervalRef.current = null
     }
 
-    if (isEditing) {
+    if (isEditing || isFilling) {
       return
     }
 
@@ -194,11 +194,12 @@ export function IngredientLevels() {
   const handleFillAll = async () => {
     try {
       setIsFilling(true)
-      addDebugLog("Filling all levels to container size...")
-      for (const level of levels) {
-        await updateIngredientLevel(level.pumpId, level.containerSize)
-      }
-      await loadLevels()
+      addDebugLog("Filling all levels to container size (batch)…")
+      const now = new Date()
+      const next = levels.map((l) => ({ ...l, currentLevel: Math.max(0, l.containerSize), lastUpdated: now }))
+      setLevels(next)
+      await setIngredientLevels(next)
+      addDebugLog("All levels filled and saved")
     } catch (error) {
       addDebugLog(`Fill all error: ${error}`)
     } finally {
@@ -209,20 +210,21 @@ export function IngredientLevels() {
   const handleFillSingle = async (pumpId: number) => {
     try {
       setIsFilling(true)
-      const level = levels.find((l) => l.pumpId === pumpId)
-      if (level) {
-        addDebugLog(`Filling pump ${pumpId} to ${level.containerSize}ml`)
-        await updateIngredientLevel(pumpId, level.containerSize)
-
-        setTimeout(async () => {
-          await loadLevels()
-          setIsFilling(false)
-        }, 500)
-      } else {
+      const target = levels.find((l) => l.pumpId === pumpId)
+      if (!target) {
         setIsFilling(false)
+        return
       }
+      addDebugLog(`Filling pump ${pumpId} to ${target.containerSize}ml (batch)…`)
+      const now = new Date()
+      const next = levels.map((l) =>
+        l.pumpId === pumpId ? { ...l, currentLevel: Math.max(0, target.containerSize), lastUpdated: now } : l,
+      )
+      setLevels(next)
+      await setIngredientLevels(next)
     } catch (error) {
       addDebugLog(`Fill single error: ${error}`)
+    } finally {
       setIsFilling(false)
     }
   }
