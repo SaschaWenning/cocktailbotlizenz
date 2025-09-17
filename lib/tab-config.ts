@@ -69,14 +69,14 @@ export const defaultTabConfig: AppConfig = {
       passwordProtected: true,
     },
     {
-      id: "led-settings",
-      name: "Beleuchtung",
+      id: "hidden-cocktails",
+      name: "Ausgeblendete Cocktails",
       location: "service",
       passwordProtected: true,
     },
     {
-      id: "hidden-cocktails",
-      name: "Ausgeblendete Cocktails",
+      id: "beleuchtung",
+      name: "Beleuchtung",
       location: "service",
       passwordProtected: true,
     },
