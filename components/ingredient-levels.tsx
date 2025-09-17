@@ -75,6 +75,10 @@ export function IngredientLevels() {
   }, [editingLevel, editingSize, editingName, isFilling])
 
   const loadLevels = async () => {
+    if (isFilling) {
+      addDebugLog("Skipping loadLevels during filling")
+      return
+    }
     try {
       addDebugLog("Loading levels from API...")
       const response = await fetch("/api/ingredient-levels")
