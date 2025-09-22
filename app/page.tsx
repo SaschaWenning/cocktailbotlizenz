@@ -72,6 +72,8 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1)
   const [virginCurrentPage, setVirginCurrentPage] = useState(1)
 
+  const [showManualModal, setShowManualModal] = useState(false)
+
   const handleCocktailPageChange = (page: number) => {
     setCurrentPage(page)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -487,6 +489,7 @@ export default function Home() {
     setStatusMessage("Bereite Cocktail vor...")
     setErrorMessage(null)
     setManualIngredients([])
+    setShowManualModal(false)
 
     try {
       const currentPumpConfig = pumpConfig
@@ -545,11 +548,19 @@ export default function Home() {
           })),
         )
         setTimeout(() => {
-          setManualIngredients([])
-          setStatusMessage("")
-        }, 8000)
+          setShowManualModal(true)
+          // Close modal after 6 seconds
+          setTimeout(() => {
+            setShowManualModal(false)
+            setManualIngredients([])
+            setStatusMessage("")
+          }, 6000)
+        }, 2000)
       } else {
-        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
+        setStatusMessage(`${cocktail.name} (${selectedSize}ml) erfolgreich zubereitet!`)
+        setTimeout(() => {
+          setStatusMessage("")
+        }, 3000)
       }
 
       setShowSuccess(true)
@@ -991,23 +1002,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-        {isCompleted &&
-          statusMessage.includes("Bitte manuelle Zutaten hinzufügen.") &&
-          cocktail &&
-          manualIngredients.length > 0 && (
-            <div className="mt-3 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-b-lg">
-              <div className="font-medium">
-                Bitte folgende Zutat{manualIngredients.length > 1 ? "en" : ""} hinzufügen:
-              </div>
-              <ul className="list-disc pl-6 mt-1 space-y-1">
-                {manualIngredients.map((item, index) => (
-                  <li key={index} className="text-base leading-tight">
-                    {item.amount}ml {item.name}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
       </Card>
     )
   }
@@ -1318,6 +1312,34 @@ export default function Home() {
         cocktail={selectedCocktail}
         onSave={handleImageSave}
       />
+
+      {showManualModal && manualIngredients.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-[hsl(var(--cocktail-card-border))]">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-primary))] mb-4">
+                Manuelle Zutaten hinzufügen
+              </h2>
+              <div className="space-y-3">
+                {manualIngredients.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center bg-[hsl(var(--cocktail-card-bg))]/50 border border-[hsl(var(--cocktail-card-border))] p-3 rounded-lg"
+                  >
+                    <span className="font-medium text-[hsl(var(--cocktail-text))]">
+                      {getIngredientName(item.ingredientId)}
+                    </span>
+                    <span className="font-bold text-[hsl(var(--cocktail-primary))] text-lg">{item.amount}ml</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 text-sm text-[hsl(var(--cocktail-text-muted))]">
+                Dieses Fenster schließt sich automatisch in wenigen Sekunden
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
