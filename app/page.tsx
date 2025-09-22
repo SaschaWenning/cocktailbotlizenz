@@ -135,27 +135,45 @@ export default function Home() {
   }, [])
 
   const loadCocktails = async () => {
-    console.log("[v0] Loading cocktails...")
-    const cocktails = await getAllCocktails()
-    console.log("[v0] Loaded cocktails from getAllCocktails:", cocktails.length)
-
-    // Load hidden cocktails from API instead of localStorage
     try {
-      const response = await fetch("/api/hidden-cocktails")
-      const data = await response.json()
-      const hiddenCocktails: string[] = data.hiddenCocktails || []
-      console.log("[v0] Hidden cocktails from API:", hiddenCocktails)
+      console.log("[v0] Loading cocktails...")
+      const cocktails = await getAllCocktails()
+      console.log("[v0] Loaded cocktails from getAllCocktails:", cocktails.length)
 
-      const visibleCocktails = cocktails.filter((cocktail) => !hiddenCocktails.includes(cocktail.id))
-      console.log("[v0] Visible cocktails after filtering:", visibleCocktails.length)
-      console.log("[v0] Filtered out cocktails:", cocktails.length - visibleCocktails.length)
+      // Load hidden cocktails from API instead of localStorage
+      try {
+        const response = await fetch("/api/hidden-cocktails")
+        if (response.ok) {
+          const data = await response.json()
+          const hiddenCocktails: string[] = data.hiddenCocktails || []
+          console.log("[v0] Hidden cocktails from API:", hiddenCocktails)
 
-      setCocktailsData(visibleCocktails)
-      console.log("[v0] Setting cocktails data with", visibleCocktails.length, "cocktails")
+          const visibleCocktails = cocktails.filter((cocktail) => !hiddenCocktails.includes(cocktail.id))
+          console.log("[v0] Visible cocktails after filtering:", visibleCocktails.length)
+          console.log("[v0] Filtered out cocktails:", cocktails.length - visibleCocktails.length)
+
+          setCocktailsData(visibleCocktails)
+          console.log("[v0] Setting cocktails data with", visibleCocktails.length, "cocktails")
+        } else {
+          console.log("[v0] Hidden cocktails API not available, showing all cocktails")
+          setCocktailsData(cocktails)
+        }
+      } catch (error) {
+        console.error("[v0] Error loading hidden cocktails:", error)
+        console.log("[v0] Fallback: showing all cocktails")
+        setCocktailsData(cocktails)
+      }
     } catch (error) {
-      console.error("[v0] Error loading hidden cocktails:", error)
-      // Fallback to showing all cocktails if API fails
-      setCocktailsData(cocktails)
+      console.error("Fehler beim Laden der Daten:", error)
+      console.log("[v0] Using fallback cocktails from static data")
+      try {
+        const { cocktails } = await import("@/data/cocktails")
+        setCocktailsData(cocktails)
+        console.log("[v0] Loaded", cocktails.length, "cocktails from static data")
+      } catch (importError) {
+        console.error("[v0] Error loading fallback cocktails:", importError)
+        setCocktailsData([])
+      }
     }
   }
 
@@ -165,6 +183,8 @@ export default function Home() {
       setPumpConfig(config)
     } catch (error) {
       console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
+      console.log("[v0] Using fallback pump configuration")
+      setPumpConfig(initialPumpConfig)
     }
   }
 
@@ -202,6 +222,17 @@ export default function Home() {
       setLowIngredients(lowLevels.map((level) => level.ingredientId))
     } catch (error) {
       console.error("Fehler beim Laden der Füllstände:", error)
+      console.log("[v0] Using empty ingredient levels as fallback")
+      const defaultLevels: IngredientLevel[] = initialPumpConfig.map((pump) => ({
+        pumpId: pump.id,
+        ingredientId: pump.ingredient,
+        currentAmount: 1000, // Standard-Füllstand
+        currentLevel: 1000,
+        maxAmount: 1000,
+        lastUpdated: new Date().toISOString(),
+      }))
+      setIngredientLevels(defaultLevels)
+      setLowIngredients([])
     }
   }
 
@@ -211,6 +242,15 @@ export default function Home() {
       setAllIngredientsData(ingredients)
     } catch (error) {
       console.error("Fehler beim Laden der Zutaten:", error)
+      console.log("[v0] Using fallback ingredients data")
+      try {
+        const { ingredients } = await import("@/data/ingredients")
+        setAllIngredientsData(ingredients)
+        console.log("[v0] Loaded", ingredients.length, "ingredients from static data")
+      } catch (importError) {
+        console.error("[v0] Error loading fallback ingredients:", importError)
+        setAllIngredientsData([])
+      }
     }
   }
 
@@ -237,6 +277,14 @@ export default function Home() {
     } catch (error) {
       console.error("[v0] Error loading tab config:", error)
       console.log("[v0] Using fallback tab configuration")
+      const fallbackConfig: AppConfig = {
+        tabs: [
+          { id: "cocktails", name: "Cocktails", location: "main" },
+          { id: "virgin", name: "Alkoholfrei", location: "main" },
+          { id: "shots", name: "Shots", location: "main" },
+        ],
+      }
+      setTabConfig(fallbackConfig)
       setMainTabs(["cocktails", "virgin", "shots"])
       if (!["cocktails", "virgin", "shots", "service"].includes(activeTab)) {
         setActiveTab("cocktails")
@@ -450,7 +498,7 @@ export default function Home() {
         .filter((item) => item.manual === true || item.type === "manual")
         .map((item) => ({
           ingredientId: item.ingredientId,
-          amount: Math.round(item.amount * scaleFactor),
+          amount: item.amount,
           instructions: item.instructions || item.instruction,
         }))
 
@@ -921,30 +969,12 @@ export default function Home() {
             <h4 className="text-lg font-semibold mb-3 text-orange-800">Bitte folgende Zutaten noch hinzufügen:</h4>
             <ul className="space-y-2 text-base">
               {manualIngredients.map((item, index) => {
-                console.log("[v0] Manual ingredient item:", item)
-                console.log("[v0] All ingredients data:", allIngredientsData)
-
                 const ingredient = allIngredientsData.find((ing) => ing.id === item.ingredientId)
-                console.log("[v0] Found ingredient:", ingredient)
+                if (!ingredient) return null
 
-                if (!ingredient) {
-                  console.log("[v0] Ingredient not found for ID:", item.ingredientId)
-                  return (
-                    <li key={index} className="text-base leading-tight">
-                      {item.amount}ml {item.ingredientId.replace(/^custom-\d+-/, "")} hinzufügen
-                    </li>
-                  )
-                }
-
-                const originalTotalVolume =
-                  cocktail.recipe.reduce((sum, ing) => sum + ing.amount, 0) +
-                  cocktail.recipe
-                    .filter((step) => step.type === "manual")
-                    .reduce((sum, step) => sum + (step.amount || 0), 0)
+                const originalTotalVolume = cocktail.recipe.reduce((sum, ing) => sum + ing.amount, 0)
                 const scaleFactor = selectedSize / originalTotalVolume
                 const scaledAmount = Math.round(item.amount * scaleFactor)
-
-                console.log("[v0] Scaled amount:", scaledAmount, "for ingredient:", ingredient.name)
 
                 return (
                   <li key={index} className="text-base leading-tight">
