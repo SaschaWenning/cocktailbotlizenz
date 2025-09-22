@@ -920,17 +920,22 @@ export default function Home() {
           <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg">
             <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Manuelle Zutaten hinzufügen:</h4>
             <ul className="space-y-2 text-base">
-              {manualIngredients.map((item, index) => (
-                <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
-                  <span className="text-lg font-medium text-[hsl(var(--cocktail-text))]">{item.amount}ml</span>{" "}
-                  {item.ingredientId.replace(/^custom-\d+-/, "")}
-                  {item.instructions && (
-                    <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
-                      {item.instructions}
-                    </div>
-                  )}
-                </li>
-              ))}
+              {manualIngredients.map((item, index) => {
+                const scaleFactor = selectedSize / getCurrentVolume()
+                const scaledAmount = Math.round(item.amount * scaleFactor)
+
+                return (
+                  <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
+                    <span className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{scaledAmount}ml</span>{" "}
+                    {item.ingredientId.replace(/^custom-\d+-/, "")}
+                    {item.instructions && (
+                      <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
+                        {item.instructions}
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </div>
         )}
@@ -1194,17 +1199,24 @@ export default function Home() {
                       Manuelle Zutaten hinzufügen:
                     </h4>
                     <ul className="space-y-2 text-base">
-                      {manualIngredients.map((item, index) => (
-                        <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
-                          <span className="text-lg font-medium text-[hsl(var(--cocktail-text))]">{item.amount}ml</span>{" "}
-                          {item.ingredientId.replace(/^custom-\d+-/, "")}
-                          {item.instructions && (
-                            <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
-                              {item.instructions}
-                            </div>
-                          )}
-                        </li>
-                      ))}
+                      {manualIngredients.map((item, index) => {
+                        const scaleFactor = selectedSize / getCurrentVolume()
+                        const scaledAmount = Math.round(item.amount * scaleFactor)
+
+                        return (
+                          <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
+                            <span className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">
+                              {scaledAmount}ml
+                            </span>{" "}
+                            {item.ingredientId.replace(/^custom-\d+-/, "")}
+                            {item.instructions && (
+                              <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
+                                {item.instructions}
+                              </div>
+                            )}
+                          </li>
+                        )
+                      })}
                     </ul>
                   </div>
                 )}
