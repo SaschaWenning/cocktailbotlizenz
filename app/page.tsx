@@ -923,13 +923,9 @@ export default function Home() {
             </h4>
             <ul className="space-y-2 text-base">
               {manualIngredients.map((item, index) => {
-                const originalTotalVolume = selectedCocktail?.recipe.reduce((total, r) => total + r.amount, 0) || 1
-                const scaleFactor = selectedSize / originalTotalVolume
-                const scaledAmount = Math.round(item.amount * scaleFactor)
-
                 return (
                   <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
-                    <span className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{scaledAmount}ml</span>{" "}
+                    <span className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{item.amount}ml</span>{" "}
                     {item.ingredientId.replace(/^custom-\d+-/, "")}
                     {item.instructions && (
                       <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
@@ -1203,16 +1199,9 @@ export default function Home() {
                     </h4>
                     <ul className="space-y-2 text-base">
                       {manualIngredients.map((item, index) => {
-                        const originalTotalVolume =
-                          selectedCocktail?.recipe.reduce((total, r) => total + r.amount, 0) || 1
-                        const scaleFactor = selectedSize / originalTotalVolume
-                        const scaledAmount = Math.round(item.amount * scaleFactor)
-
                         return (
                           <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
-                            <span className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">
-                              {scaledAmount}ml
-                            </span>{" "}
+                            <span className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{item.amount}ml</span>{" "}
                             {item.ingredientId.replace(/^custom-\d+-/, "")}
                             {item.instructions && (
                               <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
