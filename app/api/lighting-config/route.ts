@@ -1,4 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
+import fs from "fs/promises"
+import path from "path"
+
+const CONFIG_FILE = path.join(process.cwd(), "data", "lighting-config.json")
 
 interface LightingConfig {
   cocktailPreparation: {
@@ -30,11 +34,20 @@ const defaultConfig: LightingConfig = {
   },
 }
 
-let lightingConfig: LightingConfig = defaultConfig
-
 export async function GET() {
   try {
-    return NextResponse.json(lightingConfig)
+    // Ensure data directory exists
+    const dataDir = path.dirname(CONFIG_FILE)
+    await fs.mkdir(dataDir, { recursive: true })
+
+    try {
+      const data = await fs.readFile(CONFIG_FILE, "utf-8")
+      const config = JSON.parse(data)
+      return NextResponse.json(config)
+    } catch (error) {
+      // File doesn't exist, return default config
+      return NextResponse.json(defaultConfig)
+    }
   } catch (error) {
     console.error("[v0] Error reading lighting config:", error)
     return NextResponse.json(defaultConfig, { status: 500 })
@@ -45,8 +58,12 @@ export async function POST(request: NextRequest) {
   try {
     const config: LightingConfig = await request.json()
 
-    // Save config to memory
-    lightingConfig = config
+    // Ensure data directory exists
+    const dataDir = path.dirname(CONFIG_FILE)
+    await fs.mkdir(dataDir, { recursive: true })
+
+    // Save config to file
+    await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2))
 
     // Send command to Raspberry Pico 2 via serial
     await sendLightingCommand("update_config", config)

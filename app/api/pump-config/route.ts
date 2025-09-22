@@ -1,17 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import type { PumpConfig } from "@/types/pump"
-
-let pumpConfig: PumpConfig[] = [
-  { id: 1, ingredient: "Vodka", ingredientId: "vodka", mlPerSecond: 10, isActive: true },
-  { id: 2, ingredient: "Rum", ingredientId: "rum", mlPerSecond: 10, isActive: true },
-  { id: 3, ingredient: "Gin", ingredientId: "gin", mlPerSecond: 10, isActive: true },
-  { id: 4, ingredient: "Tequila", ingredientId: "tequila", mlPerSecond: 10, isActive: true },
-  { id: 5, ingredient: "Whiskey", ingredientId: "whiskey", mlPerSecond: 10, isActive: true },
-  { id: 6, ingredient: "Brandy", ingredientId: "brandy", mlPerSecond: 10, isActive: true },
-]
+import { getPumpConfig, savePumpConfig } from "@/lib/cocktail-machine-server"
 
 export async function GET() {
   try {
+    const pumpConfig = await getPumpConfig()
     return NextResponse.json({ success: true, pumpConfig })
   } catch (error) {
     console.error("Error getting pump config:", error)
@@ -21,8 +13,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { pumpConfig: newConfig } = await request.json()
-    pumpConfig = newConfig
+    const { pumpConfig } = await request.json()
+    await savePumpConfig(pumpConfig)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error saving pump config:", error)

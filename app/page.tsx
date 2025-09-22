@@ -1315,25 +1315,18 @@ export default function Home() {
 
       {showManualModal && manualIngredients.length > 0 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border border-[hsl(var(--cocktail-card-border))]">
+          <div className="bg-white text-black rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-primary))] mb-4">
-                Manuelle Zutaten hinzufügen
-              </h2>
+              <h2 className="text-2xl font-bold text-orange-600 mb-4">Manuelle Zutaten hinzufügen</h2>
               <div className="space-y-3">
                 {manualIngredients.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center bg-[hsl(var(--cocktail-card-bg))]/50 border border-[hsl(var(--cocktail-card-border))] p-3 rounded-lg"
-                  >
-                    <span className="font-medium text-[hsl(var(--cocktail-text))]">
-                      {getIngredientName(item.ingredientId)}
-                    </span>
-                    <span className="font-bold text-[hsl(var(--cocktail-primary))] text-lg">{item.amount}ml</span>
+                  <div key={index} className="flex justify-between items-center bg-orange-50 p-3 rounded-lg">
+                    <span className="font-medium text-gray-800">{getIngredientName(item.ingredientId)}</span>
+                    <span className="font-bold text-orange-600 text-lg">{item.amount}ml</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 text-sm text-[hsl(var(--cocktail-text-muted))]">
+              <div className="mt-4 text-sm text-gray-600">
                 Dieses Fenster schließt sich automatisch in wenigen Sekunden
               </div>
             </div>

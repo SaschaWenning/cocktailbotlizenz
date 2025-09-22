@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
-import { cocktails } from "@/data/cocktails"
+import { getAllCocktails } from "@/lib/cocktail-machine-server"
 
 export async function GET() {
   try {
+    const cocktails = await getAllCocktails()
     return NextResponse.json({ success: true, cocktails })
   } catch (error) {
     console.error("Error getting cocktails:", error)
