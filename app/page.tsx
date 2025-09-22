@@ -918,7 +918,9 @@ export default function Home() {
         </div>
         {manualIngredients.length > 0 && (
           <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg max-h-[50vh] overflow-y-auto">
-            <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Manuelle Zutaten hinzufügen:</h4>
+            <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">
+              Bitte folgende Zutaten noch hinzufügen:
+            </h4>
             <ul className="space-y-2 text-base">
               {manualIngredients.map((item, index) => {
                 const originalTotalVolume = selectedCocktail?.recipe.reduce((total, r) => total + r.amount, 0) || 1
@@ -1197,7 +1199,7 @@ export default function Home() {
                 {manualIngredients.length > 0 && (
                   <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg max-h-[50vh] overflow-y-auto">
                     <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">
-                      Manuelle Zutaten hinzufügen:
+                      Bitte folgende Zutaten noch hinzufügen:
                     </h4>
                     <ul className="space-y-2 text-base">
                       {manualIngredients.map((item, index) => {

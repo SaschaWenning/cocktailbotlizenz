@@ -64,8 +64,11 @@ export async function savePumpConfig(pumpConfig: PumpConfig[]) {
 // Funktion zum Laden aller Cocktails (Standard + benutzerdefinierte)
 export async function getAllCocktails(): Promise<Cocktail[]> {
   try {
+    console.log("[v0] Loading cocktails from getAllCocktails...")
+
     // Lade die Standard-Cocktails
     const { cocktails: defaultCocktails } = await import("@/data/cocktails")
+    console.log("[v0] Loaded default cocktails:", defaultCocktails.length)
 
     // Keine zusätzlichen Cocktails definieren
     const additionalCocktails: Cocktail[] = []
@@ -98,37 +101,60 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       cocktailMap.set(cocktail.id, cocktail)
     }
 
-    // Prüfe, ob die Datei für benutzerdefinierte Cocktails existiert
-    if (fs.existsSync(COCKTAILS_PATH)) {
-      // Lese die Datei
-      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
-      const customCocktails: Cocktail[] = JSON.parse(data)
-
-      // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
-      for (const cocktail of customCocktails) {
-        // Erstelle eine Kopie des Cocktails
-        const updatedCocktail = { ...cocktail }
-
-        // Aktualisiere die Zutaten-Textliste
-        updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
-          ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
-            ? ingredient.replace("Rum", "Brauner Rum")
-            : ingredient,
-        )
-
-        // Füge den aktualisierten Cocktail zur Map hinzu
-        cocktailMap.set(cocktail.id, updatedCocktail)
+    try {
+      // Stelle sicher, dass das data Verzeichnis existiert
+      const dataDir = path.dirname(COCKTAILS_PATH)
+      if (!fs.existsSync(dataDir)) {
+        console.log("[v0] Creating data directory:", dataDir)
+        fs.mkdirSync(dataDir, { recursive: true })
       }
+
+      // Prüfe, ob die Datei für benutzerdefinierte Cocktails existiert
+      if (fs.existsSync(COCKTAILS_PATH)) {
+        console.log("[v0] Loading custom cocktails from:", COCKTAILS_PATH)
+        // Lese die Datei
+        const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+        const customCocktails: Cocktail[] = JSON.parse(data)
+        console.log("[v0] Loaded custom cocktails:", customCocktails.length)
+
+        // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
+        for (const cocktail of customCocktails) {
+          // Erstelle eine Kopie des Cocktails
+          const updatedCocktail = { ...cocktail }
+
+          // Aktualisiere die Zutaten-Textliste
+          updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
+            ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
+              ? ingredient.replace("Rum", "Brauner Rum")
+              : ingredient,
+          )
+
+          // Füge den aktualisierten Cocktail zur Map hinzu
+          cocktailMap.set(cocktail.id, updatedCocktail)
+        }
+      } else {
+        console.log("[v0] No custom cocktails file found, using defaults only")
+      }
+    } catch (customError) {
+      console.error("[v0] Error loading custom cocktails (continuing with defaults):", customError)
     }
 
     // Konvertiere die Map zurück in ein Array
-    return Array.from(cocktailMap.values())
+    const result = Array.from(cocktailMap.values())
+    console.log("[v0] Total cocktails loaded:", result.length)
+    return result
   } catch (error) {
-    console.error("Fehler beim Laden der Cocktails:", error)
+    console.error("[v0] Error in getAllCocktails:", error)
 
     // Fallback: Lade nur die Standard-Cocktails
-    const { cocktails } = await import("@/data/cocktails")
-    return cocktails
+    try {
+      const { cocktails } = await import("@/data/cocktails")
+      console.log("[v0] Fallback: returning default cocktails only:", cocktails.length)
+      return cocktails
+    } catch (fallbackError) {
+      console.error("[v0] Even fallback failed:", fallbackError)
+      return []
+    }
   }
 }
 
