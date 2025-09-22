@@ -808,7 +808,7 @@ export default function Home() {
                   <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
                   {(() => {
                     const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1
-                    const scaleFactor = selectedSize / totalRecipeVolume
+                    const __scaleFactor = selectedSize / totalRecipeVolume
                     return null
                   })()}
                   <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
