@@ -72,6 +72,16 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1)
   const [virginCurrentPage, setVirginCurrentPage] = useState(1)
 
+  const handleCocktailPageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleVirginPageChange = (page: number) => {
+    setVirginCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
   // Filtere Cocktails nach alkoholisch und nicht-alkoholisch
   const alcoholicCocktails = cocktailsData.filter((cocktail) => cocktail.alcoholic)
   const virginCocktails = cocktailsData.filter((cocktail) => !cocktail.alcoholic)
@@ -906,6 +916,24 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {manualIngredients.length > 0 && (
+          <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg">
+            <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Manuelle Zutaten hinzufügen:</h4>
+            <ul className="space-y-2 text-base">
+              {manualIngredients.map((item, index) => (
+                <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
+                  <span className="text-lg font-medium text-[hsl(var(--cocktail-text))]">{item.amount}ml</span>{" "}
+                  {item.ingredientId.replace(/^custom-\d+-/, "")}
+                  {item.instructions && (
+                    <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
+                      {item.instructions}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Card>
     )
   }
@@ -983,7 +1011,11 @@ export default function Home() {
             </div>
 
             {totalPages > 1 && (
-              <PaginationComponent currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+              <PaginationComponent
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handleCocktailPageChange}
+              />
             )}
           </div>
         )
@@ -1007,7 +1039,7 @@ export default function Home() {
               <PaginationComponent
                 currentPage={virginCurrentPage}
                 totalPages={virginTotalPages}
-                onPageChange={setVirginCurrentPage}
+                onPageChange={handleVirginPageChange}
               />
             )}
           </div>
@@ -1161,12 +1193,13 @@ export default function Home() {
                     <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">
                       Manuelle Zutaten hinzufügen:
                     </h4>
-                    <ul className="space-y-2 text-sm">
+                    <ul className="space-y-2 text-base">
                       {manualIngredients.map((item, index) => (
                         <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
-                          • {item.amount}ml {item.ingredientId.replace(/^custom-\d+-/, "")}
+                          <span className="text-lg font-medium text-[hsl(var(--cocktail-text))]">{item.amount}ml</span>{" "}
+                          {item.ingredientId.replace(/^custom-\d+-/, "")}
                           {item.instructions && (
-                            <div className="text-xs italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
+                            <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
                               {item.instructions}
                             </div>
                           )}
