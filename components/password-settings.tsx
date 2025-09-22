@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Key, Save, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import AlphaKeyboard from "./alpha-keyboard"
@@ -13,7 +14,7 @@ export default function PasswordSettings() {
   const [customPassword, setCustomPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [showKeyboardModal, setShowKeyboardModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const { toast } = useToast()
 
@@ -38,7 +39,7 @@ export default function PasswordSettings() {
       setCustomPassword(newPassword)
       setNewPassword("")
       setIsEditing(false)
-      setShowKeyboard(false)
+      setShowKeyboardModal(false)
       toast({
         title: "Passwort gespeichert",
         description: "Das benutzerdefinierte Passwort wurde erfolgreich gespeichert.",
@@ -68,13 +69,19 @@ export default function PasswordSettings() {
   const handleStartEdit = () => {
     setIsEditing(true)
     setNewPassword(customPassword)
-    setShowKeyboard(true)
+    setShowKeyboardModal(true)
   }
 
   const handleCancelEdit = () => {
     setIsEditing(false)
     setNewPassword("")
-    setShowKeyboard(false)
+    setShowKeyboardModal(false)
+  }
+
+  const handleCloseModal = () => {
+    setShowKeyboardModal(false)
+    setIsEditing(false)
+    setNewPassword("")
   }
 
   return (
@@ -111,53 +118,12 @@ export default function PasswordSettings() {
             </div>
           </div>
 
-          {!isEditing ? (
-            <Button
-              onClick={handleStartEdit}
-              className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-            >
-              Passwort eingeben
-            </Button>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-[hsl(var(--cocktail-text))]">Neues Passwort:</Label>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  placeholder="Neues Passwort eingeben"
-                  className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
-                />
-              </div>
-
-              <div className="mt-4">
-                <AlphaKeyboard
-                  onKeyPress={handleKeyPress}
-                  onBackspace={handleBackspace}
-                  onClear={handleClear}
-                  onConfirm={handleSavePassword}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleSavePassword}
-                  disabled={!newPassword.trim()}
-                  className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Speichern
-                </Button>
-                <Button
-                  onClick={handleCancelEdit}
-                  variant="outline"
-                  className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
-                >
-                  Abbrechen
-                </Button>
-              </div>
-            </div>
-          )}
+          <Button
+            onClick={handleStartEdit}
+            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+          >
+            Passwort eingeben
+          </Button>
 
           <div className="mt-6 p-4 bg-[hsl(var(--cocktail-bg))] rounded-lg border border-[hsl(var(--cocktail-card-border))]">
             <h4 className="text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2">Wichtige Hinweise:</h4>
@@ -169,6 +135,57 @@ export default function PasswordSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showKeyboardModal} onOpenChange={handleCloseModal}>
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Passwort eingeben
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-[hsl(var(--cocktail-text))]">Neues Passwort:</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                placeholder="Neues Passwort eingeben"
+                className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
+                readOnly
+              />
+            </div>
+
+            <div className="mt-4">
+              <AlphaKeyboard
+                onKeyPress={handleKeyPress}
+                onBackspace={handleBackspace}
+                onClear={handleClear}
+                onConfirm={handleSavePassword}
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button
+                onClick={handleCancelEdit}
+                variant="outline"
+                className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={handleSavePassword}
+                disabled={!newPassword.trim()}
+                className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Speichern
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
