@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
 import { makeCocktail, getPumpConfig, saveRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
+import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Plus } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
 import { getIngredientLevels } from "@/lib/ingredient-level-service"
@@ -60,6 +60,7 @@ export default function Home() {
   const [manualIngredients, setManualIngredients] = useState<
     Array<{ ingredientId: string; amount: number; instructions?: string }>
   >([]) // State für manuelle Zutaten hinzugefügt
+  const [showManualIngredientsModal, setShowManualIngredientsModal] = useState(false)
   const [showImageEditorPasswordModal, setShowImageEditorPasswordModal] = useState(false) // Neues State für Image Editor Passwort-Modal
   const [tabConfig, setTabConfig] = useState<AppConfig | null>(null)
   const [mainTabs, setMainTabs] = useState<string[]>([])
@@ -538,8 +539,12 @@ export default function Home() {
           `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
         )
         setTimeout(() => {
-          setManualIngredients([])
-        }, 8000)
+          setShowManualIngredientsModal(true)
+          setTimeout(() => {
+            setShowManualIngredientsModal(false)
+            setManualIngredients([])
+          }, 6000)
+        }, 2000)
       } else {
         setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
       }
@@ -555,7 +560,6 @@ export default function Home() {
           setIsMaking(false)
           setShowSuccess(false)
           setSelectedCocktail(null)
-          // setManualIngredients([])
         },
         manualRecipeItems.length > 0 ? 8000 : 3000,
       )
@@ -1322,6 +1326,58 @@ export default function Home() {
         onClose={() => setShowImageEditor(false)}
         cocktail={selectedCocktail}
         onSave={handleImageSave}
+      />
+
+      {showManualIngredientsModal && manualIngredients.length > 0 && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+          <div className="w-full max-w-lg mx-auto">
+            <Card className="border-[hsl(var(--cocktail-card-border))] bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))]">
+              <CardContent className="pt-8 pb-8 space-y-6">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-[hsl(var(--cocktail-primary))]/20 flex items-center justify-center">
+                    <Plus className="h-8 w-8 text-[hsl(var(--cocktail-primary))]" />
+                  </div>
+                  <h2 className="text-2xl font-semibold text-center text-[hsl(var(--cocktail-text))]">
+                    Manuelle Zutaten hinzufügen
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  {manualIngredients.map((item, index) => {
+                    const ingredient = allIngredientsData.find((ing) => ing.id === item.ingredientId)
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 rounded-lg bg-[hsl(var(--cocktail-card-bg))]/50 border border-[hsl(var(--cocktail-card-border))]"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-[hsl(var(--cocktail-primary))]"></div>
+                          <span className="font-medium text-[hsl(var(--cocktail-text))]">
+                            {ingredient?.name || item.ingredientId}
+                          </span>
+                        </div>
+                        <span className="text-lg font-semibold text-[hsl(var(--cocktail-primary))]">
+                          {item.amount}ml
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="text-center text-sm text-[hsl(var(--cocktail-text-muted))]">
+                  Dieses Fenster schließt sich automatisch...
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      <PasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onSuccess={handlePasswordSuccess}
       />
     </div>
   )
