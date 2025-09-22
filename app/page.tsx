@@ -921,8 +921,20 @@ export default function Home() {
             <h4 className="text-lg font-semibold mb-3 text-orange-800">Bitte folgende Zutaten noch hinzufügen:</h4>
             <ul className="space-y-2 text-base">
               {manualIngredients.map((item, index) => {
+                console.log("[v0] Manual ingredient item:", item)
+                console.log("[v0] All ingredients data:", allIngredientsData)
+
                 const ingredient = allIngredientsData.find((ing) => ing.id === item.ingredientId)
-                if (!ingredient) return null
+                console.log("[v0] Found ingredient:", ingredient)
+
+                if (!ingredient) {
+                  console.log("[v0] Ingredient not found for ID:", item.ingredientId)
+                  return (
+                    <li key={index} className="text-base leading-tight">
+                      {item.amount}ml {item.ingredientId.replace(/^custom-\d+-/, "")} hinzufügen
+                    </li>
+                  )
+                }
 
                 const originalTotalVolume =
                   cocktail.recipe.reduce((sum, ing) => sum + ing.amount, 0) +
@@ -931,6 +943,8 @@ export default function Home() {
                     .reduce((sum, step) => sum + (step.amount || 0), 0)
                 const scaleFactor = selectedSize / originalTotalVolume
                 const scaledAmount = Math.round(item.amount * scaleFactor)
+
+                console.log("[v0] Scaled amount:", scaledAmount, "for ingredient:", ingredient.name)
 
                 return (
                   <li key={index} className="text-base leading-tight">
