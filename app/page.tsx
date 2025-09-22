@@ -804,47 +804,39 @@ export default function Home() {
                 <p className="text-base text-[hsl(var(--cocktail-text-muted))] mb-6 leading-relaxed">
                   {cocktail.description}
                 </p>
-                {manualIngredients.length === 0 && (
-                  <div>
-                    <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
-                    {(() => {
-                      const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1
-                      const __scaleFactor = selectedSize / totalRecipeVolume
-                      return null
-                    })()}
-                    <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
-                      {cocktail.recipe.map((item, index) => {
-                        const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
-                        let ingredientName = ingredient ? ingredient.name : item.ingredientId
+                <div>
+                  <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
+                  <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
+                    {cocktail.recipe.map((item, index) => {
+                      const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
+                      let ingredientName = ingredient ? ingredient.name : item.ingredientId
 
-                        if (!ingredient && item.ingredientId.startsWith("custom-")) {
-                          ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
-                        }
+                      if (!ingredient && item.ingredientId.startsWith("custom-")) {
+                        ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
+                      }
 
-                        return (
-                          <li
-                            key={index}
-                            className={`flex items-center ${
-                              item.manual === true || item.type === "manual" ? "opacity-60" : ""
-                            }`}
-                          >
-                            <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
-                            <span>
-                              {Math.round(
-                                item.amount *
-                                  (selectedSize / (cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1)),
-                              )}
-                              ml {ingredientName}
-                              {(item.manual === true || item.type === "manual") && (
-                                <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>
-                              )}
-                            </span>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </div>
-                )}
+                      return (
+                        <li
+                          key={index}
+                          className={`flex items-center ${
+                            item.manual === true || item.type === "manual" ? "opacity-60" : ""
+                          }`}
+                        >
+                          <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
+                          <span>
+                            {Math.round(
+                              item.amount * (selectedSize / (cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1)),
+                            )}
+                            ml {ingredientName}
+                            {(item.manual === true || item.type === "manual") && (
+                              <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>
+                            )}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
               </div>
               <div className="md:w-1/2 flex flex-col">
                 <div className="space-y-4 mb-6">
@@ -924,28 +916,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-        {manualIngredients.length > 0 && (
-          <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg max-h-[50vh] overflow-y-auto">
-            <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">
-              Bitte folgende Zutaten noch hinzufügen:
-            </h4>
-            <ul className="space-y-2 text-base">
-              {manualIngredients.map((item, index) => {
-                return (
-                  <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
-                    <span className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{item.amount}ml</span>{" "}
-                    {item.ingredientId.replace(/^custom-\d+-/, "")}
-                    {item.instructions && (
-                      <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
-                        {item.instructions}
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        )}
       </Card>
     )
   }
@@ -1197,29 +1167,6 @@ export default function Home() {
                     <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-4">
                       <Check className="h-10 w-10 text-[hsl(var(--cocktail-success))]" />
                     </div>
-                  </div>
-                )}
-
-                {manualIngredients.length > 0 && (
-                  <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg max-h-[50vh] overflow-y-auto">
-                    <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">
-                      Bitte folgende Zutaten noch hinzufügen:
-                    </h4>
-                    <ul className="space-y-2 text-base">
-                      {manualIngredients.map((item, index) => {
-                        return (
-                          <li key={index} className="text-[hsl(var(--cocktail-text-muted))]">
-                            <span className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">{item.amount}ml</span>{" "}
-                            {item.ingredientId.replace(/^custom-\d+-/, "")}
-                            {item.instructions && (
-                              <div className="text-sm italic mt-1 text-[hsl(var(--cocktail-text-muted))]">
-                                {item.instructions}
-                              </div>
-                            )}
-                          </li>
-                        )
-                      })}
-                    </ul>
                   </div>
                 )}
               </CardContent>
