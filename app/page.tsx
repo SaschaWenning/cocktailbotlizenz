@@ -806,6 +806,11 @@ export default function Home() {
                 </p>
                 <div>
                   <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
+                  {(() => {
+                    const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1
+                    const scaleFactor = selectedSize / totalRecipeVolume
+                    return null
+                  })()}
                   <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
                     {cocktail.recipe.map((item, index) => {
                       const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
@@ -822,7 +827,10 @@ export default function Home() {
                         >
                           <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
                           <span>
-                            {item.amount}ml {ingredientName}
+                            {Math.round(
+                              item.amount * (selectedSize / (cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1)),
+                            )}
+                            ml {ingredientName}
                             {(item.manual === true || item.type === "manual") && (
                               <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>
                             )}
