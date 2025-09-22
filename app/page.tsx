@@ -58,7 +58,7 @@ export default function Home() {
   const [showImageEditor, setShowImageEditor] = useState(false)
   const [allIngredientsData, setAllIngredientsData] = useState<any[]>([]) // State für alle Zutaten (Standard + benutzerdefiniert) hinzugefügt
   const [manualIngredients, setManualIngredients] = useState<
-    Array<{ ingredientId: string; amount: number; name: string }>
+    Array<{ ingredientId: string; amount: number; instructions?: string }>
   >([]) // State für manuelle Zutaten hinzugefügt
   const [showImageEditorPasswordModal, setShowImageEditorPasswordModal] = useState(false) // Neues State für Image Editor Passwort-Modal
   const [tabConfig, setTabConfig] = useState<AppConfig | null>(null)
@@ -71,8 +71,6 @@ export default function Home() {
   // Paginierung
   const [currentPage, setCurrentPage] = useState(1)
   const [virginCurrentPage, setVirginCurrentPage] = useState(1)
-
-  const [showManualModal, setShowManualModal] = useState(false)
 
   const handleCocktailPageChange = (page: number) => {
     setCurrentPage(page)
@@ -489,7 +487,6 @@ export default function Home() {
     setStatusMessage("Bereite Cocktail vor...")
     setErrorMessage(null)
     setManualIngredients([])
-    setShowManualModal(false)
 
     try {
       const currentPumpConfig = pumpConfig
@@ -540,27 +537,11 @@ export default function Home() {
         setStatusMessage(
           `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
         )
-        setManualIngredients(
-          manualRecipeItems.map((item) => ({
-            ingredientId: item.ingredientId || "",
-            amount: item.amount,
-            name: getIngredientName(item.ingredientId),
-          })),
-        )
         setTimeout(() => {
-          setShowManualModal(true)
-          // Close modal after 6 seconds
-          setTimeout(() => {
-            setShowManualModal(false)
-            setManualIngredients([])
-            setStatusMessage("")
-          }, 6000)
-        }, 2000)
+          setManualIngredients([])
+        }, 8000)
       } else {
-        setStatusMessage(`${cocktail.name} (${selectedSize}ml) erfolgreich zubereitet!`)
-        setTimeout(() => {
-          setStatusMessage("")
-        }, 3000)
+        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
       }
 
       setShowSuccess(true)
@@ -574,6 +555,7 @@ export default function Home() {
           setIsMaking(false)
           setShowSuccess(false)
           setSelectedCocktail(null)
+          // setManualIngredients([])
         },
         manualRecipeItems.length > 0 ? 8000 : 3000,
       )
@@ -861,6 +843,18 @@ export default function Home() {
       {} as Record<string, { name: string }>,
     )
 
+    // Erstelle eine Liste der manuellen Zutaten für die Anzeige
+    const manualRecipeItems = cocktail.recipe
+      .filter((item) => item?.manual === true)
+      .map((item) => {
+        const ingredientName =
+          ingredientLookup?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "")
+        const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + (Number(it?.amount) || 0), 0) || 1
+        const scaleFactor = selectedSize / totalRecipeVolume
+        const ml = Math.round((Number(item.amount) || 0) * scaleFactor)
+        return { ingredientName, ml }
+      })
+
     return (
       <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))] shadow-2xl">
         <div className="flex flex-col md:flex-row">
@@ -1002,6 +996,23 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {isCompleted &&
+          statusMessage.includes("Bitte manuelle Zutaten hinzufügen.") &&
+          cocktail &&
+          manualRecipeItems.length > 0 && (
+            <div className="mt-3 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-b-lg">
+              <div className="font-medium">
+                Bitte folgende Zutat{manualRecipeItems.length > 1 ? "en" : ""} hinzufügen:
+              </div>
+              <ul className="list-disc pl-6 mt-1 space-y-1">
+                {manualRecipeItems.map((item, index) => (
+                  <li key={index} className="text-base leading-tight">
+                    {item.ml}ml {item.ingredientName}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
       </Card>
     )
   }
@@ -1312,27 +1323,6 @@ export default function Home() {
         cocktail={selectedCocktail}
         onSave={handleImageSave}
       />
-
-      {showManualModal && manualIngredients.length > 0 && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white text-black rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-orange-600 mb-4">Manuelle Zutaten hinzufügen</h2>
-              <div className="space-y-3">
-                {manualIngredients.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center bg-orange-50 p-3 rounded-lg">
-                    <span className="font-medium text-gray-800">{getIngredientName(item.ingredientId)}</span>
-                    <span className="font-bold text-orange-600 text-lg">{item.amount}ml</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 text-sm text-gray-600">
-                Dieses Fenster schließt sich automatisch in wenigen Sekunden
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
