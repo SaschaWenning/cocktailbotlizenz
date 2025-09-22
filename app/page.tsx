@@ -917,11 +917,12 @@ export default function Home() {
           </div>
         </div>
         {manualIngredients.length > 0 && (
-          <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg">
+          <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg max-h-[50vh] overflow-y-auto">
             <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Manuelle Zutaten hinzufügen:</h4>
             <ul className="space-y-2 text-base">
               {manualIngredients.map((item, index) => {
-                const scaleFactor = selectedSize / getCurrentVolume()
+                const originalTotalVolume = selectedCocktail?.recipe.reduce((total, r) => total + r.amount, 0) || 1
+                const scaleFactor = selectedSize / originalTotalVolume
                 const scaledAmount = Math.round(item.amount * scaleFactor)
 
                 return (
@@ -1194,13 +1195,15 @@ export default function Home() {
                 )}
 
                 {manualIngredients.length > 0 && (
-                  <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg">
+                  <div className="mt-6 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg max-h-[50vh] overflow-y-auto">
                     <h4 className="font-semibold mb-3 text-[hsl(var(--cocktail-text))]">
                       Manuelle Zutaten hinzufügen:
                     </h4>
                     <ul className="space-y-2 text-base">
                       {manualIngredients.map((item, index) => {
-                        const scaleFactor = selectedSize / getCurrentVolume()
+                        const originalTotalVolume =
+                          selectedCocktail?.recipe.reduce((total, r) => total + r.amount, 0) || 1
+                        const scaleFactor = selectedSize / originalTotalVolume
                         const scaledAmount = Math.round(item.amount * scaleFactor)
 
                         return (
