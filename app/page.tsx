@@ -821,6 +821,8 @@ export default function Home() {
     const availableSizes = cocktail.sizes || [200, 300, 400]
     const allAvailableSizes = availableSizes.sort((a, b) => a - b)
 
+    const isCompleted = progress === 100
+
     return (
       <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))] shadow-2xl">
         <div className="flex flex-col md:flex-row">
@@ -967,6 +969,38 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {isCompleted &&
+          statusMessage.includes("Bitte manuelle Zutaten hinzufügen.") &&
+          cocktail &&
+          (() => {
+            const manual = (cocktail?.recipe ?? []).filter(
+              (item: any) => item?.manual === true || item?.type === "manual",
+            )
+            if (manual.length === 0) return null
+            const totalRecipeVolume =
+              (cocktail?.recipe ?? []).reduce((t: number, it: any) => t + (Number(it?.amount) || 0), 0) || 1
+            const scaleFactor = selectedSize / totalRecipeVolume
+            return (
+              <div className="mt-2">
+                <div className="text-base">
+                  {manual.length === 1 ? "Bitte folgende Zutat hinzufügen:" : "Bitte folgende Zutaten noch hinzufügen:"}
+                </div>
+                <ul className="mt-1 space-y-1">
+                  {manual.map((item: any, index: number) => {
+                    const name =
+                      allIngredients.find((i) => i.id === item.ingredientId)?.name ??
+                      String(item.ingredientId).replace(/^custom-\d+-/, "")
+                    const ml = Math.round((Number(item.amount) || 0) * scaleFactor)
+                    return (
+                      <li key={index} className="text-lg">
+                        <span className="font-semibold">{ml}ml</span> {name}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )
+          })()}
       </Card>
     )
   }
