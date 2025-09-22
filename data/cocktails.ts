@@ -179,15 +179,7 @@ export const cocktails: Cocktail[] = [
     description: "Klassischer, starker Cocktail mit fünf verschiedenen Spirituosen und Cola",
     image: "/images/cocktails/long_island_iced_tea.jpg",
     alcoholic: true,
-    ingredients: [
-      "15ml Brauner Rum",
-      "15ml Triple Sec",
-      "15ml Vodka",
-      "15ml Tequila",
-      "15ml Gin",
-      "30ml Limettensaft",
-      "150ml Cola (manuell)",
-    ],
+    ingredients: ["15ml Brauner Rum", "15ml Triple Sec", "15ml Vodka", "15ml Tequila", "15ml Gin", "30ml Limettensaft"],
     recipe: [
       { ingredientId: "dark-rum", amount: 15 },
       { ingredientId: "triple-sec", amount: 15 },

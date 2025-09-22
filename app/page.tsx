@@ -831,10 +831,7 @@ export default function Home() {
                               item.amount * (selectedSize / (cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1)),
                             )}
                             ml {ingredientName}
-                            {(item.manual === true || item.type === "manual") && (
-                              <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>
-                            )}
-                            {(item.manual === true || item.type === "manual") && item.instruction && (
+                            {item.instruction && !(item.manual === true || item.type === "manual") && (
                               <span className="block text-sm text-[hsl(var(--cocktail-text-muted))] italic mt-1">
                                 Anleitung: {item.instruction}
                               </span>
