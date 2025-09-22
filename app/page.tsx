@@ -804,44 +804,47 @@ export default function Home() {
                 <p className="text-base text-[hsl(var(--cocktail-text-muted))] mb-6 leading-relaxed">
                   {cocktail.description}
                 </p>
-                <div>
-                  <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
-                  {(() => {
-                    const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1
-                    const __scaleFactor = selectedSize / totalRecipeVolume
-                    return null
-                  })()}
-                  <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
-                    {cocktail.recipe.map((item, index) => {
-                      const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
-                      let ingredientName = ingredient ? ingredient.name : item.ingredientId
+                {manualIngredients.length === 0 && (
+                  <div>
+                    <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
+                    {(() => {
+                      const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1
+                      const __scaleFactor = selectedSize / totalRecipeVolume
+                      return null
+                    })()}
+                    <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
+                      {cocktail.recipe.map((item, index) => {
+                        const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
+                        let ingredientName = ingredient ? ingredient.name : item.ingredientId
 
-                      if (!ingredient && item.ingredientId.startsWith("custom-")) {
-                        ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
-                      }
+                        if (!ingredient && item.ingredientId.startsWith("custom-")) {
+                          ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
+                        }
 
-                      return (
-                        <li
-                          key={index}
-                          className="flex items-start bg-[hsl(var(--cocktail-card-bg))]/50 p-2 rounded-lg"
-                        >
-                          <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
-                          <span>
-                            {Math.round(
-                              item.amount * (selectedSize / (cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1)),
-                            )}
-                            ml {ingredientName}
-                            {item.instruction && !(item.manual === true || item.type === "manual") && (
-                              <span className="block text-sm text-[hsl(var(--cocktail-text-muted))] italic mt-1">
-                                Anleitung: {item.instruction}
-                              </span>
-                            )}
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </div>
+                        return (
+                          <li
+                            key={index}
+                            className={`flex items-center ${
+                              item.manual === true || item.type === "manual" ? "opacity-60" : ""
+                            }`}
+                          >
+                            <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
+                            <span>
+                              {Math.round(
+                                item.amount *
+                                  (selectedSize / (cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1)),
+                              )}
+                              ml {ingredientName}
+                              {(item.manual === true || item.type === "manual") && (
+                                <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>
+                              )}
+                            </span>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )}
               </div>
               <div className="md:w-1/2 flex flex-col">
                 <div className="space-y-4 mb-6">
