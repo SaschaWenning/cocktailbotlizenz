@@ -535,6 +535,9 @@ export default function Home() {
         setStatusMessage(
           `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
         )
+        setTimeout(() => {
+          setManualIngredients([])
+        }, 8000)
       } else {
         setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
       }
@@ -550,7 +553,7 @@ export default function Home() {
           setIsMaking(false)
           setShowSuccess(false)
           setSelectedCocktail(null)
-          setManualIngredients([])
+          // setManualIngredients([])
         },
         manualRecipeItems.length > 0 ? 8000 : 3000,
       )
@@ -964,27 +967,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-        {manualIngredients.length > 0 && (
-          <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-            <h4 className="text-lg font-semibold mb-3 text-orange-800">Bitte folgende Zutaten noch hinzufügen:</h4>
-            <ul className="space-y-2 text-base">
-              {manualIngredients.map((item, index) => {
-                const ingredient = allIngredientsData.find((ing) => ing.id === item.ingredientId)
-                if (!ingredient) return null
-
-                const originalTotalVolume = selectedCocktail?.recipe.reduce((sum, ing) => sum + ing.amount, 0) || 255
-                const scaleFactor = selectedSize / originalTotalVolume
-                const scaledAmount = Math.round(item.amount * scaleFactor)
-
-                return (
-                  <li key={index} className="text-base leading-tight">
-                    {scaledAmount}ml {ingredient.name} hinzufügen
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        )}
       </Card>
     )
   }
