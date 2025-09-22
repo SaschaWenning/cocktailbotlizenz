@@ -58,7 +58,7 @@ export default function Home() {
   const [showImageEditor, setShowImageEditor] = useState(false)
   const [allIngredientsData, setAllIngredientsData] = useState<any[]>([]) // State für alle Zutaten (Standard + benutzerdefiniert) hinzugefügt
   const [manualIngredients, setManualIngredients] = useState<
-    Array<{ ingredientId: string; amount: number; instructions?: string }>
+    Array<{ ingredientId: string; amount: number; name: string }>
   >([]) // State für manuelle Zutaten hinzugefügt
   const [showImageEditorPasswordModal, setShowImageEditorPasswordModal] = useState(false) // Neues State für Image Editor Passwort-Modal
   const [tabConfig, setTabConfig] = useState<AppConfig | null>(null)
@@ -537,8 +537,16 @@ export default function Home() {
         setStatusMessage(
           `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
         )
+        setManualIngredients(
+          manualRecipeItems.map((item) => ({
+            ingredientId: item.ingredientId || "",
+            amount: item.amount,
+            name: getIngredientName(item.ingredientId),
+          })),
+        )
         setTimeout(() => {
           setManualIngredients([])
+          setStatusMessage("")
         }, 8000)
       } else {
         setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
@@ -555,7 +563,6 @@ export default function Home() {
           setIsMaking(false)
           setShowSuccess(false)
           setSelectedCocktail(null)
-          // setManualIngredients([])
         },
         manualRecipeItems.length > 0 ? 8000 : 3000,
       )
@@ -843,18 +850,6 @@ export default function Home() {
       {} as Record<string, { name: string }>,
     )
 
-    // Erstelle eine Liste der manuellen Zutaten für die Anzeige
-    const manualRecipeItems = cocktail.recipe
-      .filter((item) => item?.manual === true)
-      .map((item) => {
-        const ingredientName =
-          ingredientLookup?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "")
-        const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + (Number(it?.amount) || 0), 0) || 1
-        const scaleFactor = selectedSize / totalRecipeVolume
-        const ml = Math.round((Number(item.amount) || 0) * scaleFactor)
-        return { ingredientName, ml }
-      })
-
     return (
       <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))] shadow-2xl">
         <div className="flex flex-col md:flex-row">
@@ -999,15 +994,15 @@ export default function Home() {
         {isCompleted &&
           statusMessage.includes("Bitte manuelle Zutaten hinzufügen.") &&
           cocktail &&
-          manualRecipeItems.length > 0 && (
+          manualIngredients.length > 0 && (
             <div className="mt-3 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-b-lg">
               <div className="font-medium">
-                Bitte folgende Zutat{manualRecipeItems.length > 1 ? "en" : ""} hinzufügen:
+                Bitte folgende Zutat{manualIngredients.length > 1 ? "en" : ""} hinzufügen:
               </div>
               <ul className="list-disc pl-6 mt-1 space-y-1">
-                {manualRecipeItems.map((item, index) => (
+                {manualIngredients.map((item, index) => (
                   <li key={index} className="text-base leading-tight">
-                    {item.ml}ml {item.ingredientName}
+                    {item.amount}ml {item.name}
                   </li>
                 ))}
               </ul>
