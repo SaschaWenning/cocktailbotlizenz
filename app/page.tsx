@@ -972,7 +972,7 @@ export default function Home() {
                 const ingredient = allIngredientsData.find((ing) => ing.id === item.ingredientId)
                 if (!ingredient) return null
 
-                const originalTotalVolume = cocktail.recipe.reduce((sum, ing) => sum + ing.amount, 0)
+                const originalTotalVolume = selectedCocktail?.recipe.reduce((sum, ing) => sum + ing.amount, 0) || 255
                 const scaleFactor = selectedSize / originalTotalVolume
                 const scaledAmount = Math.round(item.amount * scaleFactor)
 
