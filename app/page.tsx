@@ -916,6 +916,34 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {manualIngredients.length > 0 && (
+          <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <h4 className="text-lg font-semibold mb-3 text-orange-800">Bitte folgende Zutaten noch hinzufügen:</h4>
+            <ul className="space-y-2">
+              {manualIngredients.map((item, index) => {
+                const ingredient = allIngredientsData.find((ing) => ing.id === item.ingredientId)
+                if (!ingredient) return null
+
+                const originalTotalVolume =
+                  cocktail.recipe.reduce((sum, ing) => sum + ing.amount, 0) +
+                  cocktail.recipe
+                    .filter((step) => step.type === "manual")
+                    .reduce((sum, step) => sum + (step.amount || 0), 0)
+                const scaleFactor = selectedSize / originalTotalVolume
+                const scaledAmount = Math.round(item.amount * scaleFactor)
+
+                return (
+                  <li key={index} className="flex justify-between items-center">
+                    <span className="font-medium text-orange-700">
+                      {scaledAmount}ml {ingredient.name}
+                    </span>
+                    {item.instructions && <span className="text-sm text-orange-600 ml-2">{item.instructions}</span>}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
       </Card>
     )
   }
