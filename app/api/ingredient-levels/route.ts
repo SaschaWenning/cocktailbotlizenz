@@ -1,39 +1,24 @@
 import { type NextRequest, NextResponse } from "next/server"
+import fs from "fs/promises"
+import path from "path"
 
-// In-memory storage for ingredient levels
-let ingredientLevels: any[] = [
-  { ingredient: "Vodka", level: 100, lastUpdated: new Date() },
-  { ingredient: "Rum", level: 100, lastUpdated: new Date() },
-  { ingredient: "Gin", level: 100, lastUpdated: new Date() },
-  { ingredient: "Tequila", level: 100, lastUpdated: new Date() },
-  { ingredient: "Whiskey", level: 100, lastUpdated: new Date() },
-  { ingredient: "Cointreau", level: 100, lastUpdated: new Date() },
-  { ingredient: "Peach Schnapps", level: 100, lastUpdated: new Date() },
-  { ingredient: "Blue Curacao", level: 100, lastUpdated: new Date() },
-  { ingredient: "Grenadine", level: 100, lastUpdated: new Date() },
-  { ingredient: "Lime Juice", level: 100, lastUpdated: new Date() },
-  { ingredient: "Lemon Juice", level: 100, lastUpdated: new Date() },
-  { ingredient: "Simple Syrup", level: 100, lastUpdated: new Date() },
-  { ingredient: "Cranberry Juice", level: 100, lastUpdated: new Date() },
-  { ingredient: "Pineapple Juice", level: 100, lastUpdated: new Date() },
-  { ingredient: "Orange Juice", level: 100, lastUpdated: new Date() },
-  { ingredient: "Coconut Cream", level: 100, lastUpdated: new Date() },
-  { ingredient: "Amaretto", level: 100, lastUpdated: new Date() },
-  { ingredient: "Kahlua", level: 100, lastUpdated: new Date() },
-]
+const LEVELS_FILE = path.join(process.cwd(), "data", "ingredient-levels.json")
 
-// GET - Load ingredient levels from memory
+// GET - Load ingredient levels from file
 export async function GET() {
   try {
+    const data = await fs.readFile(LEVELS_FILE, "utf-8")
+    const levels = JSON.parse(data)
+
     return NextResponse.json({
       success: true,
-      levels: ingredientLevels.map((level: any) => ({
+      levels: levels.map((level: any) => ({
         ...level,
         lastUpdated: new Date(level.lastUpdated),
       })),
     })
   } catch (error) {
-    console.error("[v0] Error loading ingredient levels:", error)
+    console.error("Error loading ingredient levels:", error)
     return NextResponse.json(
       {
         success: false,
@@ -45,7 +30,7 @@ export async function GET() {
   }
 }
 
-// POST - Save ingredient levels to memory
+// POST - Save ingredient levels to file
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -58,7 +43,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    ingredientLevels = levels
+    await fs.mkdir(path.dirname(LEVELS_FILE), { recursive: true })
+    await fs.writeFile(LEVELS_FILE, JSON.stringify(levels, null, 2))
 
     return NextResponse.json({ success: true })
   } catch (error) {

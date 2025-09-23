@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
+import fs from "fs/promises"
+import path from "path"
 
 interface IngredientLevel {
   pumpId: number
@@ -9,15 +11,19 @@ interface IngredientLevel {
   lastUpdated: string
 }
 
-// In-memory storage reference to the main ingredient levels
-let ingredientLevels: IngredientLevel[] = []
+const LEVELS_FILE = path.join(process.cwd(), "data", "ingredient-levels.json")
 
 export async function POST(request: NextRequest) {
   try {
     const { ingredients } = await request.json()
 
-    // Initialize with default levels if empty
-    if (ingredientLevels.length === 0) {
+    let ingredientLevels: IngredientLevel[] = []
+
+    try {
+      const data = await fs.readFile(LEVELS_FILE, "utf-8")
+      ingredientLevels = JSON.parse(data)
+    } catch (error) {
+      // Initialize with default levels if file doesn't exist
       ingredientLevels = [
         {
           pumpId: 1,
@@ -177,6 +183,9 @@ export async function POST(request: NextRequest) {
         ingredientLevels[levelIndex].lastUpdated = new Date().toISOString()
       }
     }
+
+    await fs.mkdir(path.dirname(LEVELS_FILE), { recursive: true })
+    await fs.writeFile(LEVELS_FILE, JSON.stringify(ingredientLevels, null, 2))
 
     return NextResponse.json({
       success: true,
