@@ -2,26 +2,57 @@
 
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
+import fs from "fs"
+import path from "path"
 import { exec } from "child_process"
 import { promisify } from "util"
 
 const execPromise = promisify(exec)
 
+// Pfad zur JSON-Datei für die Pumpenkonfiguration
+const PUMP_CONFIG_PATH = path.join(process.cwd(), "data", "pump-config.json")
+
+// Pfad zur JSON-Datei für die Cocktail-Rezepte
+const COCKTAILS_PATH = path.join(process.cwd(), "data", "custom-cocktails.json")
+
+// Funktion zum Laden der Pumpenkonfiguration
 export async function getPumpConfig(): Promise<PumpConfig[]> {
   try {
-    // Lade die Standardkonfiguration direkt
-    const { pumpConfig } = await import("@/data/pump-config")
-    return pumpConfig
+    // Prüfe, ob die Datei existiert
+    if (fs.existsSync(PUMP_CONFIG_PATH)) {
+      // Lese die Datei
+      const data = fs.readFileSync(PUMP_CONFIG_PATH, "utf8")
+      return JSON.parse(data)
+    } else {
+      // Wenn die Datei nicht existiert, lade die Standardkonfiguration
+      const { pumpConfig } = await import("@/data/pump-config")
+
+      // Speichere die Standardkonfiguration in der JSON-Datei
+      fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
+      fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+
+      return pumpConfig
+    }
   } catch (error) {
     console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
-    return []
+
+    // Fallback: Lade die Standardkonfiguration
+    const { pumpConfig } = await import("@/data/pump-config")
+    return pumpConfig
   }
 }
 
+// Funktion zum Speichern der Pumpen-Konfiguration
 export async function savePumpConfig(pumpConfig: PumpConfig[]) {
   try {
     console.log("Speichere Pumpen-Konfiguration:", pumpConfig)
-    // Auf Raspberry Pi würde hier die echte Speicherung stattfinden
+
+    // Stelle sicher, dass das Verzeichnis existiert
+    fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
+
+    // Speichere die Konfiguration in der JSON-Datei
+    fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+
     console.log("Pumpen-Konfiguration erfolgreich gespeichert")
     return { success: true }
   } catch (error) {
@@ -30,6 +61,7 @@ export async function savePumpConfig(pumpConfig: PumpConfig[]) {
   }
 }
 
+// Funktion zum Laden aller Cocktails (Standard + benutzerdefinierte)
 export async function getAllCocktails(): Promise<Cocktail[]> {
   try {
     console.log("[v0] Loading cocktails from getAllCocktails...")
@@ -69,6 +101,44 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       cocktailMap.set(cocktail.id, cocktail)
     }
 
+    try {
+      // Stelle sicher, dass das data Verzeichnis existiert
+      const dataDir = path.dirname(COCKTAILS_PATH)
+      if (!fs.existsSync(dataDir)) {
+        console.log("[v0] Creating data directory:", dataDir)
+        fs.mkdirSync(dataDir, { recursive: true })
+      }
+
+      // Prüfe, ob die Datei für benutzerdefinierte Cocktails existiert
+      if (fs.existsSync(COCKTAILS_PATH)) {
+        console.log("[v0] Loading custom cocktails from:", COCKTAILS_PATH)
+        // Lese die Datei
+        const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+        const customCocktails: Cocktail[] = JSON.parse(data)
+        console.log("[v0] Loaded custom cocktails:", customCocktails.length)
+
+        // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
+        for (const cocktail of customCocktails) {
+          // Erstelle eine Kopie des Cocktails
+          const updatedCocktail = { ...cocktail }
+
+          // Aktualisiere die Zutaten-Textliste
+          updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
+            ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
+              ? ingredient.replace("Rum", "Brauner Rum")
+              : ingredient,
+          )
+
+          // Füge den aktualisierten Cocktail zur Map hinzu
+          cocktailMap.set(cocktail.id, updatedCocktail)
+        }
+      } else {
+        console.log("[v0] No custom cocktails file found, using defaults only")
+      }
+    } catch (customError) {
+      console.error("[v0] Error loading custom cocktails (continuing with defaults):", customError)
+    }
+
     // Konvertiere die Map zurück in ein Array
     const result = Array.from(cocktailMap.values())
     console.log("[v0] Total cocktails loaded:", result.length)
@@ -88,10 +158,35 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
   }
 }
 
+// Funktion zum Speichern eines Cocktail-Rezepts
 export async function saveRecipe(cocktail: Cocktail) {
   try {
     console.log("Speichere Rezept:", cocktail)
-    // Auf Raspberry Pi würde hier die echte Speicherung stattfinden
+
+    // Stelle sicher, dass das Verzeichnis existiert
+    fs.mkdirSync(path.dirname(COCKTAILS_PATH), { recursive: true })
+
+    // Lade bestehende benutzerdefinierte Cocktails oder erstelle ein leeres Array
+    let customCocktails: Cocktail[] = []
+    if (fs.existsSync(COCKTAILS_PATH)) {
+      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+      customCocktails = JSON.parse(data)
+    }
+
+    // Prüfe, ob der Cocktail bereits existiert
+    const index = customCocktails.findIndex((c) => c.id === cocktail.id)
+
+    if (index !== -1) {
+      // Aktualisiere den bestehenden Cocktail
+      customCocktails[index] = cocktail
+    } else {
+      // Füge den neuen Cocktail hinzu
+      customCocktails.push(cocktail)
+    }
+
+    // Speichere die aktualisierten Cocktails
+    fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(customCocktails, null, 2), "utf8")
+
     console.log("Rezept erfolgreich gespeichert")
     return { success: true }
   } catch (error) {
@@ -105,8 +200,11 @@ async function activatePump(pin: number, durationMs: number) {
   try {
     console.log(`Aktiviere Pumpe an Pin ${pin} für ${durationMs}ms`)
 
+    // Verwende das Python-Skript zur Steuerung der Pumpe
+    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
-    await execPromise(`python3 pump_control.py activate ${pin} ${roundedDuration}`)
+
+    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pin} ${roundedDuration}`)
 
     return true
   } catch (error) {
@@ -265,7 +363,10 @@ export async function calibratePumpAction(pumpId: number, durationMs: number) {
     console.log(`Gefundene Pumpe: ${JSON.stringify(pump)}`)
 
     // Aktiviere die Pumpe über das Python-Skript
-    await execPromise(`python3 pump_control.py activate ${pump.pin} ${durationMs}`)
+    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const roundedDuration = Math.round(durationMs)
+
+    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`)
 
     console.log(`Pumpe ${pumpId} erfolgreich kalibriert`)
 
@@ -289,7 +390,10 @@ export async function cleanPumpAction(pumpId: number, durationMs: number) {
     }
 
     // Aktiviere die Pumpe über das Python-Skript
-    await execPromise(`python3 pump_control.py activate ${pump.pin} ${durationMs}`)
+    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const roundedDuration = Math.round(durationMs)
+
+    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`)
 
     console.log(`Pumpe ${pumpId} erfolgreich gereinigt`)
 
@@ -326,7 +430,10 @@ export async function ventPumpAction(pumpId: number, durationMs: number) {
     }
 
     // Aktiviere die Pumpe über das Python-Skript
-    await execPromise(`python3 pump_control.py activate ${pump.pin} ${durationMs}`)
+    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const roundedDuration = Math.round(durationMs)
+
+    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`)
 
     console.log(`Pumpe ${pumpId} erfolgreich entlüftet`)
 
