@@ -53,8 +53,28 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
     setPumpConfig((prev) => prev.map((pump) => (pump.id === pumpId ? { ...pump, ingredient } : pump)))
   }
 
-  const handleToggleEnabled = (pumpId: number) => {
-    setPumpConfig((prev) => prev.map((pump) => (pump.id === pumpId ? { ...pump, enabled: !pump.enabled } : pump)))
+  const handleToggleEnabled = async (pumpId: number) => {
+    const updatedConfig = pumpConfig.map((pump) => (pump.id === pumpId ? { ...pump, enabled: !pump.enabled } : pump))
+    setPumpConfig(updatedConfig)
+
+    setSaving(true)
+    try {
+      await savePumpConfig(updatedConfig)
+      console.log(
+        `Pumpe ${pumpId} ${updatedConfig.find((p) => p.id === pumpId)?.enabled ? "aktiviert" : "deaktiviert"}`,
+      )
+
+      // Benachrichtige die Hauptkomponente über die Aktualisierung
+      if (onConfigUpdate) {
+        await onConfigUpdate()
+      }
+    } catch (error) {
+      console.error("Fehler beim Speichern der Pumpen-Aktivierung:", error)
+      // Bei Fehler: State zurücksetzen
+      setPumpConfig(pumpConfig)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleSave = async () => {
