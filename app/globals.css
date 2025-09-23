@@ -94,7 +94,6 @@
   scrollbar-width: none; /* Firefox */
 }
 
-/* Ersetzen durch: */
 /* Schwarze Scrollbalken für alle Elemente */
 ::-webkit-scrollbar {
   width: 12px;
@@ -124,9 +123,14 @@
 @media (pointer: coarse) {
   /* Verbesserte Scrolling-Bereiche */
   .overflow-auto,
-  .overflow-y-auto,
-  .overflow-x-auto {
+  .overflow-y-auto {
     touch-action: pan-y;
+    cursor: grab;
+  }
+
+  /* Spezielle Touch-Behandlung für horizontale Tabs */
+  .overflow-x-auto {
+    touch-action: pan-x;
     cursor: grab;
   }
 

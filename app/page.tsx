@@ -611,7 +611,7 @@ export default function Home() {
       }
 
       const requiredAmount = Math.round(recipeItem.amount * scaleFactor)
-      const pump = pumpConfig.find((p) => p.ingredient === recipeItem.ingredientId)
+      const pump = pumpConfig.find((p) => p.ingredient === recipeItem.ingredientId && p.enabled)
 
       if (!pump) {
         const ingredient = ingredientLookup[recipeItem.ingredientId]
