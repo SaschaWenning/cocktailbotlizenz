@@ -11,9 +11,9 @@ export interface IngredientLevel {
 
 const STORAGE_KEY = "cocktail-ingredient-levels"
 
-// Default levels for all 20 pumps
+// Default levels for all 18 pumps
 const getDefaultLevels = (): IngredientLevel[] => {
-  return Array.from({ length: 20 }, (_, i) => ({
+  return Array.from({ length: 18 }, (_, i) => ({
     pumpId: i + 1,
     ingredient: `Zutat ${i + 1}`,
     ingredientId: `ingredient-${i + 1}`,
@@ -50,7 +50,7 @@ export const getIngredientLevels = (): IngredientLevel[] => {
     if (stored) {
       const levels = JSON.parse(stored)
       console.log("[v0] Loaded ingredient levels from localStorage:", levels.length, "levels")
-      // Ensure we have all 20 pumps
+      // Ensure we have all 18 pumps
       const defaults = getDefaultLevels()
       const merged = defaults.map((defaultLevel) => {
         const existing = levels.find((l: IngredientLevel) => l.pumpId === defaultLevel.pumpId)
