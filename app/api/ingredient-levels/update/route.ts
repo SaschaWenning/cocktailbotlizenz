@@ -1,8 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import fs from "fs"
-import path from "path"
-
-const LEVELS_FILE_PATH = path.join(process.cwd(), "data", "ingredient-levels.json")
 
 interface IngredientLevel {
   pumpId: number
@@ -13,33 +9,178 @@ interface IngredientLevel {
   lastUpdated: string
 }
 
+// In-memory storage reference to the main ingredient levels
+let ingredientLevels: IngredientLevel[] = []
+
 export async function POST(request: NextRequest) {
   try {
     const { ingredients } = await request.json()
 
-    // Lade aktuelle Levels
-    let levels: IngredientLevel[] = []
-    if (fs.existsSync(LEVELS_FILE_PATH)) {
-      const data = fs.readFileSync(LEVELS_FILE_PATH, "utf8")
-      levels = JSON.parse(data)
+    // Initialize with default levels if empty
+    if (ingredientLevels.length === 0) {
+      ingredientLevels = [
+        {
+          pumpId: 1,
+          ingredient: "Vodka",
+          ingredientId: "vodka",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 2,
+          ingredient: "Rum",
+          ingredientId: "rum",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 3,
+          ingredient: "Gin",
+          ingredientId: "gin",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 4,
+          ingredient: "Tequila",
+          ingredientId: "tequila",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 5,
+          ingredient: "Whiskey",
+          ingredientId: "whiskey",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 6,
+          ingredient: "Cointreau",
+          ingredientId: "cointreau",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 7,
+          ingredient: "Peach Schnapps",
+          ingredientId: "peach_schnapps",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 8,
+          ingredient: "Blue Curacao",
+          ingredientId: "blue_curacao",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 9,
+          ingredient: "Grenadine",
+          ingredientId: "grenadine",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 10,
+          ingredient: "Lime Juice",
+          ingredientId: "lime_juice",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 11,
+          ingredient: "Lemon Juice",
+          ingredientId: "lemon_juice",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 12,
+          ingredient: "Simple Syrup",
+          ingredientId: "simple_syrup",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 13,
+          ingredient: "Cranberry Juice",
+          ingredientId: "cranberry_juice",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 14,
+          ingredient: "Pineapple Juice",
+          ingredientId: "pineapple_juice",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 15,
+          ingredient: "Orange Juice",
+          ingredientId: "orange_juice",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 16,
+          ingredient: "Coconut Cream",
+          ingredientId: "coconut_cream",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 17,
+          ingredient: "Amaretto",
+          ingredientId: "amaretto",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+        {
+          pumpId: 18,
+          ingredient: "Kahlua",
+          ingredientId: "kahlua",
+          currentLevel: 100,
+          containerSize: 1000,
+          lastUpdated: new Date().toISOString(),
+        },
+      ]
     }
 
     // Aktualisiere die Levels
     for (const ingredient of ingredients) {
-      const levelIndex = levels.findIndex((l) => l.pumpId === ingredient.pumpId)
+      const levelIndex = ingredientLevels.findIndex((l) => l.pumpId === ingredient.pumpId)
       if (levelIndex !== -1) {
-        levels[levelIndex].currentLevel = Math.max(0, levels[levelIndex].currentLevel - ingredient.amount)
-        levels[levelIndex].lastUpdated = new Date().toISOString()
+        ingredientLevels[levelIndex].currentLevel = Math.max(
+          0,
+          ingredientLevels[levelIndex].currentLevel - ingredient.amount,
+        )
+        ingredientLevels[levelIndex].lastUpdated = new Date().toISOString()
       }
     }
 
-    // Speichere die aktualisierten Levels
-    fs.mkdirSync(path.dirname(LEVELS_FILE_PATH), { recursive: true })
-    fs.writeFileSync(LEVELS_FILE_PATH, JSON.stringify(levels, null, 2), "utf8")
-
     return NextResponse.json({
       success: true,
-      levels: levels.map((level) => ({
+      levels: ingredientLevels.map((level) => ({
         pumpId: level.pumpId,
         ingredient: level.ingredient,
         ingredientId: level.ingredientId,

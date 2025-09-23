@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import fs from "fs"
-import path from "path"
 import { type AppConfig, defaultTabConfig } from "@/lib/tab-config"
 
 export const dynamic = "force-dynamic"
+
+// In-memory storage for tab config
+let storedTabConfig: AppConfig = defaultTabConfig
 
 function validateAndUpdateConfig(storedConfig: AppConfig): AppConfig {
   const requiredTabIds = defaultTabConfig.tabs.map((tab) => tab.id)
@@ -25,7 +26,7 @@ function validateAndUpdateConfig(storedConfig: AppConfig): AppConfig {
     })
 
     const updatedConfig = { ...storedConfig, tabs: updatedTabs }
-    saveStoredConfig(updatedConfig)
+    storedTabConfig = updatedConfig
     return updatedConfig
   }
 
@@ -34,21 +35,8 @@ function validateAndUpdateConfig(storedConfig: AppConfig): AppConfig {
 
 async function getStoredConfig(): Promise<AppConfig> {
   try {
-    const CONFIG_FILE_PATH = path.join(process.cwd(), "data", "tab-config.json")
-
-    try {
-      const dataDir = path.dirname(CONFIG_FILE_PATH)
-      await fs.promises.mkdir(dataDir, { recursive: true })
-      const data = await fs.promises.readFile(CONFIG_FILE_PATH, "utf-8")
-      const parsedConfig = JSON.parse(data)
-      console.log("[v0] Tab config loaded from file:", parsedConfig)
-      return validateAndUpdateConfig(parsedConfig)
-    } catch (fileError) {
-      console.log("[v0] No existing tab config file found, using default config")
-      // Speichere die Standard-Konfiguration
-      await saveStoredConfig(defaultTabConfig)
-      return defaultTabConfig
-    }
+    console.log("[v0] Tab config loaded from memory:", storedTabConfig)
+    return validateAndUpdateConfig(storedTabConfig)
   } catch (error) {
     console.error("[v0] Error in getStoredConfig:", error)
     return defaultTabConfig
@@ -57,11 +45,8 @@ async function getStoredConfig(): Promise<AppConfig> {
 
 async function saveStoredConfig(config: AppConfig): Promise<void> {
   try {
-    const CONFIG_FILE_PATH = path.join(process.cwd(), "data", "tab-config.json")
-    const dataDir = path.dirname(CONFIG_FILE_PATH)
-    await fs.promises.mkdir(dataDir, { recursive: true })
-    await fs.promises.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2))
-    console.log("[v0] Tab config saved to file:", CONFIG_FILE_PATH)
+    storedTabConfig = config
+    console.log("[v0] Tab config saved to memory")
   } catch (error) {
     console.error("[v0] Error saving tab config:", error)
     throw error

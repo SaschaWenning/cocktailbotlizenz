@@ -1,39 +1,37 @@
 import { type NextRequest, NextResponse } from "next/server"
-import fs from "fs"
-import path from "path"
 
-const DATA_DIR = path.join(process.cwd(), "data")
-const FILE_PATH = path.join(DATA_DIR, "ingredient-levels.json")
+// In-memory storage for ingredient levels
+let ingredientLevels: any[] = [
+  { ingredient: "Vodka", level: 100, lastUpdated: new Date() },
+  { ingredient: "Rum", level: 100, lastUpdated: new Date() },
+  { ingredient: "Gin", level: 100, lastUpdated: new Date() },
+  { ingredient: "Tequila", level: 100, lastUpdated: new Date() },
+  { ingredient: "Whiskey", level: 100, lastUpdated: new Date() },
+  { ingredient: "Cointreau", level: 100, lastUpdated: new Date() },
+  { ingredient: "Peach Schnapps", level: 100, lastUpdated: new Date() },
+  { ingredient: "Blue Curacao", level: 100, lastUpdated: new Date() },
+  { ingredient: "Grenadine", level: 100, lastUpdated: new Date() },
+  { ingredient: "Lime Juice", level: 100, lastUpdated: new Date() },
+  { ingredient: "Lemon Juice", level: 100, lastUpdated: new Date() },
+  { ingredient: "Simple Syrup", level: 100, lastUpdated: new Date() },
+  { ingredient: "Cranberry Juice", level: 100, lastUpdated: new Date() },
+  { ingredient: "Pineapple Juice", level: 100, lastUpdated: new Date() },
+  { ingredient: "Orange Juice", level: 100, lastUpdated: new Date() },
+  { ingredient: "Coconut Cream", level: 100, lastUpdated: new Date() },
+  { ingredient: "Amaretto", level: 100, lastUpdated: new Date() },
+  { ingredient: "Kahlua", level: 100, lastUpdated: new Date() },
+]
 
-// Ensure data directory exists
-const ensureDataDir = () => {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true })
-  }
-}
-
-// GET - Load ingredient levels from file
+// GET - Load ingredient levels from memory
 export async function GET() {
   try {
-    ensureDataDir()
-
-    if (fs.existsSync(FILE_PATH)) {
-      const raw = fs.readFileSync(FILE_PATH, "utf8")
-      const parsed = JSON.parse(raw)
-      // Backward-compat: file might be { levels: [...] } or direct array
-      const levels = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.levels) ? parsed.levels : []
-
-      return NextResponse.json({
-        success: true,
-        levels: levels.map((level: any) => ({
-          ...level,
-          lastUpdated: new Date(level.lastUpdated),
-        })),
-      })
-    }
-
-    // If file doesn't exist, return empty array
-    return NextResponse.json({ success: true, levels: [] })
+    return NextResponse.json({
+      success: true,
+      levels: ingredientLevels.map((level: any) => ({
+        ...level,
+        lastUpdated: new Date(level.lastUpdated),
+      })),
+    })
   } catch (error) {
     console.error("[v0] Error loading ingredient levels:", error)
     return NextResponse.json(
@@ -47,7 +45,7 @@ export async function GET() {
   }
 }
 
-// POST - Save ingredient levels to file
+// POST - Save ingredient levels to memory
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -60,8 +58,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    ensureDataDir()
-    fs.writeFileSync(FILE_PATH, JSON.stringify(levels, null, 2))
+    ingredientLevels = levels
 
     return NextResponse.json({ success: true })
   } catch (error) {
