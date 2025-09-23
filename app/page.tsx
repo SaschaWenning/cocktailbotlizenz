@@ -30,11 +30,12 @@ import IngredientManager from "@/components/ingredient-manager"
 import PumpCalibration from "@/components/pump-calibration"
 import { Progress } from "@/components/ui/progress"
 import { Check, GlassWater } from "lucide-react"
+import { I18nProvider } from "@/lib/i18n"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
 
-export default function Home() {
+function HomeContent() {
   const [selectedCocktail, setSelectedCocktail] = useState<Cocktail | null>(null)
   const [selectedSize, setSelectedSize] = useState<number>(300)
   const [isMaking, setIsMaking] = useState(false)
@@ -1380,5 +1381,13 @@ export default function Home() {
         onSuccess={handlePasswordSuccess}
       />
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <I18nProvider>
+      <HomeContent />
+    </I18nProvider>
   )
 }

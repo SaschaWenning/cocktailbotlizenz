@@ -1,0 +1,32 @@
+{
+  "name": "Cocktail Bot i18n Configuration",
+  "version": "1.0.0",
+  "description": "Internationalisierung für den Cocktail Bot",
+  "defaultLanguage": "de",
+  "supportedLanguages": ["de", "en"],
+  "translationFiles": {
+    "de": "public/locales/de.json",
+    "en": "public/locales/en.json"
+  },
+  "apiEndpoints": {
+    "settings": "/api/settings",
+    "getSettings": "GET /api/settings",
+    "updateSettings": "POST /api/settings"
+  },
+  "components": {
+    "provider": "lib/i18n.tsx",
+    "hook": "useI18n",
+    "settingsUI": "components/service-menu.tsx"
+  },
+  "features": {
+    "languageSelector": true,
+    "persistentSettings": true,
+    "fallbackTranslations": true,
+    "dynamicLoading": false
+  },
+  "setup": {
+    "automationScript": "scripts/setup_i18n_automation.py",
+    "runScript": "scripts/run_i18n_setup.sh",
+    "configFile": "scripts/i18n_config.json"
+  }
+}
