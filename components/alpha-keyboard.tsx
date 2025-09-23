@@ -25,7 +25,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
         {row1.map((key) => (
           <Button
             key={key}
-            className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] transition-colors"
+            className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
             onClick={() => onKeyPress(key)}
           >
             {key.toUpperCase()}
@@ -38,7 +38,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
         {row2.map((key) => (
           <Button
             key={key}
-            className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] transition-colors"
+            className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
             onClick={() => onKeyPress(key)}
           >
             {key.toUpperCase()}
@@ -52,7 +52,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
         {row3.map((key) => (
           <Button
             key={key}
-            className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] transition-colors"
+            className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
             onClick={() => onKeyPress(key)}
           >
             {key.toUpperCase()}
@@ -64,7 +64,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
       <div className="grid grid-cols-10 gap-2 mb-3">
         <div className="col-span-2"></div>
         <Button
-          className="col-span-6 h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] transition-colors"
+          className="col-span-6 h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
           onClick={() => onKeyPress(" ")}
         >
           LEERZEICHEN
@@ -74,7 +74,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
 
       <div className="grid grid-cols-4 gap-3">
         <Button
-          className="h-12 text-lg font-medium text-[hsl(var(--cocktail-error))] bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20 transition-colors"
+          className="h-12 text-lg font-medium text-[hsl(var(--cocktail-error))] bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20 active:bg-[hsl(var(--cocktail-error))]/30 transition-colors"
           onClick={onClear}
         >
           <X className="h-5 w-5 mr-1" />
@@ -82,7 +82,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
         </Button>
 
         <Button
-          className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] transition-colors"
+          className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
           onClick={onBackspace}
         >
           <Backspace className="h-5 w-5 mr-1" />
@@ -90,7 +90,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
         </Button>
 
         <Button
-          className="col-span-2 h-12 text-lg font-medium bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))] transition-colors"
+          className="col-span-2 h-12 text-lg font-medium bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))] active:bg-[hsl(var(--cocktail-primary-hover))] transition-colors"
           onClick={onConfirm}
         >
           <Check className="h-5 w-5 mr-2" />

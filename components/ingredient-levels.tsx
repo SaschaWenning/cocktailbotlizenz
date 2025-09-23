@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Bug } from "lucide-react"
-import { VirtualKeyboard } from "@/components/virtual-keyboard"
+import { ArrowLeft, X } from "lucide-react"
 import { pumpConfig } from "@/data/pump-config"
 import {
   getIngredientLevels,
@@ -390,12 +390,55 @@ export function IngredientLevels() {
                   className="text-sm text-center font-semibold border-2 focus:border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))] h-8"
                 />
 
-                <div className="scale-65 origin-center -my-6">
-                  <VirtualKeyboard
-                    layout={editingName ? "alphanumeric" : "numeric"}
-                    value={tempValue}
-                    onChange={setTempValue}
-                  />
+                <div className="space-y-2">
+                  <div className="scale-65 origin-center -my-4">
+                    <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg w-full">
+                      <div className="space-y-1">
+                        {(editingName
+                          ? [
+                              ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                              ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P"],
+                              ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+                              ["Y", "X", "C", "V", "B", "N", "M"],
+                              [" ", "-", "_", ".", "@", "#", "&"],
+                            ]
+                          : [
+                              ["1", "2", "3"],
+                              ["4", "5", "6"],
+                              ["7", "8", "9"],
+                              [".", "0", "00"],
+                            ]
+                        ).map((row, rowIndex) => (
+                          <div key={rowIndex} className="flex justify-center gap-1">
+                            {row.map((key) => (
+                              <Button
+                                key={key}
+                                onClick={() => setTempValue(tempValue + key)}
+                                className="flex-1 h-10 text-base bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border)))"
+                              >
+                                {key}
+                              </Button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center gap-1">
+                    <Button
+                      onClick={() => setTempValue(tempValue.slice(0, -1))}
+                      className="flex-1 h-12 text-base bg-red-600 text-white hover:bg-red-700"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      onClick={() => setTempValue("")}
+                      className="flex-1 h-12 text-base bg-yellow-600 text-white hover:bg-yellow-700"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex gap-2 pt-1">

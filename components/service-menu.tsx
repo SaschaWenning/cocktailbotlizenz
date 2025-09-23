@@ -229,7 +229,7 @@ export default function ServiceMenu({
     <Button
       key={tabId}
       onClick={() => setActiveServiceTab(tabId)}
-      className={`flex-1 py-1.5 px-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl text-sm ${
+      className={`flex-shrink-0 whitespace-nowrap py-1.5 px-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl text-sm ${
         activeServiceTab === tabId
           ? "bg-[#00ff00] text-black scale-105"
           : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
@@ -292,7 +292,7 @@ export default function ServiceMenu({
 
       <div className="mb-6">
         <nav className="service-tabs-list">
-          <div className="flex overflow-x-auto space-x-3 pb-2">
+          <div className="flex overflow-x-auto space-x-3 pb-2" style={{ touchAction: "pan-x" }}>
             {tabConfig &&
               serviceTabs.map((tabId) => {
                 const tab = tabConfig.tabs.find((t) => t.id === tabId)

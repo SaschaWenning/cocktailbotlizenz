@@ -71,7 +71,7 @@ export function VirtualKeyboard({
 
   return (
     <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg w-full">
-      <div className="space-y-1">
+      <div className="keyboard-main space-y-1">
         {currentKeys.map((row, rowIndex) => (
           <div key={rowIndex} className="flex justify-center gap-1">
             {row.map((key) => (
@@ -86,7 +86,7 @@ export function VirtualKeyboard({
           </div>
         ))}
       </div>
-      <div className="flex justify-center gap-1 mt-2">
+      <div className="keyboard-controls flex justify-center gap-1 mt-2">
         <Button onClick={handleBackspace} className="flex-1 h-10 text-base bg-red-600 text-white hover:bg-red-700">
           <ArrowLeft className="h-5 w-5" />
         </Button>
