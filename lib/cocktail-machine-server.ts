@@ -198,17 +198,43 @@ export async function saveRecipe(cocktail: Cocktail) {
 // Diese Funktion aktiviert eine Pumpe für eine bestimmte Zeit
 async function activatePump(pin: number, durationMs: number) {
   try {
-    console.log(`Aktiviere Pumpe an Pin ${pin} für ${durationMs}ms`)
+    console.log(`[PUMP DEBUG] ==========================================`)
+    console.log(`[PUMP DEBUG] Aktiviere Pumpe an GPIO Pin ${pin} für ${durationMs}ms`)
+    console.log(`[PUMP DEBUG] Aktueller Arbeitsordner: ${process.cwd()}`)
 
     // Verwende das Python-Skript zur Steuerung der Pumpe
     const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
 
-    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pin} ${roundedDuration}`)
+    if (!fs.existsSync(PUMP_CONTROL_SCRIPT)) {
+      console.error(`[PUMP DEBUG] ❌ Python-Skript nicht gefunden: ${PUMP_CONTROL_SCRIPT}`)
+      throw new Error(`Python-Skript nicht gefunden: ${PUMP_CONTROL_SCRIPT}`)
+    }
+
+    console.log(`[PUMP DEBUG] Python-Skript gefunden: ${PUMP_CONTROL_SCRIPT}`)
+
+    const command = `python3 ${PUMP_CONTROL_SCRIPT} activate ${pin} ${roundedDuration}`
+    console.log(`[PUMP DEBUG] Führe Befehl aus: ${command}`)
+
+    const { stdout, stderr } = await execPromise(command)
+
+    console.log(`[PUMP DEBUG] ✅ Befehl erfolgreich ausgeführt`)
+    if (stdout) {
+      console.log(`[PUMP DEBUG] Python stdout: ${stdout}`)
+    }
+    if (stderr) {
+      console.log(`[PUMP DEBUG] Python stderr: ${stderr}`)
+    }
+    console.log(`[PUMP DEBUG] ==========================================`)
 
     return true
   } catch (error) {
-    console.error(`Fehler beim Aktivieren der Pumpe an Pin ${pin}:`, error)
+    console.error(`[PUMP DEBUG] ❌ FEHLER beim Aktivieren der Pumpe an Pin ${pin}:`)
+    console.error(`[PUMP DEBUG] Error message: ${error}`)
+    if (error instanceof Error) {
+      console.error(`[PUMP DEBUG] Error stack: ${error.stack}`)
+    }
+    console.error(`[PUMP DEBUG] ==========================================`)
     throw error
   }
 }
@@ -351,28 +377,57 @@ export async function makeSingleShotAction(ingredientId: string, amount = 40, pu
 
 export async function calibratePumpAction(pumpId: number, durationMs: number) {
   try {
-    console.log(`Kalibriere Pumpe ${pumpId} für ${durationMs}ms`)
+    console.log(`[CALIBRATE DEBUG] ==========================================`)
+    console.log(`[CALIBRATE DEBUG] Kalibriere Pumpe ${pumpId} für ${durationMs}ms`)
 
     const pumpConfig = await getPumpConfig()
     const pump = pumpConfig.find((p) => p.id === pumpId)
 
     if (!pump) {
+      console.error(`[CALIBRATE DEBUG] ❌ Pumpe mit ID ${pumpId} nicht gefunden`)
+      console.error(
+        `[CALIBRATE DEBUG] Verfügbare Pumpen: ${pumpConfig.map((p) => `ID:${p.id} GPIO:${p.pin}`).join(", ")}`,
+      )
       throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
     }
 
-    console.log(`Gefundene Pumpe: ${JSON.stringify(pump)}`)
+    console.log(`[CALIBRATE DEBUG] Gefundene Pumpe: ID:${pump.id}, GPIO:${pump.pin}, Enabled:${pump.enabled}`)
 
-    // Aktiviere die Pumpe über das Python-Skript
+    if (!pump.enabled) {
+      console.warn(`[CALIBRATE DEBUG] ⚠️  Pumpe ${pumpId} ist deaktiviert (enabled: false)`)
+    }
+
     const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
 
-    await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`)
+    if (!fs.existsSync(PUMP_CONTROL_SCRIPT)) {
+      console.error(`[CALIBRATE DEBUG] ❌ Python-Skript nicht gefunden: ${PUMP_CONTROL_SCRIPT}`)
+      throw new Error(`Python-Skript nicht gefunden: ${PUMP_CONTROL_SCRIPT}`)
+    }
 
-    console.log(`Pumpe ${pumpId} erfolgreich kalibriert`)
+    const command = `python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`
+    console.log(`[CALIBRATE DEBUG] Führe Befehl aus: ${command}`)
+
+    const { stdout, stderr } = await execPromise(command)
+
+    if (stdout) {
+      console.log(`[CALIBRATE DEBUG] Python stdout: ${stdout}`)
+    }
+    if (stderr) {
+      console.log(`[CALIBRATE DEBUG] Python stderr: ${stderr}`)
+    }
+
+    console.log(`[CALIBRATE DEBUG] ✅ Pumpe ${pumpId} erfolgreich kalibriert`)
+    console.log(`[CALIBRATE DEBUG] ==========================================`)
 
     return { success: true }
   } catch (error) {
-    console.error(`Fehler bei der Kalibrierung der Pumpe ${pumpId}:`, error)
+    console.error(`[CALIBRATE DEBUG] ❌ FEHLER bei der Kalibrierung der Pumpe ${pumpId}:`)
+    console.error(`[CALIBRATE DEBUG] Error message: ${error}`)
+    if (error instanceof Error) {
+      console.error(`[CALIBRATE DEBUG] Error stack: ${error.stack}`)
+    }
+    console.error(`[CALIBRATE DEBUG] ==========================================`)
     throw error
   }
 }
