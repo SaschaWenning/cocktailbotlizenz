@@ -64,7 +64,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
       <div className="grid grid-cols-10 gap-2 mb-3">
         <div className="col-span-2"></div>
         <Button
-          className="col-span-6 h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
+          className="col-span-6 h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
           onClick={() => onKeyPress(" ")}
         >
           LEERZEICHEN
@@ -74,18 +74,18 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
 
       <div className="grid grid-cols-4 gap-3">
         <Button
-          className="h-12 text-lg font-medium text-[hsl(var(--cocktail-error))] bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20 active:bg-[hsl(var(--cocktail-error))]/30 transition-colors"
+          className="h-12 text-sm font-medium text-[hsl(var(--cocktail-error))] bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20 active:bg-[hsl(var(--cocktail-error))]/30 transition-colors"
           onClick={onClear}
         >
-          <X className="h-5 w-5 mr-1" />
+          <X className="h-4 w-4 mr-1" />
           Löschen
         </Button>
 
         <Button
-          className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
+          className="h-12 text-sm font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
           onClick={onBackspace}
         >
-          <Backspace className="h-5 w-5 mr-1" />
+          <Backspace className="h-4 w-4 mr-1" />
           Zurück
         </Button>
 

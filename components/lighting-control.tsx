@@ -170,7 +170,7 @@ export default function LightingControl() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
+      <div className="flex items-center justify-center py-16 bg-[hsl(var(--cocktail-bg))] min-h-[400px]">
         <div className="text-center space-y-4">
           <Lightbulb className="h-16 w-16 mx-auto animate-pulse text-[hsl(var(--cocktail-primary))]" />
           <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">
@@ -182,7 +182,7 @@ export default function LightingControl() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-[hsl(var(--cocktail-bg))] min-h-screen p-4">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           <Lightbulb className="h-8 w-8 text-[hsl(var(--cocktail-primary))]" />
