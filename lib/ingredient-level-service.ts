@@ -68,21 +68,34 @@ export const getIngredientLevels = (): IngredientLevel[] => {
 
 // Save levels to localStorage and API
 export const saveIngredientLevels = async (levels: IngredientLevel[]): Promise<void> => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(levels))
-  }
   try {
-    const res = await fetch("/api/ingredient-levels", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(levels), // als Array senden
-    })
-    if (res.ok && typeof window !== "undefined") {
-      emitLevelsUpdated()
+    console.log(
+      "[v0] Saving ingredient levels:",
+      levels.map((l) => `Pump ${l.pumpId}: ${l.currentLevel}ml`),
+    )
+    // Save to localStorage immediately
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(levels))
+    emitLevelsUpdated()
+
+    // Save to server via API
+    try {
+      const response = await fetch("/api/ingredient-levels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ levels }),
+      })
+
+      if (response.ok) {
+        console.log("[v0] Successfully saved levels to server")
+      } else {
+        console.warn("Could not save to server, using localStorage only:", response.statusText)
+      }
+    } catch (apiError) {
+      console.warn("Could not save to server, using localStorage only:", apiError)
     }
-  } catch (e) {
-    console.warn("[levels] server sync failed – keeping localStorage version:", e)
-    if (typeof window !== "undefined") emitLevelsUpdated()
+  } catch (error) {
+    console.error("Error saving ingredient levels:", error)
+    throw error
   }
 }
 

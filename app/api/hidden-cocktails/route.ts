@@ -1,12 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { loadHiddenCocktails, saveHiddenCocktails } from "@/lib/persistent-storage"
 
 export const dynamic = "force-dynamic"
 
-// In-memory storage for hidden cocktails
-let hiddenCocktails: string[] = []
-
 export async function GET() {
-  return NextResponse.json({ success: true, hiddenCocktails })
+  try {
+    const hiddenCocktails = await loadHiddenCocktails()
+    return NextResponse.json({ success: true, hiddenCocktails })
+  } catch (error) {
+    console.error("Error loading hidden cocktails:", error)
+    return NextResponse.json({ success: true, hiddenCocktails: [] })
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -16,9 +20,10 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(list)) {
       return NextResponse.json({ success: false, error: "Invalid payload" }, { status: 400 })
     }
-    hiddenCocktails = list
+    await saveHiddenCocktails(list)
     return NextResponse.json({ success: true })
   } catch (error) {
+    console.error("Error saving hidden cocktails:", error)
     return NextResponse.json({ success: false, error: "Failed to save hidden cocktails" }, { status: 500 })
   }
 }

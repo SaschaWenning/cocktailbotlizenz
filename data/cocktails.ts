@@ -38,7 +38,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "malibu", amount: 80 },
       { ingredientId: "orange-juice", amount: 200 },
       { ingredientId: "lime-juice", amount: 10 },
-      { ingredientId: "grenadine", amount: 10 },
+      { ingredientId: "grenadine", amount: 10, delayed: true },
     ],
   },
   {
@@ -65,7 +65,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "peach-liqueur", amount: 50 },
       { ingredientId: "vodka", amount: 40 },
       { ingredientId: "orange-juice", amount: 200 },
-      { ingredientId: "grenadine", amount: 20 },
+      { ingredientId: "grenadine", amount: 20, delayed: true },
     ],
   },
   {
@@ -79,7 +79,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "dark-rum", amount: 60 },
       { ingredientId: "orange-juice", amount: 100 },
       { ingredientId: "lime-juice", amount: 20 },
-      { ingredientId: "grenadine", amount: 10 },
+      { ingredientId: "grenadine", amount: 10, delayed: true },
       { ingredientId: "pineapple-juice", amount: 100 },
     ],
   },
@@ -118,7 +118,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 20 },
       { ingredientId: "orange-juice", amount: 90 },
       { ingredientId: "pineapple-juice", amount: 90 },
-      { ingredientId: "grenadine", amount: 20 },
+      { ingredientId: "grenadine", amount: 20, delayed: true },
     ],
   },
   {
@@ -210,7 +210,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "orange-juice", amount: 80 },
       { ingredientId: "pineapple-juice", amount: 80 },
       { ingredientId: "lime-juice", amount: 20 },
-      { ingredientId: "grenadine", amount: 20 },
+      { ingredientId: "grenadine", amount: 20, delayed: true },
     ],
   },
   {
@@ -244,7 +244,7 @@ export const cocktails: Cocktail[] = [
     recipe: [
       { ingredientId: "tequila", amount: 60 },
       { ingredientId: "orange-juice", amount: 220 },
-      { ingredientId: "grenadine", amount: 20 },
+      { ingredientId: "grenadine", amount: 20, delayed: true },
     ],
   },
   {
@@ -259,7 +259,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "triple-sec", amount: 40 },
       { ingredientId: "passion-fruit-juice", amount: 140 },
       { ingredientId: "lime-juice", amount: 10 },
-      { ingredientId: "grenadine", amount: 20 },
+      { ingredientId: "grenadine", amount: 20, delayed: true },
     ],
   },
   {
@@ -284,7 +284,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "orange-juice", amount: 50 },
       { ingredientId: "lime-juice", amount: 20 },
       { ingredientId: "passion-fruit-juice", amount: 50 },
-      { ingredientId: "grenadine", amount: 20 },
+      { ingredientId: "grenadine", amount: 20, delayed: true },
     ],
   },
   {
@@ -313,7 +313,7 @@ export const cocktails: Cocktail[] = [
     recipe: [
       { ingredientId: "pineapple-juice", amount: 120 },
       { ingredientId: "orange-juice", amount: 120 },
-      { ingredientId: "grenadine", amount: 20 },
+      { ingredientId: "grenadine", amount: 20, delayed: true },
       { ingredientId: "lime-juice", amount: 10 },
     ],
   },
@@ -358,7 +358,7 @@ export const cocktails: Cocktail[] = [
       "50ml Sprudelwasser (manuell)",
     ],
     recipe: [
-      { ingredientId: "grenadine", amount: 30 },
+      { ingredientId: "grenadine", amount: 30, delayed: true },
       { ingredientId: "orange-juice", amount: 100 },
       { ingredientId: "pineapple-juice", amount: 100 },
       { ingredientId: "lime-juice", amount: 20 },
@@ -390,7 +390,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 40 },
       { ingredientId: "vanilla-syrup", amount: 20 },
       { ingredientId: "soda-water", amount: 200, manual: true, instructions: "200ml Sprudelwasser hinzufügen" },
-      { ingredientId: "grenadine", amount: 10 },
+      { ingredientId: "grenadine", amount: 10, delayed: true },
     ],
   },
   {
@@ -403,7 +403,7 @@ export const cocktails: Cocktail[] = [
     recipe: [
       { ingredientId: "pineapple-juice", amount: 120 },
       { ingredientId: "orange-juice", amount: 80 },
-      { ingredientId: "grenadine", amount: 15 },
+      { ingredientId: "grenadine", amount: 15, delayed: true },
     ],
     manualIngredients: [
       {
@@ -505,7 +505,7 @@ export const cocktails: Cocktail[] = [
     recipe: [
       { ingredientId: "orange-juice", amount: 100 },
       { ingredientId: "pineapple-juice", amount: 80 },
-      { ingredientId: "grenadine", amount: 20 },
+      { ingredientId: "grenadine", amount: 20, delayed: true },
       { ingredientId: "lime-juice", amount: 10 },
     ],
     manualIngredients: [
@@ -518,32 +518,6 @@ export const cocktails: Cocktail[] = [
         name: "Grenadine extra",
         amount: "5ml",
         instruction: "Langsam am Glasrand hinunterlaufen lassen für Sunrise-Effekt",
-      },
-    ],
-  },
-  {
-    id: "almond-citrus-cooler",
-    name: "Almond Citrus Cooler",
-    description: "Erfrischender Mandel-Zitrus Mix",
-    image: "/images/cocktails/almond-citrus-cooler.png",
-    alcoholic: false,
-    ingredients: ["80ml Orangensaft", "40ml Limettensaft", "60ml Ananassaft", "20ml Mandelsirup"],
-    recipe: [
-      { ingredientId: "orange-juice", amount: 80 },
-      { ingredientId: "lime-juice", amount: 40 },
-      { ingredientId: "pineapple-juice", amount: 60 },
-      { ingredientId: "almond-syrup", amount: 20 },
-    ],
-    manualIngredients: [
-      {
-        name: "Sprudelwasser",
-        amount: "80ml",
-        instruction: "Zum Auffüllen für den Cooler-Effekt",
-      },
-      {
-        name: "Mandelsplitter",
-        amount: "1 TL",
-        instruction: "Als Garnitur obendrauf streuen",
       },
     ],
   },

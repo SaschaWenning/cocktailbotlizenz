@@ -1,13 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server"
-import fs from "fs/promises"
+import { promises as fs } from "fs"
 import path from "path"
 
-const LEVELS_FILE = path.join(process.cwd(), "data", "ingredient-levels.json")
+const DATA_FILE = path.join(process.cwd(), "data", "ingredient-levels.json")
 
-// GET - Load ingredient levels from file
+// Ensure data directory exists
+async function ensureDataDir() {
+  const dataDir = path.dirname(DATA_FILE)
+  try {
+    await fs.access(dataDir)
+  } catch {
+    await fs.mkdir(dataDir, { recursive: true })
+  }
+}
+
 export async function GET() {
   try {
-    const data = await fs.readFile(LEVELS_FILE, "utf-8")
+    await ensureDataDir()
+    const data = await fs.readFile(DATA_FILE, "utf-8")
     const levels = JSON.parse(data)
 
     return NextResponse.json({
@@ -18,21 +28,17 @@ export async function GET() {
       })),
     })
   } catch (error) {
-    console.error("Error loading ingredient levels:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to load ingredient levels",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    // File doesn't exist or is invalid, return empty array
+    return NextResponse.json({
+      success: true,
+      levels: [],
+    })
   }
 }
 
-// POST - Save ingredient levels to file
 export async function POST(request: NextRequest) {
   try {
+    await ensureDataDir()
     const body = await request.json()
     const levels = Array.isArray(body) ? body : Array.isArray(body?.levels) ? body.levels : null
 
@@ -43,8 +49,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await fs.mkdir(path.dirname(LEVELS_FILE), { recursive: true })
-    await fs.writeFile(LEVELS_FILE, JSON.stringify(levels, null, 2))
+    // Convert dates to strings for JSON storage
+    const levelsForStorage = levels.map((level: any) => ({
+      ...level,
+      lastUpdated: level.lastUpdated instanceof Date ? level.lastUpdated.toISOString() : level.lastUpdated,
+    }))
+
+    await fs.writeFile(DATA_FILE, JSON.stringify(levelsForStorage, null, 2))
 
     return NextResponse.json({ success: true })
   } catch (error) {
