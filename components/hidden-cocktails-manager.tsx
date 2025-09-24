@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getHidden, saveHidden } from "@/lib/hidden-cocktails-service"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
@@ -25,9 +24,12 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
     try {
       setLoading(true)
 
-      const hiddenFromStorage = getHidden()
-      setHiddenCocktails(hiddenFromStorage)
+      // Load hidden cocktails
+      const hiddenResponse = await fetch("/api/hidden-cocktails")
+      const hiddenData = await hiddenResponse.json()
+      setHiddenCocktails(hiddenData.hiddenCocktails || [])
 
+      // Load all cocktails
       const cocktailsResponse = await fetch("/api/cocktails")
       const cocktailsData = await cocktailsResponse.json()
       setAllCocktails(cocktailsData || [])
@@ -42,10 +44,17 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
     try {
       setUpdating(cocktailId)
 
+      // Remove from hidden list
       const updatedHiddenCocktails = hiddenCocktails.filter((id) => id !== cocktailId)
 
-      await saveHidden(updatedHiddenCocktails)
-      console.log(`[v0] Cocktail ${cocktailId} wieder eingeblendet`)
+      // Update API
+      await fetch("/api/hidden-cocktails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ hiddenCocktails: updatedHiddenCocktails }),
+      })
 
       setHiddenCocktails(updatedHiddenCocktails)
     } catch (error) {
@@ -79,7 +88,7 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
       </div>
 
       {hiddenCocktailsWithDetails.length === 0 ? (
-        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))}">
+        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
           <CardContent className="py-12 text-center">
             <EyeOff className="h-12 w-12 mx-auto mb-4 text-[hsl(var(--cocktail-text-muted))]" />
             <p className="text-[hsl(var(--cocktail-text-muted))] text-lg">Keine ausgeblendeten Cocktails vorhanden</p>
