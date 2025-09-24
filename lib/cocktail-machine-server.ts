@@ -250,15 +250,15 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     amount: Math.round(item.amount * scaleFactor),
   }))
 
-  // Teile die Zutaten in zwei Gruppen auf: Grenadine und alle anderen
-  const grenadineItems = scaledRecipe.filter((item) => item.ingredientId === "grenadine")
-  const otherItems = scaledRecipe.filter((item) => item.ingredientId !== "grenadine")
+  const delayedItems = scaledRecipe.filter((item) => item.delayed === true)
+  const immediateItems = scaledRecipe.filter((item) => item.delayed !== true)
+
+  console.log(`[v0] Sofortige Zutaten: ${immediateItems.length}, Verzögerte Zutaten: ${delayedItems.length}`)
 
   // Sammle Pumpen-Updates für Level-Reduktion
   const levelUpdates: { pumpId: number; amount: number }[] = []
 
-  // Aktiviere zuerst alle Zutaten außer Grenadine gleichzeitig
-  const otherPumpPromises = otherItems.map((item) => {
+  const immediatePumpPromises = immediateItems.map((item) => {
     // Finde die Pumpe, die diese Zutat enthält
     const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId)
 
@@ -270,7 +270,7 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     // Berechne, wie lange die Pumpe laufen muss
     const pumpTimeMs = (item.amount / pump.flowRate) * 1000
 
-    console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
+    console.log(`[v0] Sofort: Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
 
     // Füge zur Level-Update-Liste hinzu
     levelUpdates.push({ pumpId: pump.id, amount: item.amount })
@@ -279,16 +279,15 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     return activatePump(pump.pin, pumpTimeMs)
   })
 
-  // Warte, bis alle Pumpen außer Grenadine aktiviert wurden
-  await Promise.all(otherPumpPromises)
+  // Warte, bis alle sofortigen Pumpen aktiviert wurden
+  await Promise.all(immediatePumpPromises)
 
-  // Wenn Grenadine im Rezept ist, warte 2 Sekunden und füge es dann hinzu
-  if (grenadineItems.length > 0) {
-    console.log("Warte 2 Sekunden vor dem Hinzufügen von Grenadine...")
+  if (delayedItems.length > 0) {
+    console.log(`[v0] Warte 2 Sekunden vor dem Hinzufügen von ${delayedItems.length} verzögerten Zutaten...`)
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    // Füge Grenadine hinzu
-    for (const item of grenadineItems) {
+    // Füge verzögerte Zutaten hinzu
+    for (const item of delayedItems) {
       const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId)
 
       if (!pump) {
@@ -299,7 +298,9 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
       // Berechne, wie lange die Pumpe laufen muss
       const pumpTimeMs = (item.amount / pump.flowRate) * 1000
 
-      console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
+      console.log(
+        `[v0] Verzögert: Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`,
+      )
 
       // Füge zur Level-Update-Liste hinzu
       levelUpdates.push({ pumpId: pump.id, amount: item.amount })

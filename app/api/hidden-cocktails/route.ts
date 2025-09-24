@@ -1,16 +1,37 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { loadHiddenCocktails, saveHiddenCocktails } from "@/lib/persistent-storage"
+import fs from "fs"
+import path from "path"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+const HIDDEN_COCKTAILS_PATH = path.join(process.cwd(), "data", "hidden-cocktails.json")
+
+function loadHiddenCocktails(): string[] {
   try {
-    const hiddenCocktails = await loadHiddenCocktails()
-    return NextResponse.json({ success: true, hiddenCocktails })
+    if (fs.existsSync(HIDDEN_COCKTAILS_PATH)) {
+      const data = fs.readFileSync(HIDDEN_COCKTAILS_PATH, "utf8")
+      return JSON.parse(data)
+    }
   } catch (error) {
     console.error("Error loading hidden cocktails:", error)
-    return NextResponse.json({ success: true, hiddenCocktails: [] })
   }
+  return []
+}
+
+function saveHiddenCocktails(hiddenCocktails: string[]): void {
+  try {
+    fs.mkdirSync(path.dirname(HIDDEN_COCKTAILS_PATH), { recursive: true })
+    fs.writeFileSync(HIDDEN_COCKTAILS_PATH, JSON.stringify(hiddenCocktails, null, 2), "utf8")
+    console.log(`[v0] Hidden cocktails saved: ${hiddenCocktails.length} items`)
+  } catch (error) {
+    console.error("Error saving hidden cocktails:", error)
+    throw error
+  }
+}
+
+export async function GET() {
+  const hiddenCocktails = loadHiddenCocktails()
+  return NextResponse.json({ success: true, hiddenCocktails })
 }
 
 export async function POST(request: NextRequest) {
@@ -20,7 +41,8 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(list)) {
       return NextResponse.json({ success: false, error: "Invalid payload" }, { status: 400 })
     }
-    await saveHiddenCocktails(list)
+
+    saveHiddenCocktails(list)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error saving hidden cocktails:", error)
