@@ -15,6 +15,9 @@ const PUMP_CONFIG_PATH = path.join(process.cwd(), "data", "pump-config.json")
 // Pfad zur JSON-Datei für die Cocktail-Rezepte
 const COCKTAILS_PATH = path.join(process.cwd(), "data", "custom-cocktails.json")
 
+// Pfad zur JSON-Datei für die gelöschten Cocktails
+const DELETED_COCKTAILS_PATH = path.join(process.cwd(), "data", "deleted-cocktails.json")
+
 // Funktion zum Laden der Pumpenkonfiguration
 export async function getPumpConfig(): Promise<PumpConfig[]> {
   try {
@@ -70,14 +73,32 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     const { cocktails: defaultCocktails } = await import("@/data/cocktails")
     console.log("[v0] Loaded default cocktails:", defaultCocktails.length)
 
+    // Lade gelöschte Cocktails Liste
+    let deletedCocktails: string[] = []
+    try {
+      if (fs.existsSync(DELETED_COCKTAILS_PATH)) {
+        const data = fs.readFileSync(DELETED_COCKTAILS_PATH, "utf8")
+        deletedCocktails = JSON.parse(data)
+        console.log("[v0] Loaded deleted cocktails:", deletedCocktails.length)
+      }
+    } catch (error) {
+      console.log("[v0] No deleted cocktails file found or error loading it")
+    }
+
     // Keine zusätzlichen Cocktails definieren
     const additionalCocktails: Cocktail[] = []
 
     // Erstelle eine Map für die Cocktails, um Duplikate zu vermeiden
     const cocktailMap = new Map<string, Cocktail>()
 
-    // Füge zuerst die Standard-Cocktails hinzu und ersetze "rum" durch "brauner rum"
+    // Füge zuerst die Standard-Cocktails hinzu (außer gelöschte)
     for (const cocktail of defaultCocktails) {
+      // Überspringe gelöschte Cocktails
+      if (deletedCocktails.includes(cocktail.id)) {
+        console.log(`[v0] Skipping deleted cocktail: ${cocktail.id}`)
+        continue
+      }
+
       // Überspringe den ursprünglichen Malibu Ananas, da wir eine aktualisierte Version haben
       // Überspringe auch Gin Tonic und Cuba Libre
       if (cocktail.id === "malibu-ananas" || cocktail.id === "gin-tonic" || cocktail.id === "cuba-libre") continue
@@ -117,7 +138,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         const customCocktails: Cocktail[] = JSON.parse(data)
         console.log("[v0] Loaded custom cocktails:", customCocktails.length)
 
-        // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
+        // Aktualisiere und füge benutzerdefinierte Cocktails hinzu (überschreibt Standard-Cocktails)
         for (const cocktail of customCocktails) {
           // Erstelle eine Kopie des Cocktails
           const updatedCocktail = { ...cocktail }
@@ -129,7 +150,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
               : ingredient,
           )
 
-          // Füge den aktualisierten Cocktail zur Map hinzu
+          // Füge den aktualisierten Cocktail zur Map hinzu (überschreibt Standard-Cocktails)
           cocktailMap.set(cocktail.id, updatedCocktail)
         }
       } else {

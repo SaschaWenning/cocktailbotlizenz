@@ -1,43 +1,24 @@
-import { NextResponse } from "next/server"
-import fs from "fs"
-import path from "path"
+import { type NextRequest, NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
 
-const DATA_DIR = path.join(process.cwd(), "data")
-const FILE = path.join(DATA_DIR, "hidden-cocktails.json")
-
-function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
-}
+// In-memory storage for hidden cocktails
+let hiddenCocktails: string[] = []
 
 export async function GET() {
-  try {
-    ensureDir()
-    if (!fs.existsSync(FILE)) {
-      return NextResponse.json({ success: true, hidden: [] })
-    }
-    const raw = fs.readFileSync(FILE, "utf8")
-    const hidden = JSON.parse(raw)
-    return NextResponse.json({ success: true, hidden })
-  } catch (e) {
-    console.error("GET /api/hidden-cocktails failed:", e)
-    return NextResponse.json({ success: false, error: "Failed to read hidden list" }, { status: 500 })
-  }
+  return NextResponse.json({ success: true, hiddenCocktails })
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}))
-    const hidden = Array.isArray(body) ? body : body.hidden
-    if (!Array.isArray(hidden)) {
+    const body = await request.json()
+    const list = Array.isArray(body) ? body : (body?.hiddenCocktails ?? [])
+    if (!Array.isArray(list)) {
       return NextResponse.json({ success: false, error: "Invalid payload" }, { status: 400 })
     }
-    ensureDir()
-    fs.writeFileSync(FILE, JSON.stringify(hidden, null, 2), "utf8")
+    hiddenCocktails = list
     return NextResponse.json({ success: true })
-  } catch (e) {
-    console.error("POST /api/hidden-cocktails failed:", e)
-    return NextResponse.json({ success: false, error: "Failed to save hidden list" }, { status: 500 })
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to save hidden cocktails" }, { status: 500 })
   }
 }
