@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { getHidden, saveHidden } from "@/lib/hidden-cocktails-service"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
@@ -24,10 +25,9 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
     try {
       setLoading(true)
 
-      const hiddenFromStorage = localStorage.getItem("hiddenCocktails")
-      setHiddenCocktails(hiddenFromStorage ? JSON.parse(hiddenFromStorage) : [])
+      const hiddenFromStorage = getHidden()
+      setHiddenCocktails(hiddenFromStorage)
 
-      // Load all cocktails
       const cocktailsResponse = await fetch("/api/cocktails")
       const cocktailsData = await cocktailsResponse.json()
       setAllCocktails(cocktailsData || [])
@@ -42,10 +42,9 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
     try {
       setUpdating(cocktailId)
 
-      // Remove from hidden list
       const updatedHiddenCocktails = hiddenCocktails.filter((id) => id !== cocktailId)
 
-      localStorage.setItem("hiddenCocktails", JSON.stringify(updatedHiddenCocktails))
+      await saveHidden(updatedHiddenCocktails)
       console.log(`[v0] Cocktail ${cocktailId} wieder eingeblendet`)
 
       setHiddenCocktails(updatedHiddenCocktails)
