@@ -24,10 +24,8 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
     try {
       setLoading(true)
 
-      // Load hidden cocktails
-      const hiddenResponse = await fetch("/api/hidden-cocktails")
-      const hiddenData = await hiddenResponse.json()
-      setHiddenCocktails(hiddenData.hiddenCocktails || [])
+      const hiddenFromStorage = localStorage.getItem("hiddenCocktails")
+      setHiddenCocktails(hiddenFromStorage ? JSON.parse(hiddenFromStorage) : [])
 
       // Load all cocktails
       const cocktailsResponse = await fetch("/api/cocktails")
@@ -47,14 +45,8 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
       // Remove from hidden list
       const updatedHiddenCocktails = hiddenCocktails.filter((id) => id !== cocktailId)
 
-      // Update API
-      await fetch("/api/hidden-cocktails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ hiddenCocktails: updatedHiddenCocktails }),
-      })
+      localStorage.setItem("hiddenCocktails", JSON.stringify(updatedHiddenCocktails))
+      console.log(`[v0] Cocktail ${cocktailId} wieder eingeblendet`)
 
       setHiddenCocktails(updatedHiddenCocktails)
     } catch (error) {
@@ -88,7 +80,7 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
       </div>
 
       {hiddenCocktailsWithDetails.length === 0 ? (
-        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
+        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))}">
           <CardContent className="py-12 text-center">
             <EyeOff className="h-12 w-12 mx-auto mb-4 text-[hsl(var(--cocktail-text-muted))]" />
             <p className="text-[hsl(var(--cocktail-text-muted))] text-lg">Keine ausgeblendeten Cocktails vorhanden</p>
