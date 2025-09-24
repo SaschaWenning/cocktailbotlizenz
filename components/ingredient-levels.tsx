@@ -374,84 +374,82 @@ export function IngredientLevels() {
 
         {showKeyboard && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-1">
-            <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-xl shadow-2xl max-w-xs w-full mx-1 max-h-[95vh] overflow-hidden flex flex-col">
-              <div className="bg-[hsl(var(--cocktail-primary))] p-2 flex-shrink-0">
-                <h3 className="text-sm font-bold text-black">
+            <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-xl shadow-2xl max-w-sm w-full mx-1 max-h-[95vh] overflow-hidden flex flex-col">
+              <div className="bg-[hsl(var(--cocktail-primary))] p-3 flex-shrink-0">
+                <h3 className="text-base font-bold text-black">
                   {editingLevel && "Füllstand bearbeiten"}
                   {editingSize && "Behältergröße bearbeiten"}
                   {editingName && "Zutat bearbeiten"}
                 </h3>
               </div>
 
-              <div className="p-2 space-y-2 overflow-y-auto flex-1">
+              <div className="p-4 space-y-4 overflow-y-auto flex-1">
                 <Input
                   value={tempValue}
                   readOnly
-                  className="text-sm text-center font-semibold border-2 focus:border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))] h-8"
+                  className="text-lg text-center font-bold border-2 focus:border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))] h-12 text-2xl"
                 />
 
                 <div className="space-y-2">
-                  <div className="scale-65 origin-center -my-4">
-                    <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg w-full">
-                      <div className="space-y-1">
-                        {(editingName
-                          ? [
-                              ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-                              ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P"],
-                              ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-                              ["Y", "X", "C", "V", "B", "N", "M"],
-                              [" ", "-", "_", ".", "@", "#", "&"],
-                            ]
-                          : [
-                              ["1", "2", "3"],
-                              ["4", "5", "6"],
-                              ["7", "8", "9"],
-                              [".", "0", "00"],
-                            ]
-                        ).map((row, rowIndex) => (
-                          <div key={rowIndex} className="flex justify-center gap-1">
-                            {row.map((key) => (
-                              <Button
-                                key={key}
-                                onClick={() => setTempValue(tempValue + key)}
-                                className="flex-1 h-10 text-base bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border)))"
-                              >
-                                {key}
-                              </Button>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
+                  <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg w-full">
+                    <div className="space-y-1">
+                      {(editingName
+                        ? [
+                            ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                            ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P"],
+                            ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+                            ["Y", "X", "C", "V", "B", "N", "M"],
+                            [" ", "-", "_", ".", "@", "#", "&"],
+                          ]
+                        : [
+                            ["1", "2", "3"],
+                            ["4", "5", "6"],
+                            ["7", "8", "9"],
+                            [".", "0", "00"],
+                          ]
+                      ).map((row, rowIndex) => (
+                        <div key={rowIndex} className="flex justify-center gap-1">
+                          {row.map((key) => (
+                            <Button
+                              key={key}
+                              onClick={() => setTempValue(tempValue + key)}
+                              className="flex-1 h-6 text-sm bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))] min-w-0"
+                            >
+                              {key}
+                            </Button>
+                          ))}
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                   <div className="flex justify-center gap-1">
                     <Button
                       onClick={() => setTempValue(tempValue.slice(0, -1))}
-                      className="flex-1 h-12 text-base bg-red-600 text-white hover:bg-red-700"
+                      className="flex-1 h-8 text-sm bg-red-600 text-white hover:bg-red-700"
                     >
-                      <ArrowLeft className="h-5 w-5" />
+                      <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <Button
                       onClick={() => setTempValue("")}
-                      className="flex-1 h-12 text-base bg-yellow-600 text-white hover:bg-yellow-700"
+                      className="flex-1 h-8 text-sm bg-yellow-600 text-white hover:bg-yellow-700"
                     >
-                      <X className="h-5 w-5" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-1">
+                <div className="flex gap-3 pt-2">
                   <Button
                     onClick={handleSave}
-                    className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-1 rounded-lg text-xs h-8"
+                    className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-bold py-3 rounded-lg text-base h-12"
                   >
                     Speichern
                   </Button>
                   <Button
                     onClick={handleCancel}
                     variant="outline"
-                    className="flex-1 border-2 border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] font-semibold py-1 rounded-lg bg-transparent text-[hsl(var(--cocktail-text))] text-xs h-8"
+                    className="flex-1 border-2 border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] font-bold py-3 rounded-lg bg-transparent text-[hsl(var(--cocktail-text))] text-base h-12"
                   >
                     Abbrechen
                   </Button>

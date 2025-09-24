@@ -78,7 +78,7 @@ export function VirtualKeyboard({
               <Button
                 key={key}
                 onClick={() => handleKeyPress(key)}
-                className="flex-1 h-10 text-base bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                className="flex-1 h-6 text-sm bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))]"
               >
                 {key}
               </Button>
@@ -87,14 +87,14 @@ export function VirtualKeyboard({
         ))}
       </div>
       <div className="keyboard-controls flex justify-center gap-1 mt-2">
-        <Button onClick={handleBackspace} className="flex-1 h-10 text-base bg-red-600 text-white hover:bg-red-700">
-          <ArrowLeft className="h-5 w-5" />
+        <Button onClick={handleBackspace} className="flex-1 h-6 text-sm bg-red-600 text-white hover:bg-red-700">
+          <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Button onClick={handleClear} className="flex-1 h-10 text-base bg-yellow-600 text-white hover:bg-yellow-700">
-          <X className="h-5 w-5" />
+        <Button onClick={handleClear} className="flex-1 h-6 text-sm bg-yellow-600 text-white hover:bg-yellow-700">
+          <X className="h-4 w-4" />
         </Button>
         {onConfirm && (
-          <Button onClick={onConfirm} className="flex-1 h-10 text-base bg-green-600 text-white hover:bg-green-700">
+          <Button onClick={onConfirm} className="flex-1 h-6 text-sm bg-green-600 text-white hover:bg-green-700">
             ✓
           </Button>
         )}

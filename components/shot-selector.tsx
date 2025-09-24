@@ -78,6 +78,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
 
   const handleCancelSelection = () => {
     setSelectedIngredient(null)
+    setIsEditingAmounts(false)
   }
 
   const checkIngredientAvailable = (ingredientId: string) => {
@@ -255,7 +256,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
                       >
                         {size}ml
                       </button>
-                      {isEditingAmounts && ![20, 40].includes(size) && (
+                      {isEditingAmounts && (
                         <button
                           type="button"
                           onClick={() => removeCustomSize(selectedIngredient, size)}
@@ -275,12 +276,12 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
                       onClick={() => openKeyboard("custom-size")}
                       readOnly
                       placeholder="ml eingeben"
-                      className="w-20 px-2 py-1 text-sm bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] rounded cursor-pointer text-center"
+                      className="w-32 px-3 py-2 text-base bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border border-[hsl(var(--cocktail-card-border))] rounded cursor-pointer text-center"
                     />
                     <button
                       type="button"
                       onClick={() => setIsEditingAmounts(false)}
-                      className="text-xs px-2 py-1 bg-[hsl(var(--cocktail-primary))] text-black rounded"
+                      className="text-sm px-3 py-2 bg-[hsl(var(--cocktail-primary))] text-black rounded"
                     >
                       Fertig
                     </button>
