@@ -398,42 +398,35 @@ export default function Home() {
     if (!cocktailToDelete) return
 
     try {
-      console.log("[v0] Deleting/hiding cocktail:", cocktailToDelete.id)
+      console.log("[v0] Deleting cocktail permanently:", cocktailToDelete.id)
 
-      // Get current hidden cocktails from API
-      const response = await fetch("/api/hidden-cocktails")
-      const data = await response.json()
-      const hiddenCocktails: string[] = data.hiddenCocktails || []
-      console.log("[v0] Current hidden cocktails before adding:", hiddenCocktails)
+      const response = await fetch("/api/delete-recipe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cocktailId: cocktailToDelete.id }),
+      })
 
-      // Add cocktail ID to hidden list if not already there
-      if (!hiddenCocktails.includes(cocktailToDelete.id)) {
-        hiddenCocktails.push(cocktailToDelete.id)
-
-        // Save updated list to API
-        await fetch("/api/hidden-cocktails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ hiddenCocktails }),
-        })
-        console.log("[v0] Updated hidden cocktails via API:", hiddenCocktails)
-      } else {
-        console.log("[v0] Cocktail already in hidden list")
+      if (!response.ok) {
+        throw new Error(`Delete failed: ${response.statusText}`)
       }
 
+      const result = await response.json()
+      console.log("[v0] Delete API response:", result)
+
+      // Remove cocktail from local state
       setCocktailsData((prev) => prev.filter((c) => c.id !== cocktailToDelete.id))
       console.log("[v0] Removed cocktail from local state")
 
-      // If the hidden cocktail was selected, reset selection
+      // If the deleted cocktail was selected, reset selection
       if (selectedCocktail?.id === cocktailToDelete.id) {
         setSelectedCocktail(null)
       }
 
       setCocktailToDelete(null)
     } catch (error) {
-      console.error("Fehler beim Ausblenden des Cocktails:", error)
+      console.error("Fehler beim Löschen des Cocktails:", error)
       throw error
     }
   }
