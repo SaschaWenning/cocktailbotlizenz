@@ -36,6 +36,7 @@ export default function Statistics() {
       if (response.ok) {
         const data = await response.json()
         setAllIngredients(data.ingredients || [])
+        console.log("[v0] Loaded all ingredients:", data.ingredients?.length)
       }
     } catch (error) {
       console.error("[v0] Error loading ingredients:", error)
@@ -63,7 +64,9 @@ export default function Statistics() {
       }
 
       if (storedPrices) {
-        setIngredientPrices(JSON.parse(storedPrices))
+        const prices = JSON.parse(storedPrices)
+        setIngredientPrices(prices)
+        console.log("[v0] Loaded saved prices:", prices.length)
       }
 
       console.log("[v0] Loaded statistics from localStorage")
@@ -84,7 +87,7 @@ export default function Statistics() {
     try {
       setSavingPrices(true)
       localStorage.setItem(PRICES_KEY, JSON.stringify(ingredientPrices))
-      console.log("[v0] Saved prices to localStorage")
+      console.log("[v0] Saved prices to localStorage:", ingredientPrices.length)
 
       // Update statistics with new prices
       if (statistics) {
@@ -101,7 +104,6 @@ export default function Statistics() {
 
   const resetStatistics = () => {
     try {
-      // Keep prices but reset statistics
       const emptyStats = {
         logs: [],
         cocktailStats: [],
@@ -113,7 +115,7 @@ export default function Statistics() {
       setStatistics(emptyStats)
       setShowResetDialog(false)
 
-      console.log("[v0] Reset statistics")
+      console.log("[v0] Reset statistics, kept prices")
     } catch (error) {
       console.error("[v0] Error resetting statistics:", error)
     }
@@ -161,11 +163,6 @@ export default function Statistics() {
   const totalCocktails = statistics?.logs.length || 0
   const totalVolume = statistics?.logs.reduce((sum, log) => sum + log.size, 0) || 0
   const totalCost = calculateTotalCost()
-
-  const ingredientsForPricing =
-    hasStatistics && statistics.ingredientConsumption.length > 0
-      ? statistics.ingredientConsumption.map((ic) => ({ id: ic.ingredientId, name: ic.ingredientName }))
-      : allIngredients
 
   return (
     <div className="space-y-6">
@@ -233,40 +230,40 @@ export default function Statistics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {ingredientsForPricing.length === 0 ? (
-              <p style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-                Keine Zutaten verfügbar. Bitte fügen Sie zuerst Zutaten hinzu.
-              </p>
+            {allIngredients.length === 0 ? (
+              <p style={{ color: "hsl(var(--cocktail-text-muted))" }}>Lade Zutaten...</p>
             ) : (
               <div className="space-y-4">
-                {ingredientsForPricing.map((ingredient) => {
-                  const currentPrice =
-                    ingredientPrices.find((p) => p.ingredientId === ingredient.id)?.pricePerLiter || 0
+                <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
+                  {allIngredients.map((ingredient) => {
+                    const currentPrice =
+                      ingredientPrices.find((p) => p.ingredientId === ingredient.id)?.pricePerLiter || 0
 
-                  return (
-                    <div key={ingredient.id} className="flex items-center gap-4">
-                      <Label className="flex-1" style={{ color: "hsl(var(--cocktail-text))" }}>
-                        {ingredient.name}
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={currentPrice}
-                          onChange={(e) => updatePrice(ingredient.id, Number.parseFloat(e.target.value) || 0)}
-                          className="w-32 border"
-                          style={{
-                            backgroundColor: "hsl(var(--cocktail-button-bg))",
-                            color: "hsl(var(--cocktail-text))",
-                            borderColor: "hsl(var(--cocktail-card-border))",
-                          }}
-                        />
-                        <span style={{ color: "hsl(var(--cocktail-text-muted))" }}>€/L</span>
+                    return (
+                      <div key={ingredient.id} className="flex items-center gap-4">
+                        <Label className="flex-1" style={{ color: "hsl(var(--cocktail-text))" }}>
+                          {ingredient.name}
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={currentPrice}
+                            onChange={(e) => updatePrice(ingredient.id, Number.parseFloat(e.target.value) || 0)}
+                            className="w-32 border"
+                            style={{
+                              backgroundColor: "hsl(var(--cocktail-button-bg))",
+                              color: "hsl(var(--cocktail-text))",
+                              borderColor: "hsl(var(--cocktail-card-border))",
+                            }}
+                          />
+                          <span style={{ color: "hsl(var(--cocktail-text-muted))" }}>€/L</span>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
                 <Button
                   onClick={savePrices}
                   disabled={savingPrices}
@@ -562,7 +559,7 @@ export default function Statistics() {
             </AlertDialogTitle>
             <AlertDialogDescription style={{ color: "hsl(var(--cocktail-text-muted))" }}>
               Möchten Sie wirklich alle Statistiken zurücksetzen? Diese Aktion kann nicht rückgängig gemacht werden.
-              Alle Zubereitungsdaten gehen verloren.
+              Alle Zubereitungsdaten gehen verloren. Die gespeicherten Preise bleiben erhalten.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
