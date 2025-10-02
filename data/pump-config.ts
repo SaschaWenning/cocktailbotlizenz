@@ -16,7 +16,7 @@ export const pumpConfig: PumpConfig[] = [
   { id: 13, pin: 26, ingredient: "pineapple-juice", flowRate: 25.0, enabled: true },
   { id: 14, pin: 16, ingredient: "passion-fruit-juice", flowRate: 25.0, enabled: true },
   { id: 15, pin: 20, ingredient: "almond-syrup", flowRate: 25.0, enabled: true },
-  { id: 16, pin: 21, ingredient: "coconut-syrup", flowRate: 25.0, enabled: false },
-  { id: 17, pin: 12, ingredient: "cranberry-juice", flowRate: 25.0, enabled: false },
+  { id: 16, pin: 21, ingredient: "coconut-syrup", flowRate: 25.0, enabled: true },
+  { id: 17, pin: 12, ingredient: "cranberry-juice", flowRate: 25.0, enabled: true },
   { id: 18, pin: 14, ingredient: "lemon-juice", flowRate: 25.0, enabled: true },
 ]

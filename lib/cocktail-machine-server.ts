@@ -2,25 +2,45 @@
 
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
-import fs from "fs"
-import path from "path"
-import { exec } from "child_process"
-import { promisify } from "util"
 
-const execPromise = promisify(exec)
+let fs: typeof import("fs")
+let path: typeof import("path")
+let execPromise: any
+
+// Lazy loading für Node.js Module nur auf dem Server
+async function getNodeModules() {
+  if (typeof window !== "undefined") {
+    throw new Error("Node.js modules not available in browser")
+  }
+
+  if (!fs) {
+    fs = await import("fs")
+    path = await import("path")
+    const { exec } = await import("child_process")
+    const { promisify } = await import("util")
+    execPromise = promisify(exec)
+  }
+
+  return { fs, path, execPromise }
+}
 
 // Pfad zur JSON-Datei für die Pumpenkonfiguration
-const PUMP_CONFIG_PATH = path.join(process.cwd(), "data", "pump-config.json")
+const getPumpConfigPath = () => {
+  if (typeof window !== "undefined") return ""
+  return require("path").join(process.cwd(), "data", "pump-config.json")
+}
 
-// Pfad zur JSON-Datei für die Cocktail-Rezepte
-const COCKTAILS_PATH = path.join(process.cwd(), "data", "custom-cocktails.json")
-
-// Pfad zur JSON-Datei für die gelöschten Cocktails
-const DELETED_COCKTAILS_PATH = path.join(process.cwd(), "data", "deleted-cocktails.json")
+const getCocktailsPath = () => {
+  if (typeof window !== "undefined") return ""
+  return require("path").join(process.cwd(), "data", "cocktails.json")
+}
 
 // Funktion zum Laden der Pumpenkonfiguration
 export async function getPumpConfig(): Promise<PumpConfig[]> {
   try {
+    const { fs, path } = await getNodeModules()
+    const PUMP_CONFIG_PATH = getPumpConfigPath()
+
     // Prüfe, ob die Datei existiert
     if (fs.existsSync(PUMP_CONFIG_PATH)) {
       // Lese die Datei
@@ -48,6 +68,9 @@ export async function getPumpConfig(): Promise<PumpConfig[]> {
 // Funktion zum Speichern der Pumpen-Konfiguration
 export async function savePumpConfig(pumpConfig: PumpConfig[]) {
   try {
+    const { fs, path } = await getNodeModules()
+    const PUMP_CONFIG_PATH = getPumpConfigPath()
+
     console.log("Speichere Pumpen-Konfiguration:", pumpConfig)
 
     // Stelle sicher, dass das Verzeichnis existiert
@@ -64,106 +87,46 @@ export async function savePumpConfig(pumpConfig: PumpConfig[]) {
   }
 }
 
-// Funktion zum Laden aller Cocktails (Standard + benutzerdefinierte)
 export async function getAllCocktails(): Promise<Cocktail[]> {
   try {
     console.log("[v0] Loading cocktails from getAllCocktails...")
 
-    // Lade die Standard-Cocktails
-    const { cocktails: defaultCocktails } = await import("@/data/cocktails")
-    console.log("[v0] Loaded default cocktails:", defaultCocktails.length)
+    const { fs, path } = await getNodeModules()
+    const COCKTAILS_PATH = getCocktailsPath()
 
-    // Lade gelöschte Cocktails Liste
-    let deletedCocktails: string[] = []
-    try {
-      if (fs.existsSync(DELETED_COCKTAILS_PATH)) {
-        const data = fs.readFileSync(DELETED_COCKTAILS_PATH, "utf8")
-        deletedCocktails = JSON.parse(data)
-        console.log("[v0] Loaded deleted cocktails:", deletedCocktails.length)
-      }
-    } catch (error) {
-      console.log("[v0] No deleted cocktails file found or error loading it")
+    // Stelle sicher, dass das data Verzeichnis existiert
+    const dataDir = path.dirname(COCKTAILS_PATH)
+    if (!fs.existsSync(dataDir)) {
+      console.log("[v0] Creating data directory:", dataDir)
+      fs.mkdirSync(dataDir, { recursive: true })
     }
 
-    // Keine zusätzlichen Cocktails definieren
-    const additionalCocktails: Cocktail[] = []
+    // Prüfe, ob die Cocktails-Datei existiert
+    if (fs.existsSync(COCKTAILS_PATH)) {
+      console.log("[v0] Loading cocktails from:", COCKTAILS_PATH)
+      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+      const cocktails: Cocktail[] = JSON.parse(data)
+      console.log("[v0] Total cocktails loaded:", cocktails.length)
+      return cocktails
+    } else {
+      // Erstelle die Datei mit Standard-Cocktails
+      console.log("[v0] No cocktails file found, creating with default cocktails")
+      const { cocktails: defaultCocktails } = await import("@/data/cocktails")
 
-    // Erstelle eine Map für die Cocktails, um Duplikate zu vermeiden
-    const cocktailMap = new Map<string, Cocktail>()
+      // Aktualisiere Rum zu Brauner Rum in den Standard-Cocktails
+      const updatedCocktails = defaultCocktails.map((cocktail) => ({
+        ...cocktail,
+        ingredients: cocktail.ingredients.map((ingredient) =>
+          ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
+            ? ingredient.replace("Rum", "Brauner Rum")
+            : ingredient,
+        ),
+      }))
 
-    // Füge zuerst die Standard-Cocktails hinzu (außer gelöschte)
-    for (const cocktail of defaultCocktails) {
-      // Überspringe gelöschte Cocktails
-      if (deletedCocktails.includes(cocktail.id)) {
-        console.log(`[v0] Skipping deleted cocktail: ${cocktail.id}`)
-        continue
-      }
-
-      // Überspringe den ursprünglichen Malibu Ananas, da wir eine aktualisierte Version haben
-      // Überspringe auch Gin Tonic und Cuba Libre
-      if (cocktail.id === "malibu-ananas" || cocktail.id === "gin-tonic" || cocktail.id === "cuba-libre") continue
-
-      // Erstelle eine Kopie des Cocktails
-      const updatedCocktail = { ...cocktail }
-
-      // Aktualisiere die Zutaten-Textliste
-      updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
-        ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
-          ? ingredient.replace("Rum", "Brauner Rum")
-          : ingredient,
-      )
-
-      // Füge den aktualisierten Cocktail zur Map hinzu
-      cocktailMap.set(cocktail.id, updatedCocktail)
+      fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(updatedCocktails, null, 2), "utf8")
+      console.log("[v0] Created cocktails file with", updatedCocktails.length, "default cocktails")
+      return updatedCocktails
     }
-
-    // Füge die zusätzlichen Cocktails hinzu (in diesem Fall leer)
-    for (const cocktail of additionalCocktails) {
-      cocktailMap.set(cocktail.id, cocktail)
-    }
-
-    try {
-      // Stelle sicher, dass das data Verzeichnis existiert
-      const dataDir = path.dirname(COCKTAILS_PATH)
-      if (!fs.existsSync(dataDir)) {
-        console.log("[v0] Creating data directory:", dataDir)
-        fs.mkdirSync(dataDir, { recursive: true })
-      }
-
-      // Prüfe, ob die Datei für benutzerdefinierte Cocktails existiert
-      if (fs.existsSync(COCKTAILS_PATH)) {
-        console.log("[v0] Loading custom cocktails from:", COCKTAILS_PATH)
-        // Lese die Datei
-        const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
-        const customCocktails: Cocktail[] = JSON.parse(data)
-        console.log("[v0] Loaded custom cocktails:", customCocktails.length)
-
-        // Aktualisiere und füge benutzerdefinierte Cocktails hinzu (überschreibt Standard-Cocktails)
-        for (const cocktail of customCocktails) {
-          // Erstelle eine Kopie des Cocktails
-          const updatedCocktail = { ...cocktail }
-
-          // Aktualisiere die Zutaten-Textliste
-          updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
-            ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
-              ? ingredient.replace("Rum", "Brauner Rum")
-              : ingredient,
-          )
-
-          // Füge den aktualisierten Cocktail zur Map hinzu (überschreibt Standard-Cocktails)
-          cocktailMap.set(cocktail.id, updatedCocktail)
-        }
-      } else {
-        console.log("[v0] No custom cocktails file found, using defaults only")
-      }
-    } catch (customError) {
-      console.error("[v0] Error loading custom cocktails (continuing with defaults):", customError)
-    }
-
-    // Konvertiere die Map zurück in ein Array
-    const result = Array.from(cocktailMap.values())
-    console.log("[v0] Total cocktails loaded:", result.length)
-    return result
   } catch (error) {
     console.error("[v0] Error in getAllCocktails:", error)
 
@@ -179,36 +142,51 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
   }
 }
 
-// Funktion zum Speichern eines Cocktail-Rezepts
 export async function saveRecipe(cocktail: Cocktail) {
   try {
+    const { fs, path } = await getNodeModules()
+    const COCKTAILS_PATH = getCocktailsPath()
+
     console.log("Speichere Rezept:", cocktail)
 
     // Stelle sicher, dass das Verzeichnis existiert
     fs.mkdirSync(path.dirname(COCKTAILS_PATH), { recursive: true })
 
-    // Lade bestehende benutzerdefinierte Cocktails oder erstelle ein leeres Array
-    let customCocktails: Cocktail[] = []
+    // Lade alle bestehenden Cocktails
+    let allCocktails: Cocktail[] = []
     if (fs.existsSync(COCKTAILS_PATH)) {
       const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
-      customCocktails = JSON.parse(data)
+      allCocktails = JSON.parse(data)
+    } else {
+      // Falls die Datei nicht existiert, lade Standard-Cocktails
+      const { cocktails: defaultCocktails } = await import("@/data/cocktails")
+      allCocktails = defaultCocktails.map((c) => ({
+        ...c,
+        ingredients: c.ingredients.map((ingredient) =>
+          ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
+            ? ingredient.replace("Rum", "Brauner Rum")
+            : ingredient,
+        ),
+      }))
     }
 
     // Prüfe, ob der Cocktail bereits existiert
-    const index = customCocktails.findIndex((c) => c.id === cocktail.id)
+    const index = allCocktails.findIndex((c) => c.id === cocktail.id)
 
     if (index !== -1) {
       // Aktualisiere den bestehenden Cocktail
-      customCocktails[index] = cocktail
+      allCocktails[index] = cocktail
+      console.log("Cocktail aktualisiert:", cocktail.id)
     } else {
       // Füge den neuen Cocktail hinzu
-      customCocktails.push(cocktail)
+      allCocktails.push(cocktail)
+      console.log("Neuer Cocktail hinzugefügt:", cocktail.id)
     }
 
-    // Speichere die aktualisierten Cocktails
-    fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(customCocktails, null, 2), "utf8")
+    // Speichere alle Cocktails zurück in die Datei
+    fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(allCocktails, null, 2), "utf8")
 
-    console.log("Rezept erfolgreich gespeichert")
+    console.log("Rezept erfolgreich gespeichert. Total cocktails:", allCocktails.length)
     return { success: true }
   } catch (error) {
     console.error("Fehler beim Speichern des Rezepts:", error)
@@ -216,9 +194,56 @@ export async function saveRecipe(cocktail: Cocktail) {
   }
 }
 
+export async function deleteRecipe(cocktailId: string) {
+  try {
+    const { fs, path } = await getNodeModules()
+    const COCKTAILS_PATH = getCocktailsPath()
+
+    console.log("[v0] Deleting cocktail from file:", cocktailId)
+
+    // Lade alle bestehenden Cocktails
+    let allCocktails: Cocktail[] = []
+    if (fs.existsSync(COCKTAILS_PATH)) {
+      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+      allCocktails = JSON.parse(data)
+    } else {
+      // Falls die Datei nicht existiert, lade Standard-Cocktails
+      const { cocktails: defaultCocktails } = await import("@/data/cocktails")
+      allCocktails = defaultCocktails.map((c) => ({
+        ...c,
+        ingredients: c.ingredients.map((ingredient) =>
+          ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
+            ? ingredient.replace("Rum", "Brauner Rum")
+            : ingredient,
+        ),
+      }))
+    }
+
+    // Finde und entferne den Cocktail
+    const initialLength = allCocktails.length
+    allCocktails = allCocktails.filter((c) => c.id !== cocktailId)
+
+    if (allCocktails.length === initialLength) {
+      console.log("[v0] Cocktail not found in file:", cocktailId)
+      return { success: false, message: "Cocktail not found" }
+    }
+
+    // Speichere die aktualisierte Liste zurück in die Datei
+    fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(allCocktails, null, 2), "utf8")
+
+    console.log("[v0] Cocktail successfully deleted from file. Remaining cocktails:", allCocktails.length)
+    return { success: true, message: `Cocktail ${cocktailId} deleted successfully` }
+  } catch (error) {
+    console.error("[v0] Error deleting cocktail from file:", error)
+    throw error
+  }
+}
+
 // Diese Funktion aktiviert eine Pumpe für eine bestimmte Zeit
 async function activatePump(pin: number, durationMs: number) {
   try {
+    const { fs, path, execPromise } = await getNodeModules()
+
     console.log(`[PUMP DEBUG] ==========================================`)
     console.log(`[PUMP DEBUG] Aktiviere Pumpe an GPIO Pin ${pin} für ${durationMs}ms`)
     console.log(`[PUMP DEBUG] Aktueller Arbeitsordner: ${process.cwd()}`)
@@ -352,6 +377,37 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     console.error("Error updating levels:", error)
   }
 
+  try {
+    const statisticsLog = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      cocktailId: cocktail.id,
+      cocktailName: cocktail.name,
+      size,
+      timestamp: new Date().toISOString(),
+      ingredients: levelUpdates.map((update) => {
+        const pump = pumpConfig.find((p) => p.id === update.pumpId)
+        return {
+          ingredientId: pump?.ingredient || `pump-${update.pumpId}`,
+          amount: update.amount,
+        }
+      }),
+    }
+
+    const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/statistics`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(statisticsLog),
+    })
+
+    if (statsResponse.ok) {
+      console.log("[v0] Statistik erfolgreich protokolliert")
+    } else {
+      console.error("Fehler beim Protokollieren der Statistik:", statsResponse.statusText)
+    }
+  } catch (error) {
+    console.error("Error logging statistics:", error)
+  }
+
   return { success: true }
 }
 
@@ -419,6 +475,7 @@ export async function calibratePumpAction(pumpId: number, durationMs: number) {
       console.warn(`[CALIBRATE DEBUG] ⚠️  Pumpe ${pumpId} ist deaktiviert (enabled: false)`)
     }
 
+    const { fs, path, execPromise } = await getNodeModules()
     const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
 
@@ -467,6 +524,7 @@ export async function cleanPumpAction(pumpId: number, durationMs: number) {
     }
 
     // Aktiviere die Pumpe über das Python-Skript
+    const { fs, path, execPromise } = await getNodeModules()
     const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
 
@@ -507,6 +565,7 @@ export async function ventPumpAction(pumpId: number, durationMs: number) {
     }
 
     // Aktiviere die Pumpe über das Python-Skript
+    const { fs, path, execPromise } = await getNodeModules()
     const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
 

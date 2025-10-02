@@ -81,6 +81,12 @@ export const defaultTabConfig: AppConfig = {
       passwordProtected: true,
     },
     {
+      id: "statistics",
+      name: "Statistik",
+      location: "service",
+      passwordProtected: true,
+    },
+    {
       id: "service",
       name: "Servicemenü",
       location: "main",
