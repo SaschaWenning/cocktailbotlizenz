@@ -377,38 +377,17 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     console.error("Error updating levels:", error)
   }
 
-  try {
-    const statisticsLog = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      cocktailId: cocktail.id,
-      cocktailName: cocktail.name,
-      size,
-      timestamp: new Date().toISOString(),
-      ingredients: levelUpdates.map((update) => {
-        const pump = pumpConfig.find((p) => p.id === update.pumpId)
-        return {
-          ingredientId: pump?.ingredient || `pump-${update.pumpId}`,
-          amount: update.amount,
-        }
-      }),
-    }
-
-    const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/statistics`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(statisticsLog),
-    })
-
-    if (statsResponse.ok) {
-      console.log("[v0] Statistik erfolgreich protokolliert")
-    } else {
-      console.error("Fehler beim Protokollieren der Statistik:", statsResponse.statusText)
-    }
-  } catch (error) {
-    console.error("Error logging statistics:", error)
+  // Return ingredient usage data so client can save statistics
+  return {
+    success: true,
+    ingredientUsage: levelUpdates.map((update) => {
+      const pump = pumpConfig.find((p) => p.id === update.pumpId)
+      return {
+        ingredientId: pump?.ingredient || `pump-${update.pumpId}`,
+        amount: update.amount,
+      }
+    }),
   }
-
-  return { success: true }
 }
 
 export async function makeSingleShotAction(ingredientId: string, amount = 40, pumpConfig: PumpConfig[]) {
