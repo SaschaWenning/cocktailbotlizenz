@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Key, Save, Eye, EyeOff } from "lucide-react"
+import { Key, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import AlphaKeyboard from "./alpha-keyboard"
 
@@ -163,25 +163,8 @@ export default function PasswordSettings() {
                 onBackspace={handleBackspace}
                 onClear={handleClear}
                 onConfirm={handleSavePassword}
+                onCancel={handleCancelEdit}
               />
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <Button
-                onClick={handleCancelEdit}
-                variant="outline"
-                className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
-              >
-                Abbrechen
-              </Button>
-              <Button
-                onClick={handleSavePassword}
-                disabled={!newPassword.trim()}
-                className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Speichern
-              </Button>
             </div>
           </div>
         </DialogContent>

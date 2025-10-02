@@ -179,7 +179,11 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         setImageUrl(keyboardValue)
         break
       case "newSize":
-        setNewSizeInput(keyboardValue)
+        const value = Number.parseInt(keyboardValue)
+        if (value > 0) {
+          addSize(value)
+          setNewSizeInput("")
+        }
         break
       default:
         if (keyboardMode.startsWith("amount-")) {
@@ -432,7 +436,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
       <div className="space-y-2">
         <Label className="text-white">Cocktailgrößen für dieses Rezept</Label>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <Input
             value={newSizeInput}
             onClick={() => openKeyboard("newSize", newSizeInput, true)}
@@ -440,19 +444,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             className="bg-white border-[hsl(var(--cocktail-card-border))] text-black h-10 flex-1 cursor-pointer"
             placeholder="ml eingeben"
           />
-          <Button
-            type="button"
-            onClick={() => {
-              const value = Number.parseInt(newSizeInput)
-              if (value > 0) {
-                addSize(value)
-                setNewSizeInput("")
-              }
-            }}
-            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
         </div>
         {sizes.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
@@ -497,7 +488,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             key={index}
             className="grid grid-cols-12 gap-2 items-center p-3 bg-[hsl(var(--cocktail-card-bg))] rounded-lg border border-[hsl(var(--cocktail-card-border))]"
           >
-            <div className="col-span-4">
+            <div className="col-span-5">
               <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
                 <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
                   <SelectValue />
@@ -515,7 +506,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2">
+            <div className="col-span-1">
               <Input
                 type="text"
                 value={item.amount}
@@ -524,8 +515,18 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
               />
             </div>
-            <div className="col-span-1 text-sm text-white">ml</div>
-            <div className="col-span-2">
+            <div className="col-span-2 flex items-center gap-2">
+              <span className="text-sm text-white">ml</span>
+              <div className="flex flex-col items-center gap-1">
+                <Checkbox
+                  checked={item.delayed || false}
+                  onCheckedChange={(checked) => handleDelayedChange(index, checked as boolean)}
+                  className="!w-1.5 !h-1.5 border-white data-[state=checked]:bg-[hsl(var(--cocktail-primary))] data-[state=checked]:border-[hsl(var(--cocktail-primary))]"
+                />
+                <span className="text-xs text-white">Verzögert</span>
+              </div>
+            </div>
+            <div className="col-span-3">
               <Select
                 value={item.type}
                 onValueChange={(value: "automatic" | "manual") => handleTypeChange(index, value)}
@@ -542,16 +543,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="col-span-1 flex justify-center">
-              <div className="flex flex-col items-center gap-1">
-                <Checkbox
-                  checked={item.delayed || false}
-                  onCheckedChange={(checked) => handleDelayedChange(index, checked as boolean)}
-                  className="w-3 h-3 border-white data-[state=checked]:bg-[hsl(var(--cocktail-primary))] data-[state=checked]:border-[hsl(var(--cocktail-primary))]"
-                />
-                <span className="text-xs text-white">Verzögert</span>
-              </div>
             </div>
             <div className="col-span-1">
               <Button
@@ -601,10 +592,13 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
         <div className="flex-1 flex flex-col gap-2">
           {keys.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex gap-1 justify-center flex-1">
+            <div
+              key={rowIndex}
+              className={`flex ${isNumericKeyboard ? "gap-3 justify-center" : "gap-1 justify-center"} flex-1`}
+            >
               {row.map((key) => {
                 let displayKey = key
-                if (key.length === 1 && key.match(/[a-z]/)) {
+                if (key.length === 1 && key.match(/[A-Za-z]/)) {
                   const shouldShowUppercase =
                     (isShiftActive && !isCapsLockActive) || (!isShiftActive && isCapsLockActive)
                   displayKey = shouldShowUppercase ? key.toUpperCase() : key.toLowerCase()
@@ -615,7 +609,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                     key={key}
                     type="button"
                     onClick={() => handleKeyPress(key)}
-                    className="flex-1 text-sm bg-gray-700 hover:bg-gray-600 text-white min-h-0 h-8"
+                    className={`${isNumericKeyboard ? "w-20 h-12" : "flex-1 h-12"} text-sm bg-gray-700 hover:bg-gray-600 text-white min-h-0`}
                   >
                     {displayKey}
                   </Button>
@@ -632,7 +626,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             <Button
               type="button"
               onClick={handleShift}
-              className={`h-8 text-white flex flex-col items-center justify-center ${
+              className={`h-12 text-white flex flex-col items-center justify-center ${
                 isShiftActive ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"
               }`}
             >
@@ -642,7 +636,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             <Button
               type="button"
               onClick={handleCapsLock}
-              className={`h-8 text-white flex flex-col items-center justify-center ${
+              className={`h-12 text-white flex flex-col items-center justify-center ${
                 isCapsLockActive ? "bg-orange-600 hover:bg-orange-700" : "bg-gray-700 hover:bg-gray-600"
               }`}
             >
@@ -655,7 +649,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         <Button
           type="button"
           onClick={handleBackspace}
-          className="h-8 bg-red-700 hover:bg-red-600 text-white flex flex-col items-center justify-center"
+          className="h-12 bg-red-700 hover:bg-red-600 text-white flex flex-col items-center justify-center"
         >
           <ArrowLeft className="h-3 w-3" />
           <span className="text-xs">Back</span>
@@ -663,7 +657,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         <Button
           type="button"
           onClick={handleClear}
-          className="h-8 bg-yellow-700 hover:bg-yellow-600 text-white flex flex-col items-center justify-center"
+          className="h-12 bg-yellow-700 hover:bg-yellow-600 text-white flex flex-col items-center justify-center"
         >
           <X className="h-3 w-3" />
           <span className="text-xs">Clear</span>
@@ -671,14 +665,14 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         <Button
           type="button"
           onClick={handleKeyboardCancel}
-          className="h-8 bg-gray-700 hover:bg-gray-600 text-white flex flex-col items-center justify-center"
+          className="h-12 bg-gray-700 hover:bg-gray-600 text-white flex flex-col items-center justify-center"
         >
           <span className="text-xs">Cancel</span>
         </Button>
         <Button
           type="button"
           onClick={handleKeyboardConfirm}
-          className="h-8 bg-green-700 hover:bg-green-600 text-white flex flex-col items-center justify-center"
+          className="h-12 bg-green-700 hover:bg-green-600 text-white flex flex-col items-center justify-center"
         >
           <Check className="h-3 w-3" />
           <span className="text-xs">OK</span>

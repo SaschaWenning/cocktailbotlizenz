@@ -17,6 +17,7 @@ import {
   setIngredientLevels,
   type IngredientLevel,
 } from "@/lib/ingredient-level-service"
+import { getIngredientById } from "@/lib/ingredients"
 
 export function IngredientLevels() {
   const [levels, setLevels] = useState<IngredientLevel[]>([])
@@ -88,49 +89,37 @@ export function IngredientLevels() {
   const loadLevels = async () => {
     const nowTs = Date.now()
     if (fillingRef.current || editingRef.current || nowTs < skipReloadUntil.current) {
-      addDebugLog("Skipping loadLevels: filling/editing or skip window active")
       return
     }
     try {
-      addDebugLog("Loading levels from API...")
       const response = await fetch("/api/ingredient-levels")
-      addDebugLog(`API response status: ${response.status}`)
 
       if (response.ok) {
         const data = await response.json()
-        addDebugLog(`API response: ${JSON.stringify(data).substring(0, 100)}...`)
 
         if (data.success && data.levels) {
-          addDebugLog(`Setting ${data.levels.length} levels from API`)
           setLevels(data.levels)
           await setIngredientLevels(data.levels)
           return
-        } else {
-          addDebugLog(`API response invalid: success=${data.success}, levels=${!!data.levels}`)
         }
-      } else {
-        addDebugLog(`API request failed with status ${response.status}`)
       }
-    } catch (error) {
-      addDebugLog(`API error: ${error}`)
-    }
+    } catch (error) {}
 
-    addDebugLog("Falling back to localStorage")
     const currentLevels = getIngredientLevels()
-    addDebugLog(`localStorage has ${currentLevels.length} levels`)
     setLevels(currentLevels)
   }
 
   const handleManualRefresh = async () => {
-    addDebugLog("Manual refresh triggered")
     setIsRefreshing(true)
     await loadLevels()
     setTimeout(() => setIsRefreshing(false), 500)
   }
 
   const getIngredientDisplayName = (ingredientId: string) => {
-    const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
-    if (!pump) return ingredientId
+    const ingredient = getIngredientById(ingredientId)
+    if (ingredient) {
+      return ingredient.name
+    }
 
     return ingredientId
       .split("-")
@@ -167,26 +156,23 @@ export function IngredientLevels() {
 
   const handleSave = async () => {
     try {
-      addDebugLog("Saving changes...")
       if (editingLevel) {
         const newLevel = Number.parseInt(tempValue) || 0
-        addDebugLog(`Updating level for pump ${editingLevel} to ${newLevel}ml`)
         await updateIngredientLevel(editingLevel, newLevel)
       } else if (editingSize) {
         const newSize = Number.parseInt(tempValue) || 100
-        addDebugLog(`Updating size for pump ${editingSize} to ${newSize}ml`)
         await updateContainerSize(editingSize, newSize)
       } else if (editingName) {
-        addDebugLog(`Updating name for pump ${editingName} to ${tempValue}`)
         await updateIngredientName(editingName, tempValue)
       }
 
-      addDebugLog("Reloading levels after save...")
       await loadLevels()
+
+      console.log("[v0] Ingredient-Levels: Triggering cocktail data refresh")
+      window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
+
       handleCancel()
-    } catch (error) {
-      addDebugLog(`Save error: ${error}`)
-    }
+    } catch (error) {}
   }
 
   const handleCancel = () => {
@@ -199,27 +185,23 @@ export function IngredientLevels() {
 
   const handleResetAll = async () => {
     try {
-      addDebugLog("Resetting all levels...")
       await resetAllLevels()
       await loadLevels()
-    } catch (error) {
-      addDebugLog(`Reset error: ${error}`)
-    }
+    } catch (error) {}
   }
 
   const handleFillAll = async () => {
     try {
       setIsFilling(true)
-      addDebugLog("Filling all levels to container size (batch)…")
       const now = new Date()
       const next = levels.map((l) => ({ ...l, currentLevel: Math.max(0, l.containerSize), lastUpdated: now }))
-      // optimistisches UI-Update
       setLevels(next)
       await setIngredientLevels(next)
       skipReloadUntil.current = Date.now() + 800
-      addDebugLog("All levels filled and saved")
+
+      console.log("[v0] Ingredient-Levels: Triggering cocktail data refresh after fill all")
+      window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
     } catch (error) {
-      addDebugLog(`Fill all error: ${error}`)
     } finally {
       setIsFilling(false)
     }
@@ -233,7 +215,6 @@ export function IngredientLevels() {
         setIsFilling(false)
         return
       }
-      addDebugLog(`Filling pump ${pumpId} to ${target.containerSize}ml (batch)…`)
       const now = new Date()
       const next = levels.map((l) =>
         l.pumpId === pumpId ? { ...l, currentLevel: Math.max(0, target.containerSize), lastUpdated: now } : l,
@@ -241,8 +222,10 @@ export function IngredientLevels() {
       setLevels(next)
       await setIngredientLevels(next)
       skipReloadUntil.current = Date.now() + 800
+
+      console.log("[v0] Ingredient-Levels: Triggering cocktail data refresh after single fill")
+      window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
     } catch (error) {
-      addDebugLog(`Fill single error: ${error}`)
     } finally {
       setIsFilling(false)
     }
@@ -316,13 +299,20 @@ export function IngredientLevels() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-xl text-[hsl(var(--cocktail-text))] font-bold flex justify-between items-center">
                     <span className="truncate">{displayName}</span>
+                    <Button
+                      size="sm"
+                      onClick={() => handleFillSingle(level.pumpId)}
+                      className="h-8 px-3 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black text-xs font-semibold"
+                    >
+                      Auffüllen
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
                       <span>Füllstand:</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 ml-auto">
                         <Button
                           size="sm"
                           variant="ghost"
@@ -330,13 +320,6 @@ export function IngredientLevels() {
                           className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
                         >
                           {level.currentLevel}ml
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleFillSingle(level.pumpId)}
-                          className="h-6 px-2 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black text-xs"
-                        >
-                          Auffüllen
                         </Button>
                       </div>
                     </div>
@@ -353,14 +336,16 @@ export function IngredientLevels() {
 
                   <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
                     <span>Behältergröße:</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleSizeEdit(level.pumpId)}
-                      className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
-                    >
-                      {level.containerSize}ml
-                    </Button>
+                    <div className="ml-auto">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleSizeEdit(level.pumpId)}
+                        className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                      >
+                        {level.containerSize}ml
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="text-xs text-[hsl(var(--cocktail-text-muted))] text-center">
@@ -425,34 +410,34 @@ export function IngredientLevels() {
 
                   <div className="flex justify-center gap-1">
                     <Button
-                      onClick={() => setTempValue(tempValue.slice(0, -1))}
+                      onClick={() => setTempValue("")}
                       className="flex-1 h-8 text-sm bg-red-600 text-white hover:bg-red-700"
+                      title="Löschen"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={() => setTempValue(tempValue.slice(0, -1))}
+                      className="flex-1 h-8 text-sm bg-gray-600 text-white hover:bg-gray-700"
+                      title="Zurück"
                     >
                       <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <Button
-                      onClick={() => setTempValue("")}
-                      className="flex-1 h-8 text-sm bg-yellow-600 text-white hover:bg-yellow-700"
+                      onClick={handleCancel}
+                      className="flex-1 h-8 text-sm bg-orange-600 text-white hover:bg-orange-700"
+                      title="Abbrechen"
                     >
-                      <X className="h-4 w-4" />
+                      Abb
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      className="flex-1 h-8 text-sm bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-bold"
+                      title="Speichern"
+                    >
+                      Speichern
                     </Button>
                   </div>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    onClick={handleSave}
-                    className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-bold py-3 rounded-lg text-base h-12"
-                  >
-                    Speichern
-                  </Button>
-                  <Button
-                    onClick={handleCancel}
-                    variant="outline"
-                    className="flex-1 border-2 border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] font-bold py-3 rounded-lg bg-transparent text-[hsl(var(--cocktail-text))] text-base h-12"
-                  >
-                    Abbrechen
-                  </Button>
                 </div>
               </div>
             </div>

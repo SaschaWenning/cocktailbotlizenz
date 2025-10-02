@@ -57,6 +57,8 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
       })
 
       setHiddenCocktails(updatedHiddenCocktails)
+
+      window.dispatchEvent(new CustomEvent("hidden-cocktails-changed"))
     } catch (error) {
       console.error("Error showing cocktail:", error)
     } finally {

@@ -225,7 +225,11 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
         setImageUrl(keyboardValue)
         break
       case "newSize":
-        setNewSizeValue(keyboardValue)
+        const value = Number.parseInt(keyboardValue)
+        if (value > 0) {
+          addSize(value)
+          setNewSizeValue("")
+        }
         break
       default:
         if (keyboardMode.startsWith("amount-")) {
@@ -544,7 +548,10 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
 
             <div className="flex-1 flex flex-col gap-2">
               {keys.map((row, rowIndex) => (
-                <div key={rowIndex} className="flex gap-1 justify-center flex-1">
+                <div
+                  key={rowIndex}
+                  className={`flex ${isNumericKeyboard ? "gap-3 justify-center" : "gap-1 justify-center"} flex-1`}
+                >
                   {row.map((key) => {
                     let displayKey = key
                     if (key.length === 1 && key.match(/[a-z]/)) {
@@ -558,7 +565,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
                         key={key}
                         type="button"
                         onClick={() => handleKeyPress(key)}
-                        className="flex-1 text-sm bg-gray-700 hover:bg-gray-600 text-white min-h-0 h-8"
+                        className={`${isNumericKeyboard ? "w-20 h-12" : "flex-1 h-12"} text-sm bg-gray-700 hover:bg-gray-600 text-white min-h-0`}
                       >
                         {displayKey}
                       </Button>
@@ -575,7 +582,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
                 <Button
                   type="button"
                   onClick={handleShift}
-                  className={`h-8 text-white flex flex-col items-center justify-center ${
+                  className={`h-12 text-white flex flex-col items-center justify-center ${
                     isShiftActive ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"
                   }`}
                 >
@@ -585,7 +592,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
                 <Button
                   type="button"
                   onClick={handleCapsLock}
-                  className={`h-8 text-white flex flex-col items-center justify-center ${
+                  className={`h-12 text-white flex flex-col items-center justify-center ${
                     isCapsLockActive ? "bg-orange-600 hover:bg-orange-700" : "bg-gray-700 hover:bg-gray-600"
                   }`}
                 >
@@ -598,7 +605,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
             <Button
               type="button"
               onClick={handleBackspace}
-              className="h-8 bg-red-700 hover:bg-red-600 text-white flex flex-col items-center justify-center"
+              className="h-12 bg-red-700 hover:bg-red-600 text-white flex flex-col items-center justify-center"
             >
               <ArrowLeft className="h-3 w-3" />
               <span className="text-xs">Back</span>
@@ -606,7 +613,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
             <Button
               type="button"
               onClick={handleClear}
-              className="h-8 bg-yellow-700 hover:bg-yellow-600 text-white flex flex-col items-center justify-center"
+              className="h-12 bg-yellow-700 hover:bg-yellow-600 text-white flex flex-col items-center justify-center"
             >
               <X className="h-3 w-3" />
               <span className="text-xs">Clear</span>
@@ -614,14 +621,14 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
             <Button
               type="button"
               onClick={handleKeyboardCancel}
-              className="h-8 bg-gray-700 hover:bg-gray-600 text-white flex flex-col items-center justify-center"
+              className="h-12 bg-gray-700 hover:bg-gray-600 text-white flex flex-col items-center justify-center"
             >
               <span className="text-xs">Cancel</span>
             </Button>
             <Button
               type="button"
               onClick={handleKeyboardConfirm}
-              className="h-8 bg-green-700 hover:bg-green-600 text-white flex flex-col items-center justify-center"
+              className="h-12 bg-green-700 hover:bg-green-600 text-white flex flex-col items-center justify-center"
             >
               <Check className="h-3 w-3" />
               <span className="text-xs">OK</span>
