@@ -15,8 +15,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { BarChart3, TrendingUp, Droplet, RefreshCw, Trash2, Euro, Settings } from "lucide-react"
-import type { StatisticsData, IngredientPrice } from "@/types/statistics"
+import type { StatisticsData, IngredientPrice, CocktailPreparationLog } from "@/types/statistics"
+import { ingredients as allIngredientsData } from "@/data/ingredients"
+import VirtualKeyboard from "./virtual-keyboard"
 
 const STORAGE_KEY = "cocktailbot-statistics"
 const PRICES_KEY = "cocktailbot-prices"
@@ -28,19 +31,73 @@ export default function Statistics() {
   const [ingredientPrices, setIngredientPrices] = useState<IngredientPrice[]>([])
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [savingPrices, setSavingPrices] = useState(false)
-  const [allIngredients, setAllIngredients] = useState<Array<{ id: string; name: string }>>([])
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [keyboardValue, setKeyboardValue] = useState("")
+  const [currentEditingIngredient, setCurrentEditingIngredient] = useState<string | null>(null)
 
-  const loadAllIngredients = async () => {
-    try {
-      const response = await fetch("/api/ingredients")
-      if (response.ok) {
-        const data = await response.json()
-        setAllIngredients(data.ingredients || [])
-        console.log("[v0] Loaded all ingredients:", data.ingredients?.length)
+  const processStatistics = (logs: CocktailPreparationLog[]) => {
+    // Generate cocktail statistics
+    const cocktailMap = new Map<string, { name: string; count: number; volume: number; lastPrepared: string }>()
+
+    logs.forEach((log) => {
+      const existing = cocktailMap.get(log.cocktailId)
+      if (existing) {
+        existing.count++
+        existing.volume += log.size
+        if (new Date(log.timestamp) > new Date(existing.lastPrepared)) {
+          existing.lastPrepared = log.timestamp
+        }
+      } else {
+        cocktailMap.set(log.cocktailId, {
+          name: log.cocktailName,
+          count: 1,
+          volume: log.size,
+          lastPrepared: log.timestamp,
+        })
       }
-    } catch (error) {
-      console.error("[v0] Error loading ingredients:", error)
-    }
+    })
+
+    const cocktailStats = Array.from(cocktailMap.entries())
+      .map(([id, data]) => ({
+        cocktailId: id,
+        cocktailName: data.name,
+        preparationCount: data.count,
+        totalVolume: data.volume,
+        lastPrepared: data.lastPrepared,
+      }))
+      .sort((a, b) => b.preparationCount - a.preparationCount)
+
+    // Generate ingredient consumption statistics
+    const ingredientMap = new Map<string, { amount: number; count: number }>()
+
+    logs.forEach((log) => {
+      log.ingredients.forEach((ingredient) => {
+        const existing = ingredientMap.get(ingredient.ingredientId)
+        if (existing) {
+          existing.amount += ingredient.amount
+          existing.count++
+        } else {
+          ingredientMap.set(ingredient.ingredientId, {
+            amount: ingredient.amount,
+            count: 1,
+          })
+        }
+      })
+    })
+
+    const ingredientConsumption = Array.from(ingredientMap.entries())
+      .map(([id, data]) => {
+        const ingredientInfo = allIngredientsData.find((ing) => ing.id === id)
+        return {
+          ingredientId: id,
+          ingredientName: ingredientInfo?.name || id,
+          totalAmount: data.amount,
+          usageCount: data.count,
+        }
+      })
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+
+    return { cocktailStats, ingredientConsumption }
   }
 
   const loadStatistics = () => {
@@ -53,7 +110,22 @@ export default function Statistics() {
 
       if (stored) {
         const data = JSON.parse(stored)
-        setStatistics(data)
+        if (data.logs && data.logs.length > 0) {
+          const { cocktailStats, ingredientConsumption } = processStatistics(data.logs)
+          setStatistics({
+            logs: data.logs,
+            cocktailStats,
+            ingredientConsumption,
+            ingredientPrices: data.ingredientPrices || [],
+          })
+        } else {
+          setStatistics({
+            logs: [],
+            cocktailStats: [],
+            ingredientConsumption: [],
+            ingredientPrices: [],
+          })
+        }
       } else {
         setStatistics({
           logs: [],
@@ -143,9 +215,31 @@ export default function Statistics() {
     }, 0)
   }
 
+  const openKeyboard = (ingredientId: string) => {
+    const currentPrice = ingredientPrices.find((p) => p.ingredientId === ingredientId)?.pricePerLiter || 0
+    setCurrentEditingIngredient(ingredientId)
+    setKeyboardValue(currentPrice > 0 ? currentPrice.toString() : "")
+    setShowKeyboard(true)
+  }
+
+  const handleKeyboardConfirm = () => {
+    if (currentEditingIngredient) {
+      const price = Number.parseFloat(keyboardValue) || 0
+      updatePrice(currentEditingIngredient, price)
+    }
+    setShowKeyboard(false)
+    setKeyboardValue("")
+    setCurrentEditingIngredient(null)
+  }
+
+  const handleKeyboardCancel = () => {
+    setShowKeyboard(false)
+    setKeyboardValue("")
+    setCurrentEditingIngredient(null)
+  }
+
   useEffect(() => {
     loadStatistics()
-    loadAllIngredients()
   }, [])
 
   if (loading) {
@@ -230,53 +324,49 @@ export default function Statistics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {allIngredients.length === 0 ? (
-              <p style={{ color: "hsl(var(--cocktail-text-muted))" }}>Lade Zutaten...</p>
-            ) : (
-              <div className="space-y-4">
-                <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
-                  {allIngredients.map((ingredient) => {
-                    const currentPrice =
-                      ingredientPrices.find((p) => p.ingredientId === ingredient.id)?.pricePerLiter || 0
+            <div className="space-y-4">
+              <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
+                {allIngredientsData.map((ingredient) => {
+                  const currentPrice =
+                    ingredientPrices.find((p) => p.ingredientId === ingredient.id)?.pricePerLiter || 0
 
-                    return (
-                      <div key={ingredient.id} className="flex items-center gap-4">
-                        <Label className="flex-1" style={{ color: "hsl(var(--cocktail-text))" }}>
-                          {ingredient.name}
-                        </Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={currentPrice}
-                            onChange={(e) => updatePrice(ingredient.id, Number.parseFloat(e.target.value) || 0)}
-                            className="w-32 border"
-                            style={{
-                              backgroundColor: "hsl(var(--cocktail-button-bg))",
-                              color: "hsl(var(--cocktail-text))",
-                              borderColor: "hsl(var(--cocktail-card-border))",
-                            }}
-                          />
-                          <span style={{ color: "hsl(var(--cocktail-text-muted))" }}>€/L</span>
-                        </div>
+                  return (
+                    <div key={ingredient.id} className="flex items-center gap-4">
+                      <Label className="flex-1" style={{ color: "hsl(var(--cocktail-text))" }}>
+                        {ingredient.name}
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          value={currentPrice > 0 ? currentPrice.toFixed(2) : ""}
+                          readOnly
+                          onClick={() => openKeyboard(ingredient.id)}
+                          placeholder="0.00"
+                          className="w-32 border cursor-pointer"
+                          style={{
+                            backgroundColor: "hsl(var(--cocktail-button-bg))",
+                            color: "hsl(var(--cocktail-text))",
+                            borderColor: "hsl(var(--cocktail-card-border))",
+                          }}
+                        />
+                        <span style={{ color: "hsl(var(--cocktail-text-muted))" }}>€/L</span>
                       </div>
-                    )
-                  })}
-                </div>
-                <Button
-                  onClick={savePrices}
-                  disabled={savingPrices}
-                  className="w-full"
-                  style={{
-                    backgroundColor: "hsl(var(--cocktail-primary))",
-                    color: "black",
-                  }}
-                >
-                  {savingPrices ? "Speichern..." : "Preise speichern"}
-                </Button>
+                    </div>
+                  )
+                })}
               </div>
-            )}
+              <Button
+                onClick={savePrices}
+                disabled={savingPrices}
+                className="w-full"
+                style={{
+                  backgroundColor: "hsl(var(--cocktail-primary))",
+                  color: "black",
+                }}
+              >
+                {savingPrices ? "Speichern..." : "Preise speichern"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -584,6 +674,54 @@ export default function Statistics() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Keyboard dialog for price input */}
+      <Dialog open={showKeyboard} onOpenChange={(open) => !open && handleKeyboardCancel()}>
+        <DialogContent
+          className="bg-black border-[hsl(var(--cocktail-card-border))] sm:max-w-md text-white"
+          style={{
+            backgroundColor: "hsl(var(--cocktail-card-bg))",
+            borderColor: "hsl(var(--cocktail-card-border))",
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle style={{ color: "hsl(var(--cocktail-text))" }}>Preis eingeben</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
+              {currentEditingIngredient &&
+                `Preis für ${allIngredientsData.find((i) => i.id === currentEditingIngredient)?.name || "Zutat"} (€/L):`}
+            </p>
+
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                value={keyboardValue}
+                readOnly
+                placeholder="0.00"
+                className="text-xl h-12 text-center border"
+                style={{
+                  backgroundColor: "hsl(var(--cocktail-bg))",
+                  borderColor: "hsl(var(--cocktail-card-border))",
+                  color: "hsl(var(--cocktail-text))",
+                }}
+              />
+              <span className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
+                €/L
+              </span>
+            </div>
+
+            <VirtualKeyboard
+              layout="numeric"
+              value={keyboardValue}
+              onChange={setKeyboardValue}
+              onConfirm={handleKeyboardConfirm}
+              onCancel={handleKeyboardCancel}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
