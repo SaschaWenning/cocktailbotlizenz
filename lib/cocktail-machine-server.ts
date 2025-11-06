@@ -147,7 +147,7 @@ export async function saveRecipe(cocktail: Cocktail) {
     const { fs, path } = await getNodeModules()
     const COCKTAILS_PATH = getCocktailsPath()
 
-    console.log("Speichere Rezept:", cocktail)
+    console.log("[v0] saveRecipe - Cocktail to save:", JSON.stringify(cocktail, null, 2))
 
     // Stelle sicher, dass das Verzeichnis existiert
     fs.mkdirSync(path.dirname(COCKTAILS_PATH), { recursive: true })
@@ -285,8 +285,28 @@ async function activatePump(pin: number, durationMs: number) {
   }
 }
 
+async function sendLightingCommand(command: string) {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/lighting-control`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command }),
+      },
+    )
+    if (!response.ok) {
+      console.warn(`Failed to send lighting command: ${command}`)
+    }
+  } catch (error) {
+    console.warn(`Error sending lighting command: ${error}`)
+  }
+}
+
 export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
   console.log(`Bereite Cocktail zu: ${cocktail.name} (${size}ml)`)
+
+  await sendLightingCommand("BLINK")
 
   // Skaliere das Rezept auf die gewünschte Größe
   const currentTotal = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
@@ -356,6 +376,8 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     }
   }
 
+  await sendLightingCommand("STOP_BLINK")
+
   // Aktualisiere die Füllstände über API
   try {
     const response = await fetch(
@@ -377,21 +399,13 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     console.error("Error updating levels:", error)
   }
 
-  // Return ingredient usage data so client can save statistics
-  return {
-    success: true,
-    ingredientUsage: levelUpdates.map((update) => {
-      const pump = pumpConfig.find((p) => p.id === update.pumpId)
-      return {
-        ingredientId: pump?.ingredient || `pump-${update.pumpId}`,
-        amount: update.amount,
-      }
-    }),
-  }
+  return { success: true }
 }
 
 export async function makeSingleShotAction(ingredientId: string, amount = 40, pumpConfig: PumpConfig[]) {
   console.log(`Bereite Shot zu: ${ingredientId} (${amount}ml)`)
+
+  await sendLightingCommand("BLINK")
 
   // Finde die Pumpe für diese Zutat
   const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
@@ -407,6 +421,8 @@ export async function makeSingleShotAction(ingredientId: string, amount = 40, pu
 
   // Aktiviere die Pumpe
   await activatePump(pump.pin, pumpTimeMs)
+
+  await sendLightingCommand("STOP_BLINK")
 
   // Aktualisiere den Füllstand über API
   try {

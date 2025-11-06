@@ -82,7 +82,7 @@ export const defaultTabConfig: AppConfig = {
     },
     {
       id: "statistics",
-      name: "Statistik",
+      name: "Statistiken",
       location: "service",
       passwordProtected: true,
     },
