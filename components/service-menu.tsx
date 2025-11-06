@@ -159,9 +159,6 @@ export default function ServiceMenu({
         )
       case "beleuchtung":
         return <LightingControl />
-      case "statistics":
-      case "statistik":
-        return <Statistics />
       case "venting":
       case "entlueften":
         return <PumpVenting pumpConfig={pumpConfig} />
@@ -226,6 +223,9 @@ export default function ServiceMenu({
             }}
           />
         )
+      case "statistics":
+      case "statistiken":
+        return <Statistics cocktails={cocktails} pumpConfig={pumpConfig} />
       default:
         return null
     }

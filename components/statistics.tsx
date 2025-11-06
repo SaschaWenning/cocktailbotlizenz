@@ -1,727 +1,469 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { BarChart3, TrendingUp, Droplet, RefreshCw, Trash2, Euro, Settings } from "lucide-react"
-import type { StatisticsData, IngredientPrice, CocktailPreparationLog } from "@/types/statistics"
-import { ingredients as allIngredientsData } from "@/data/ingredients"
-import VirtualKeyboard from "./virtual-keyboard"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { AlertCircle, RotateCcw, Euro } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import type { Cocktail } from "@/types/cocktail"
+import type { PumpConfig } from "@/types/pump"
+import { getAllIngredients } from "@/lib/ingredients"
 
-const STORAGE_KEY = "cocktailbot-statistics"
-const PRICES_KEY = "cocktailbot-prices"
+interface CocktailStat {
+  cocktailId: string
+  cocktailName: string
+  count: number
+}
 
-export default function Statistics() {
-  const [statistics, setStatistics] = useState<StatisticsData | null>(null)
+interface IngredientPrice {
+  ingredientId: string
+  ingredientName: string
+  pricePerLiter: number
+}
+
+interface Statistics {
+  cocktails: CocktailStat[]
+  ingredientPrices: IngredientPrice[]
+  lastUpdated: string
+}
+
+interface StatisticsProps {
+  cocktails: Cocktail[]
+  pumpConfig: PumpConfig[]
+}
+
+export default function Statistics({ cocktails, pumpConfig }: StatisticsProps) {
+  const [statistics, setStatistics] = useState<Statistics | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showPriceSettings, setShowPriceSettings] = useState(false)
-  const [ingredientPrices, setIngredientPrices] = useState<IngredientPrice[]>([])
-  const [showResetDialog, setShowResetDialog] = useState(false)
-  const [savingPrices, setSavingPrices] = useState(false)
-  const [showKeyboard, setShowKeyboard] = useState(false)
-  const [keyboardValue, setKeyboardValue] = useState("")
-  const [currentEditingIngredient, setCurrentEditingIngredient] = useState<string | null>(null)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [showPriceModal, setShowPriceModal] = useState(false)
+  const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null)
+  const [editingIngredientName, setEditingIngredientName] = useState<string>("")
+  const [priceInput, setPriceInput] = useState("")
 
-  const processStatistics = (logs: CocktailPreparationLog[]) => {
-    // Generate cocktail statistics
-    const cocktailMap = new Map<string, { name: string; count: number; volume: number; lastPrepared: string }>()
+  const STORAGE_KEY = "cocktail_statistics"
 
-    logs.forEach((log) => {
-      const existing = cocktailMap.get(log.cocktailId)
-      if (existing) {
-        existing.count++
-        existing.volume += log.size
-        if (new Date(log.timestamp) > new Date(existing.lastPrepared)) {
-          existing.lastPrepared = log.timestamp
-        }
-      } else {
-        cocktailMap.set(log.cocktailId, {
-          name: log.cocktailName,
-          count: 1,
-          volume: log.size,
-          lastPrepared: log.timestamp,
-        })
-      }
-    })
+  const getIngredientName = (ingredientId: string): string => {
+    const allIngredients = getAllIngredients()
+    const ingredient = allIngredients.find((i) => i.id === ingredientId)
+    return ingredient ? ingredient.name : ingredientId
+  }
 
-    const cocktailStats = Array.from(cocktailMap.entries())
-      .map(([id, data]) => ({
-        cocktailId: id,
-        cocktailName: data.name,
-        preparationCount: data.count,
-        totalVolume: data.volume,
-        lastPrepared: data.lastPrepared,
+  const getIngredientList = () => {
+    return pumpConfig
+      .filter((pump) => pump.enabled)
+      .map((pump) => ({
+        ingredientId: pump.ingredient,
+        ingredientName: getIngredientName(pump.ingredient),
       }))
-      .sort((a, b) => b.preparationCount - a.preparationCount)
-
-    // Generate ingredient consumption statistics
-    const ingredientMap = new Map<string, { amount: number; count: number }>()
-
-    logs.forEach((log) => {
-      log.ingredients.forEach((ingredient) => {
-        const existing = ingredientMap.get(ingredient.ingredientId)
-        if (existing) {
-          existing.amount += ingredient.amount
-          existing.count++
-        } else {
-          ingredientMap.set(ingredient.ingredientId, {
-            amount: ingredient.amount,
-            count: 1,
-          })
-        }
-      })
-    })
-
-    const ingredientConsumption = Array.from(ingredientMap.entries())
-      .map(([id, data]) => {
-        const ingredientInfo = allIngredientsData.find((ing) => ing.id === id)
-        return {
-          ingredientId: id,
-          ingredientName: ingredientInfo?.name || id,
-          totalAmount: data.amount,
-          usageCount: data.count,
-        }
-      })
-      .sort((a, b) => b.totalAmount - a.totalAmount)
-
-    return { cocktailStats, ingredientConsumption }
   }
 
   const loadStatistics = () => {
     try {
       setLoading(true)
-
-      // Load from localStorage
       const stored = localStorage.getItem(STORAGE_KEY)
-      const storedPrices = localStorage.getItem(PRICES_KEY)
-
       if (stored) {
-        const data = JSON.parse(stored)
-        if (data.logs && data.logs.length > 0) {
-          const { cocktailStats, ingredientConsumption } = processStatistics(data.logs)
-          setStatistics({
-            logs: data.logs,
-            cocktailStats,
-            ingredientConsumption,
-            ingredientPrices: data.ingredientPrices || [],
-          })
-        } else {
-          setStatistics({
-            logs: [],
-            cocktailStats: [],
-            ingredientConsumption: [],
-            ingredientPrices: [],
-          })
-        }
+        const data: Statistics = JSON.parse(stored)
+        setStatistics(data)
       } else {
-        setStatistics({
-          logs: [],
-          cocktailStats: [],
-          ingredientConsumption: [],
+        const emptyStats: Statistics = {
+          cocktails: [],
           ingredientPrices: [],
-        })
+          lastUpdated: new Date().toISOString(),
+        }
+        setStatistics(emptyStats)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyStats))
       }
-
-      if (storedPrices) {
-        const prices = JSON.parse(storedPrices)
-        setIngredientPrices(prices)
-        console.log("[v0] Loaded saved prices:", prices.length)
-      }
-
-      console.log("[v0] Loaded statistics from localStorage")
+      console.log("[v0] Statistics loaded successfully")
     } catch (error) {
       console.error("[v0] Error loading statistics:", error)
-      setStatistics({
-        logs: [],
-        cocktailStats: [],
-        ingredientConsumption: [],
+      const emptyStats: Statistics = {
+        cocktails: [],
         ingredientPrices: [],
-      })
+        lastUpdated: new Date().toISOString(),
+      }
+      setStatistics(emptyStats)
     } finally {
       setLoading(false)
     }
   }
 
-  const savePrices = () => {
+  const saveStatistics = (stats: Statistics) => {
     try {
-      setSavingPrices(true)
-      localStorage.setItem(PRICES_KEY, JSON.stringify(ingredientPrices))
-      console.log("[v0] Saved prices to localStorage:", ingredientPrices.length)
-
-      // Update statistics with new prices
-      if (statistics) {
-        const updated = { ...statistics, ingredientPrices }
-        setStatistics(updated)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stats))
+      console.log("[v0] Statistics saved successfully")
     } catch (error) {
-      console.error("[v0] Error saving prices:", error)
-    } finally {
-      setSavingPrices(false)
+      console.error("[v0] Error saving statistics:", error)
     }
-  }
-
-  const resetStatistics = () => {
-    try {
-      const emptyStats = {
-        logs: [],
-        cocktailStats: [],
-        ingredientConsumption: [],
-        ingredientPrices,
-      }
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyStats))
-      setStatistics(emptyStats)
-      setShowResetDialog(false)
-
-      console.log("[v0] Reset statistics, kept prices")
-    } catch (error) {
-      console.error("[v0] Error resetting statistics:", error)
-    }
-  }
-
-  const updatePrice = (ingredientId: string, price: number) => {
-    setIngredientPrices((prev) => {
-      const existing = prev.find((p) => p.ingredientId === ingredientId)
-      if (existing) {
-        return prev.map((p) => (p.ingredientId === ingredientId ? { ...p, pricePerLiter: price } : p))
-      } else {
-        return [...prev, { ingredientId, pricePerLiter: price }]
-      }
-    })
-  }
-
-  const calculateTotalCost = () => {
-    if (!statistics) return 0
-    return statistics.ingredientConsumption.reduce((total, ingredient) => {
-      const price = ingredientPrices.find((p) => p.ingredientId === ingredient.ingredientId)
-      if (price) {
-        return total + (ingredient.totalAmount / 1000) * price.pricePerLiter
-      }
-      return total
-    }, 0)
-  }
-
-  const openKeyboard = (ingredientId: string) => {
-    const currentPrice = ingredientPrices.find((p) => p.ingredientId === ingredientId)?.pricePerLiter || 0
-    setCurrentEditingIngredient(ingredientId)
-    setKeyboardValue(currentPrice > 0 ? currentPrice.toString() : "")
-    setShowKeyboard(true)
-  }
-
-  const handleKeyboardConfirm = () => {
-    if (currentEditingIngredient) {
-      const price = Number.parseFloat(keyboardValue) || 0
-      updatePrice(currentEditingIngredient, price)
-    }
-    setShowKeyboard(false)
-    setKeyboardValue("")
-    setCurrentEditingIngredient(null)
-  }
-
-  const handleKeyboardCancel = () => {
-    setShowKeyboard(false)
-    setKeyboardValue("")
-    setCurrentEditingIngredient(null)
   }
 
   useEffect(() => {
     loadStatistics()
   }, [])
 
+  const handleResetStatistics = () => {
+    if (!statistics) return
+
+    try {
+      const newStats: Statistics = {
+        cocktails: [],
+        ingredientPrices: statistics.ingredientPrices,
+        lastUpdated: new Date().toISOString(),
+      }
+      saveStatistics(newStats)
+      setStatistics(newStats)
+      setShowResetConfirm(false)
+    } catch (error) {
+      console.error("[v0] Error resetting statistics:", error)
+    }
+  }
+
+  const handleKeyPress = (key: string) => {
+    if (key === ",") {
+      if (!priceInput.includes(",")) {
+        setPriceInput((prev) => prev + key)
+      }
+    } else if (/^\d$/.test(key)) {
+      setPriceInput((prev) => prev + key)
+    }
+  }
+
+  const handleBackspace = () => {
+    setPriceInput((prev) => prev.slice(0, -1))
+  }
+
+  const handleClear = () => {
+    setPriceInput("")
+  }
+
+  const handleSavePrice = () => {
+    if (!statistics || !editingIngredientId || !priceInput) return
+
+    try {
+      const price = Number.parseFloat(priceInput.replace(",", "."))
+      if (isNaN(price) || price < 0) return
+
+      const updatedStats = { ...statistics }
+      const existingPrice = updatedStats.ingredientPrices.find((p) => p.ingredientId === editingIngredientId)
+
+      if (existingPrice) {
+        existingPrice.pricePerLiter = price
+      } else {
+        updatedStats.ingredientPrices.push({
+          ingredientId: editingIngredientId,
+          ingredientName: editingIngredientName,
+          pricePerLiter: price,
+        })
+      }
+
+      updatedStats.lastUpdated = new Date().toISOString()
+      saveStatistics(updatedStats)
+      setStatistics(updatedStats)
+
+      setEditingIngredientId(null)
+      setPriceInput("")
+    } catch (error) {
+      console.error("[v0] Error saving price:", error)
+    }
+  }
+
+  const handleOpenPriceInput = (ingredientId: string, ingredientName: string) => {
+    const existingPrice = statistics?.ingredientPrices.find((p) => p.ingredientId === ingredientId)
+    setEditingIngredientId(ingredientId)
+    setEditingIngredientName(ingredientName)
+    setPriceInput(existingPrice ? existingPrice.pricePerLiter.toString().replace(".", ",") : "0,00")
+    console.log("[v0] Opening price input for:", ingredientId, ingredientName)
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-center space-y-4">
-          <BarChart3 className="h-16 w-16 mx-auto animate-pulse" style={{ color: "hsl(var(--cocktail-primary))" }} />
-          <p style={{ color: "hsl(var(--cocktail-text-muted))" }}>Lade Statistiken...</p>
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <div className="text-[hsl(var(--cocktail-text-muted))]">Lade Statistiken...</div>
       </div>
     )
   }
 
-  const hasStatistics = statistics && statistics.logs.length > 0
-  const totalCocktails = statistics?.logs.length || 0
-  const totalVolume = statistics?.logs.reduce((sum, log) => sum + log.size, 0) || 0
-  const totalCost = calculateTotalCost()
+  if (!statistics) {
+    return <div className="text-center text-[hsl(var(--cocktail-text-muted))]">Keine Statistiken verfügbar</div>
+  }
+
+  const allIngredients = getIngredientList()
+  const sortedCocktails = [...statistics.cocktails].sort((a, b) => b.count - a.count)
+  const totalCost = allIngredients.reduce((sum, ing) => {
+    const price = statistics.ingredientPrices.find((p) => p.ingredientId === ing.ingredientId)
+    return sum + (price ? 1 * price.pricePerLiter : 0)
+  }, 0)
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-2xl font-bold" style={{ color: "hsl(var(--cocktail-text))" }}>
-          Statistiken
-        </h3>
-        <div className="flex gap-3">
+        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Statistiken</h2>
+        <div className="flex gap-2">
           <Button
-            onClick={() => setShowPriceSettings(!showPriceSettings)}
-            variant="outline"
-            className="border bg-transparent"
-            style={{
-              backgroundColor: showPriceSettings ? "hsl(var(--cocktail-primary))" : "hsl(var(--cocktail-button-bg))",
-              color: showPriceSettings ? "black" : "hsl(var(--cocktail-text))",
-              borderColor: "hsl(var(--cocktail-card-border))",
-            }}
+            onClick={() => setShowPriceModal(true)}
+            className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary))]/90 text-black"
           >
-            <Settings className="h-4 w-4 mr-2" />
-            Preise
+            <Euro className="h-4 w-4 mr-2" />€ Preise eingeben
           </Button>
           <Button
-            onClick={loadStatistics}
-            variant="outline"
-            className="border bg-transparent"
-            style={{
-              backgroundColor: "hsl(var(--cocktail-button-bg))",
-              color: "hsl(var(--cocktail-text))",
-              borderColor: "hsl(var(--cocktail-card-border))",
-            }}
+            onClick={() => setShowResetConfirm(true)}
+            variant="destructive"
+            className="bg-red-600 hover:bg-red-700 text-white"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Aktualisieren
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Zurücksetzen
           </Button>
-          {hasStatistics && (
-            <Button
-              onClick={() => setShowResetDialog(true)}
-              variant="outline"
-              className="border bg-transparent"
-              style={{
-                backgroundColor: "hsl(var(--cocktail-button-bg))",
-                color: "hsl(var(--cocktail-error))",
-                borderColor: "hsl(var(--cocktail-error))",
-              }}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Zurücksetzen
-            </Button>
-          )}
         </div>
       </div>
 
-      {showPriceSettings && (
-        <Card
-          className="border"
-          style={{
-            backgroundColor: "hsl(var(--cocktail-card-bg))",
-            borderColor: "hsl(var(--cocktail-card-border))",
-          }}
-        >
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2" style={{ color: "hsl(var(--cocktail-text))" }}>
-              <Euro className="h-5 w-5" style={{ color: "hsl(var(--cocktail-primary))" }} />
-              Literpreise konfigurieren
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
-                {allIngredientsData.map((ingredient) => {
-                  const currentPrice =
-                    ingredientPrices.find((p) => p.ingredientId === ingredient.id)?.pricePerLiter || 0
+      {/* Cocktail-Statistiken */}
+      <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+        <CardHeader>
+          <CardTitle className="text-[hsl(var(--cocktail-text))]">
+            Cocktails zubereitet ({sortedCocktails.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sortedCocktails.length === 0 ? (
+            <p className="text-[hsl(var(--cocktail-text-muted))]">Noch keine Cocktails zubereitet</p>
+          ) : (
+            <div className="space-y-2">
+              {sortedCocktails.map((cocktail, index) => (
+                <div
+                  key={cocktail.cocktailId}
+                  className="flex justify-between items-center p-3 rounded-lg bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))]"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-[hsl(var(--cocktail-primary))] font-bold">{index + 1}.</span>
+                    <span className="text-[hsl(var(--cocktail-text))]">{cocktail.cocktailName}</span>
+                  </div>
+                  <span className="text-[hsl(var(--cocktail-primary))] font-bold text-lg">{cocktail.count}x</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-                  return (
-                    <div key={ingredient.id} className="flex items-center gap-4">
-                      <Label className="flex-1" style={{ color: "hsl(var(--cocktail-text))" }}>
-                        {ingredient.name}
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="text"
-                          value={currentPrice > 0 ? currentPrice.toFixed(2) : ""}
-                          readOnly
-                          onClick={() => openKeyboard(ingredient.id)}
-                          placeholder="0.00"
-                          className="w-32 border cursor-pointer"
-                          style={{
-                            backgroundColor: "hsl(var(--cocktail-button-bg))",
-                            color: "hsl(var(--cocktail-text))",
-                            borderColor: "hsl(var(--cocktail-card-border))",
-                          }}
-                        />
-                        <span style={{ color: "hsl(var(--cocktail-text-muted))" }}>€/L</span>
+      {/* Zutaten-Statistiken */}
+      <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+        <CardHeader>
+          <CardTitle className="text-[hsl(var(--cocktail-text))]">Zutatenverbrauch</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {allIngredients.length === 0 ? (
+            <p className="text-[hsl(var(--cocktail-text-muted))]">Keine Zutaten konfiguriert</p>
+          ) : (
+            <div className="space-y-3">
+              {allIngredients.map((ingredient) => {
+                const price = statistics.ingredientPrices.find((p) => p.ingredientId === ingredient.ingredientId)
+
+                return (
+                  <div
+                    key={ingredient.ingredientId}
+                    className="p-4 rounded-lg bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))]"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h4 className="text-[hsl(var(--cocktail-text))] font-medium">{ingredient.ingredientName}</h4>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[hsl(var(--cocktail-primary))] font-bold text-lg">
+                          {price ? price.pricePerLiter.toFixed(2) : "0.00"}€
+                        </p>
                       </div>
                     </div>
+                    <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
+                      <span>0.00L verbraucht</span>
+                      <span>{price?.pricePerLiter.toFixed(2) || "0.00"}€/L</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Kosten-Übersicht */}
+      <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+        <CardHeader>
+          <CardTitle className="text-[hsl(var(--cocktail-text))]">Kosten-Übersicht</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center">
+            <p className="text-[hsl(var(--cocktail-text-muted))] mb-2">Gesamtkosten aller Zutaten</p>
+            <p className="text-4xl font-bold text-[hsl(var(--cocktail-primary))]">{totalCost.toFixed(2)}€</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Preiseingabe Modal - zeigt nur Zutaten an */}
+      {showPriceModal && editingIngredientId === null && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="bg-black border-[hsl(var(--cocktail-card-border))] max-w-md max-h-[70vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="text-[hsl(var(--cocktail-text))]">Zutatenpreise eingeben</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {allIngredients.length === 0 ? (
+                <p className="text-[hsl(var(--cocktail-text-muted))]">Keine Zutaten verfügbar</p>
+              ) : (
+                allIngredients.map((ingredient) => {
+                  const price = statistics.ingredientPrices.find((p) => p.ingredientId === ingredient.ingredientId)
+                  return (
+                    <Button
+                      key={ingredient.ingredientId}
+                      onClick={() => handleOpenPriceInput(ingredient.ingredientId, ingredient.ingredientName)}
+                      variant="outline"
+                      className="w-full justify-between h-12 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                    >
+                      <span>{ingredient.ingredientName}</span>
+                      <span className="text-[hsl(var(--cocktail-primary))] font-bold">
+                        {price?.pricePerLiter.toFixed(2) || "0.00"}€/L
+                      </span>
+                    </Button>
                   )
-                })}
-              </div>
+                })
+              )}
               <Button
-                onClick={savePrices}
-                disabled={savingPrices}
-                className="w-full"
-                style={{
-                  backgroundColor: "hsl(var(--cocktail-primary))",
-                  color: "black",
-                }}
+                onClick={() => setShowPriceModal(false)}
+                className="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white"
               >
-                {savingPrices ? "Speichern..." : "Preise speichern"}
+                Fertig
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {editingIngredientId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-[hsl(var(--cocktail-text))] font-bold mb-2">Preis für</h3>
+            <p className="text-[hsl(var(--cocktail-primary))] font-bold text-lg mb-4">{editingIngredientName}</p>
+
+            <div className="mb-6">
+              <div className="text-center p-4 rounded bg-[hsl(var(--cocktail-bg))] border border-[hsl(var(--cocktail-card-border))]">
+                <input
+                  type="text"
+                  value={priceInput}
+                  readOnly
+                  className="w-full text-center text-3xl font-bold text-[hsl(var(--cocktail-primary))] bg-transparent outline-none"
+                />
+                <p className="text-[hsl(var(--cocktail-text-muted))] text-sm">€ pro Liter</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              {/* Row 1 */}
+              <div className="flex gap-1">
+                {["1", "2", "3"].map((key) => (
+                  <Button
+                    key={key}
+                    onClick={() => handleKeyPress(key)}
+                    className="flex-1 h-12 text-lg bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                  >
+                    {key}
+                  </Button>
+                ))}
+              </div>
+              {/* Row 2 */}
+              <div className="flex gap-1">
+                {["4", "5", "6"].map((key) => (
+                  <Button
+                    key={key}
+                    onClick={() => handleKeyPress(key)}
+                    className="flex-1 h-12 text-lg bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                  >
+                    {key}
+                  </Button>
+                ))}
+              </div>
+              {/* Row 3 */}
+              <div className="flex gap-1">
+                {["7", "8", "9"].map((key) => (
+                  <Button
+                    key={key}
+                    onClick={() => handleKeyPress(key)}
+                    className="flex-1 h-12 text-lg bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                  >
+                    {key}
+                  </Button>
+                ))}
+              </div>
+              {/* Row 4 - Comma, 0, Backspace */}
+              <div className="flex gap-1">
+                <Button
+                  onClick={() => handleKeyPress(",")}
+                  className="flex-1 h-12 text-lg bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                >
+                  ,
+                </Button>
+                <Button
+                  onClick={() => handleKeyPress("0")}
+                  className="flex-1 h-12 text-lg bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                >
+                  0
+                </Button>
+                <Button
+                  onClick={handleBackspace}
+                  className="flex-1 h-12 text-lg bg-red-600 text-white hover:bg-red-700"
+                >
+                  ←
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  setEditingIngredientId(null)
+                  setPriceInput("")
+                }}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white"
+              >
+                Abbrechen
+              </Button>
+              <Button onClick={handleSavePrice} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold">
+                Speichern
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!hasStatistics ? (
-        <div className="flex flex-col items-center justify-center py-16 space-y-6">
-          <BarChart3 className="h-16 w-16" style={{ color: "hsl(var(--cocktail-text-muted))" }} />
-          <h3 className="text-xl font-semibold" style={{ color: "hsl(var(--cocktail-text))" }}>
-            Noch keine Statistiken
-          </h3>
-          <p style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-            Bereiten Sie Cocktails zu, um Statistiken zu sehen.
-          </p>
-          <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-            Sie können bereits jetzt Preise für Zutaten konfigurieren.
-          </p>
+          </div>
         </div>
-      ) : (
-        <>
-          {/* Übersicht */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card
-              className="border"
-              style={{
-                backgroundColor: "hsl(var(--cocktail-card-bg))",
-                borderColor: "hsl(var(--cocktail-card-border))",
-              }}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: "hsl(var(--cocktail-button-bg))" }}
-                  >
-                    <BarChart3 className="h-6 w-6" style={{ color: "hsl(var(--cocktail-primary))" }} />
-                  </div>
-                  <div>
-                    <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-                      Zubereitete Cocktails
-                    </p>
-                    <p className="text-2xl font-bold" style={{ color: "hsl(var(--cocktail-text))" }}>
-                      {totalCocktails}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="border"
-              style={{
-                backgroundColor: "hsl(var(--cocktail-card-bg))",
-                borderColor: "hsl(var(--cocktail-card-border))",
-              }}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: "hsl(var(--cocktail-button-bg))" }}
-                  >
-                    <Droplet className="h-6 w-6" style={{ color: "hsl(var(--cocktail-primary))" }} />
-                  </div>
-                  <div>
-                    <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-                      Gesamtvolumen
-                    </p>
-                    <p className="text-2xl font-bold" style={{ color: "hsl(var(--cocktail-text))" }}>
-                      {(totalVolume / 1000).toFixed(2)}L
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="border"
-              style={{
-                backgroundColor: "hsl(var(--cocktail-card-bg))",
-                borderColor: "hsl(var(--cocktail-card-border))",
-              }}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: "hsl(var(--cocktail-button-bg))" }}
-                  >
-                    <TrendingUp className="h-6 w-6" style={{ color: "hsl(var(--cocktail-primary))" }} />
-                  </div>
-                  <div>
-                    <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-                      Verschiedene Cocktails
-                    </p>
-                    <p className="text-2xl font-bold" style={{ color: "hsl(var(--cocktail-text))" }}>
-                      {statistics.cocktailStats.length}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="border"
-              style={{
-                backgroundColor: "hsl(var(--cocktail-card-bg))",
-                borderColor: "hsl(var(--cocktail-card-border))",
-              }}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: "hsl(var(--cocktail-button-bg))" }}
-                  >
-                    <Euro className="h-6 w-6" style={{ color: "hsl(var(--cocktail-primary))" }} />
-                  </div>
-                  <div>
-                    <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-                      Gesamtkosten
-                    </p>
-                    <p className="text-2xl font-bold" style={{ color: "hsl(var(--cocktail-text))" }}>
-                      {totalCost > 0 ? `${totalCost.toFixed(2)}€` : "-"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Cocktail-Statistiken */}
-          <Card
-            className="border"
-            style={{
-              backgroundColor: "hsl(var(--cocktail-card-bg))",
-              borderColor: "hsl(var(--cocktail-card-border))",
-            }}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2" style={{ color: "hsl(var(--cocktail-text))" }}>
-                <TrendingUp className="h-5 w-5" style={{ color: "hsl(var(--cocktail-primary))" }} />
-                Cocktail-Rangliste
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {statistics.cocktailStats.map((stat, index) => {
-                  const maxCount = statistics.cocktailStats[0]?.preparationCount || 1
-                  const percentage = (stat.preparationCount / maxCount) * 100
-
-                  return (
-                    <div
-                      key={stat.cocktailId}
-                      className="p-4 rounded-lg border"
-                      style={{
-                        backgroundColor: "hsl(var(--cocktail-button-bg))",
-                        borderColor: "hsl(var(--cocktail-card-border))",
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="text-lg font-bold w-8 h-8 rounded-full flex items-center justify-center"
-                            style={{
-                              backgroundColor:
-                                index === 0 ? "hsl(var(--cocktail-primary))" : "hsl(var(--cocktail-card-bg))",
-                              color: index === 0 ? "black" : "hsl(var(--cocktail-text))",
-                            }}
-                          >
-                            {index + 1}
-                          </span>
-                          <div>
-                            <p className="font-semibold" style={{ color: "hsl(var(--cocktail-text))" }}>
-                              {stat.cocktailName}
-                            </p>
-                            <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-                              {stat.preparationCount}x zubereitet • {(stat.totalVolume / 1000).toFixed(2)}L gesamt
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-xl font-bold" style={{ color: "hsl(var(--cocktail-primary))" }}>
-                          {stat.preparationCount}
-                        </span>
-                      </div>
-                      <div
-                        className="h-2 rounded-full overflow-hidden"
-                        style={{ backgroundColor: "hsl(var(--cocktail-card-bg))" }}
-                      >
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${percentage}%`,
-                            backgroundColor: "hsl(var(--cocktail-primary))",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Zutaten-Verbrauch */}
-          <Card
-            className="border"
-            style={{
-              backgroundColor: "hsl(var(--cocktail-card-bg))",
-              borderColor: "hsl(var(--cocktail-card-border))",
-            }}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2" style={{ color: "hsl(var(--cocktail-text))" }}>
-                <Droplet className="h-5 w-5" style={{ color: "hsl(var(--cocktail-primary))" }} />
-                Zutaten-Verbrauch
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {statistics.ingredientConsumption.map((ingredient) => {
-                  const maxAmount = statistics.ingredientConsumption[0]?.totalAmount || 1
-                  const percentage = (ingredient.totalAmount / maxAmount) * 100
-                  const price = ingredientPrices.find((p) => p.ingredientId === ingredient.ingredientId)
-                  const cost = price ? (ingredient.totalAmount / 1000) * price.pricePerLiter : 0
-
-                  return (
-                    <div
-                      key={ingredient.ingredientId}
-                      className="p-4 rounded-lg border"
-                      style={{
-                        backgroundColor: "hsl(var(--cocktail-button-bg))",
-                        borderColor: "hsl(var(--cocktail-card-border))",
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="font-semibold" style={{ color: "hsl(var(--cocktail-text))" }}>
-                            {ingredient.ingredientName}
-                          </p>
-                          <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-                            {ingredient.usageCount}x verwendet
-                            {cost > 0 && ` • ${cost.toFixed(2)}€`}
-                          </p>
-                        </div>
-                        <span className="text-lg font-bold" style={{ color: "hsl(var(--cocktail-primary))" }}>
-                          {(ingredient.totalAmount / 1000).toFixed(2)}L
-                        </span>
-                      </div>
-                      <div
-                        className="h-2 rounded-full overflow-hidden"
-                        style={{ backgroundColor: "hsl(var(--cocktail-card-bg))" }}
-                      >
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${percentage}%`,
-                            backgroundColor: "hsl(var(--cocktail-primary))",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </>
       )}
 
-      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-        <AlertDialogContent
-          style={{
-            backgroundColor: "hsl(var(--cocktail-card-bg))",
-            borderColor: "hsl(var(--cocktail-card-border))",
-          }}
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle style={{ color: "hsl(var(--cocktail-text))" }}>
-              Statistiken zurücksetzen?
-            </AlertDialogTitle>
-            <AlertDialogDescription style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-              Möchten Sie wirklich alle Statistiken zurücksetzen? Diese Aktion kann nicht rückgängig gemacht werden.
-              Alle Zubereitungsdaten gehen verloren. Die gespeicherten Preise bleiben erhalten.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              style={{
-                backgroundColor: "hsl(var(--cocktail-button-bg))",
-                color: "hsl(var(--cocktail-text))",
-                borderColor: "hsl(var(--cocktail-card-border))",
-              }}
-            >
-              Abbrechen
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={resetStatistics}
-              style={{
-                backgroundColor: "hsl(var(--cocktail-error))",
-                color: "white",
-              }}
-            >
-              Zurücksetzen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Reset Bestätigung */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="bg-black border-[hsl(var(--cocktail-card-border))] max-w-sm">
+            <CardHeader>
+              <CardTitle className="text-[hsl(var(--cocktail-text))]">Statistiken zurücksetzen?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Alert className="mb-6 bg-red-600/10 border-red-600/30">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-600">
+                  Dies setzt alle Cocktail- und Zutatenstatistiken zurück. Die Preise bleiben erhalten.
+                </AlertDescription>
+              </Alert>
 
-      {/* Keyboard dialog for price input */}
-      <Dialog open={showKeyboard} onOpenChange={(open) => !open && handleKeyboardCancel()}>
-        <DialogContent
-          className="bg-black border-[hsl(var(--cocktail-card-border))] sm:max-w-md text-white"
-          style={{
-            backgroundColor: "hsl(var(--cocktail-card-bg))",
-            borderColor: "hsl(var(--cocktail-card-border))",
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle style={{ color: "hsl(var(--cocktail-text))" }}>Preis eingeben</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-              {currentEditingIngredient &&
-                `Preis für ${allIngredientsData.find((i) => i.id === currentEditingIngredient)?.name || "Zutat"} (€/L):`}
-            </p>
-
-            <div className="flex items-center gap-2">
-              <Input
-                type="text"
-                value={keyboardValue}
-                readOnly
-                placeholder="0.00"
-                className="text-xl h-12 text-center border"
-                style={{
-                  backgroundColor: "hsl(var(--cocktail-bg))",
-                  borderColor: "hsl(var(--cocktail-card-border))",
-                  color: "hsl(var(--cocktail-text))",
-                }}
-              />
-              <span className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
-                €/L
-              </span>
-            </div>
-
-            <VirtualKeyboard
-              layout="numeric"
-              value={keyboardValue}
-              onChange={setKeyboardValue}
-              onConfirm={handleKeyboardConfirm}
-              onCancel={handleKeyboardCancel}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                >
+                  Abbrechen
+                </Button>
+                <Button onClick={handleResetStatistics} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
+                  Zurücksetzen
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
