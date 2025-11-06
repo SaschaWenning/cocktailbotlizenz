@@ -31,6 +31,7 @@ import PumpCalibration from "@/components/pump-calibration"
 import { Progress } from "@/components/ui/progress"
 import { Check, GlassWater } from "lucide-react"
 import TermsOfService from "@/components/terms-of-service"
+import LightingControl from "@/components/lighting-control"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -504,6 +505,20 @@ export default function Home() {
     setManualIngredients([])
 
     try {
+      console.log("[v0] Activating cocktail preparation lighting...")
+      const lightingResponse = await fetch("/api/lighting-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "cocktailPreparation" }),
+      })
+      if (!lightingResponse.ok) {
+        console.error("[v0] Failed to activate preparation lighting:", await lightingResponse.text())
+      }
+    } catch (error) {
+      console.error("[v0] Error activating preparation lighting:", error)
+    }
+
+    try {
       const currentPumpConfig = pumpConfig
 
       const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
@@ -548,6 +563,50 @@ export default function Home() {
       clearInterval(intervalId)
       setProgress(100)
 
+      try {
+        const ingredients = cocktail.recipe.map((item) => {
+          const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + it.amount, 0)
+          const scaleFactor = selectedSize / totalRecipeVolume
+          const scaledAmount = Math.round(item.amount * scaleFactor)
+          const ingredient = allIngredientsData.find((i) => i.id === item.ingredientId)
+
+          return {
+            ingredientId: item.ingredientId,
+            ingredientName: ingredient?.name || item.ingredientId,
+            amount: scaledAmount,
+          }
+        })
+
+        await fetch("/api/statistics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "addCocktail",
+            data: {
+              cocktailId: cocktail.id,
+              cocktailName: cocktail.name,
+              ingredients,
+            },
+          }),
+        })
+      } catch (error) {
+        console.error("[v0] Error tracking cocktail in statistics:", error)
+      }
+
+      try {
+        console.log("[v0] Activating cocktail finished lighting...")
+        const lightingResponse = await fetch("/api/lighting-control", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "cocktailFinished" }),
+        })
+        if (!lightingResponse.ok) {
+          console.error("[v0] Failed to activate finished lighting:", await lightingResponse.text())
+        }
+      } catch (error) {
+        console.error("[v0] Error activating finished lighting:", error)
+      }
+
       if (manualRecipeItems.length > 0) {
         setStatusMessage(
           `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
@@ -577,6 +636,12 @@ export default function Home() {
           setIsMaking(false)
           setShowSuccess(false)
           setSelectedCocktail(null)
+
+          fetch("/api/lighting-control", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: "idle" }),
+          }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
         },
         manualRecipeItems.length > 0 ? 8000 : 3000,
       )
@@ -587,6 +652,13 @@ export default function Home() {
       setStatusMessage("Fehler bei der Zubereitung!")
       setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
       setManualIngredients([])
+
+      fetch("/api/lighting-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "idle" }),
+      }).catch((err) => console.error("[v0] Error returning to idle lighting:", err))
+
       setTimeout(() => setIsMaking(false), 3000)
     }
   }
@@ -633,7 +705,8 @@ export default function Home() {
     )
 
     for (const recipeItem of cocktail.recipe) {
-      if (recipeItem.manual) {
+      if (recipeItem.manual === true) {
+        console.log("[v0] Main page: Skipping manual ingredient", recipeItem.ingredientId)
         continue
       }
 
@@ -1187,6 +1260,8 @@ export default function Home() {
             onShotComplete={loadIngredientLevels}
           />
         )
+      case "beleuchtung":
+        return <LightingControl />
       case "service":
         return (
           <ServiceMenu
