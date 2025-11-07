@@ -1,8 +1,46 @@
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
 
+// Helper function to save statistics to localStorage
+function saveStatistics(
+  cocktail: Cocktail,
+  size: number,
+  ingredientUsage: Array<{ ingredientId: string; amount: number }>,
+  category: "cocktails" | "virgin" | "shots" = "cocktails",
+) {
+  try {
+    const statisticsLog = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      cocktailId: cocktail.id,
+      cocktailName: cocktail.name,
+      category,
+      size,
+      timestamp: new Date().toISOString(),
+      ingredients: ingredientUsage,
+    }
+
+    // Load existing statistics
+    const existingData = localStorage.getItem("cocktailbot-statistics")
+    const statistics = existingData ? JSON.parse(existingData) : { logs: [] }
+
+    // Add new log
+    statistics.logs.push(statisticsLog)
+
+    // Save back to localStorage
+    localStorage.setItem("cocktailbot-statistics", JSON.stringify(statistics))
+    console.log("[v0] Statistics saved to localStorage:", statisticsLog)
+  } catch (error) {
+    console.error("[v0] Error saving statistics:", error)
+  }
+}
+
 // Client-compatible functions that call API endpoints instead of server actions
-export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
+export async function makeCocktail(
+  cocktail: Cocktail,
+  pumpConfig: PumpConfig[],
+  size = 300,
+  category: "cocktails" | "virgin" | "shots" = "cocktails",
+) {
   const response = await fetch("/api/make-cocktail", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -13,7 +51,13 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
     throw new Error(`Failed to make cocktail: ${response.statusText}`)
   }
 
-  return await response.json()
+  const result = await response.json()
+
+  if (result.success && result.ingredientUsage) {
+    saveStatistics(cocktail, size, result.ingredientUsage, category)
+  }
+
+  return result
 }
 
 export async function makeSingleShot(ingredientId: string, amount = 40, pumpConfig: PumpConfig[]) {
