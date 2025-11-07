@@ -6,7 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Lightbulb, Zap, Palette, Save, RotateCcw, Play, Sparkles } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
-import { type LightingConfig, defaultConfig } from "@/lib/lighting-config-types"
+import type { LightingConfig } from "@/types/lighting-config" // Assuming the interface is moved to a separate file
+
+const defaultConfig: LightingConfig = {
+  cocktailPreparation: {
+    color: "#00ff00",
+    blinking: false,
+  },
+  cocktailFinished: {
+    color: "#0000ff",
+    blinking: true,
+  },
+  idleMode: {
+    scheme: "rainbow",
+    colors: ["#ff0000", "#00ff00", "#0000ff"],
+  },
+  brightness: 255,
+}
 
 const colorPresets = [
   { name: "Rot", value: "#ff0000" },
@@ -275,7 +291,6 @@ export default function LightingControl() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* Cocktail-Zubereitung */}
         <Card className="bg-gradient-to-br from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-card-bg))]/80 border-[hsl(var(--cocktail-card-border))]/50 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-lg text-[hsl(var(--cocktail-text))]">
@@ -337,7 +352,6 @@ export default function LightingControl() {
           </CardContent>
         </Card>
 
-        {/* Cocktail fertig */}
         <Card className="bg-gradient-to-br from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-card-bg))]/80 border-[hsl(var(--cocktail-card-border))]/50 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-lg text-[hsl(var(--cocktail-text))]">
@@ -397,7 +411,6 @@ export default function LightingControl() {
           </CardContent>
         </Card>
 
-        {/* Idle-Modus */}
         <Card className="bg-gradient-to-br from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-card-bg))]/80 border-[hsl(var(--cocktail-card-border))]/50 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-lg text-[hsl(var(--cocktail-text))]">
