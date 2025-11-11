@@ -524,6 +524,18 @@ export default function Home() {
       clearInterval(intervalId)
       setProgress(100)
 
+      console.log("[v0] Activating finished lighting mode")
+      try {
+        await fetch("/api/lighting-control", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "cocktailFinished" }),
+        })
+      } catch (error) {
+        console.error("[v0] Error activating finished lighting:", error)
+      }
+      // </CHANGE>
+
       if (manualRecipeItems.length > 0) {
         setStatusMessage(
           `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
@@ -548,14 +560,21 @@ export default function Home() {
       console.log("[v0] Triggering cocktail-data-refresh event after cocktail preparation")
       window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
 
-      setTimeout(
-        () => {
-          setIsMaking(false)
-          setShowSuccess(false)
-          setSelectedCocktail(null)
-        },
-        manualRecipeItems.length > 0 ? 8000 : 3000,
-      )
+      const displayDuration = manualRecipeItems.length > 0 ? 8000 : 3000
+      setTimeout(() => {
+        setIsMaking(false)
+        setShowSuccess(false)
+        setSelectedCocktail(null)
+
+        // Return to saved idle mode
+        console.log("[v0] Returning to idle lighting mode")
+        fetch("/api/lighting-control", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "idle" }),
+        }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
+      }, displayDuration)
+      // </CHANGE>
     } catch (error) {
       let intervalId: NodeJS.Timeout
       clearInterval(intervalId)
