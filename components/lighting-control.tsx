@@ -4,25 +4,9 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Lightbulb, Zap, Palette, Save, RotateCcw, Play, Sparkles } from "lucide-react"
+import { Lightbulb, Zap, Palette, Save, RotateCcw, Play, Loader2 } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
-import type { LightingConfig } from "@/types/lighting-config" // Assuming the interface is moved to a separate file
-
-const defaultConfig: LightingConfig = {
-  cocktailPreparation: {
-    color: "#00ff00",
-    blinking: false,
-  },
-  cocktailFinished: {
-    color: "#0000ff",
-    blinking: true,
-  },
-  idleMode: {
-    scheme: "rainbow",
-    colors: ["#ff0000", "#00ff00", "#0000ff"],
-  },
-  brightness: 255,
-}
+import { type LightingConfig, defaultConfig } from "@/lib/lighting-config-types"
 
 const colorPresets = [
   { name: "Rot", value: "#ff0000" },
@@ -39,8 +23,8 @@ const colorPresets = [
 
 const idleSchemes = [
   { name: "Regenbogen", value: "rainbow", icon: "🌈" },
-  { name: "Sanft", value: "soft", icon: "✨" },
-  { name: "Pulsieren", value: "pulse", icon: "💫" },
+  { name: "Pulsieren", value: "pulse", icon: "✨" },
+  { name: "Blitz", value: "blink", icon: "⚡" },
   { name: "Statisch", value: "static", icon: "⚪" },
   { name: "Aus", value: "off", icon: "⚫" },
 ]
@@ -49,6 +33,7 @@ export default function LightingControl() {
   const [config, setConfig] = useState<LightingConfig>(defaultConfig)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [applying, setApplying] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const [originalConfig, setOriginalConfig] = useState<LightingConfig>(defaultConfig)
 
@@ -81,6 +66,8 @@ export default function LightingControl() {
   const saveConfig = async () => {
     try {
       setSaving(true)
+      console.log("[v0] Saving config:", config)
+
       const response = await fetch("/api/lighting-config", {
         method: "POST",
         headers: {
@@ -96,6 +83,7 @@ export default function LightingControl() {
           title: "Gespeichert",
           description: "Beleuchtungseinstellungen wurden erfolgreich gespeichert.",
         })
+        console.log("[v0] Config saved successfully")
       } else {
         throw new Error("Failed to save config")
       }
@@ -133,7 +121,10 @@ export default function LightingControl() {
   }
 
   const applyLighting = async (mode: "preparation" | "finished" | "idle" | "off") => {
+    setApplying(mode)
     try {
+      console.log("[v0] Applying lighting mode:", mode)
+
       let body: any = {}
 
       if (mode === "preparation") {
@@ -141,22 +132,26 @@ export default function LightingControl() {
           mode: "cocktailPreparation",
           blinking: config.cocktailPreparation.blinking,
           color: config.cocktailPreparation.color,
-          brightness: config.brightness,
         }
       } else if (mode === "finished") {
         body = {
           mode: "cocktailFinished",
           blinking: config.cocktailFinished.blinking,
           color: config.cocktailFinished.color,
-          brightness: config.brightness,
         }
       } else if (mode === "idle") {
         if (config.idleMode.scheme === "static" && config.idleMode.colors.length > 0) {
-          body = { mode: "color", color: config.idleMode.colors[0], brightness: config.brightness }
+          body = { mode: "color", color: config.idleMode.colors[0] }
         } else if (config.idleMode.scheme === "off") {
           body = { mode: "off" }
+        } else if (config.idleMode.scheme === "pulse" || config.idleMode.scheme === "blink") {
+          body = {
+            mode: "idle",
+            scheme: config.idleMode.scheme,
+            color: config.idleMode.colors.length > 0 ? config.idleMode.colors[0] : "#ffffff",
+          }
         } else {
-          body = { mode: "idle", scheme: config.idleMode.scheme, brightness: config.brightness }
+          body = { mode: "idle", scheme: config.idleMode.scheme }
         }
       } else if (mode === "off") {
         body = { mode: "off" }
@@ -168,21 +163,36 @@ export default function LightingControl() {
         body: JSON.stringify(body),
       })
 
+      console.log("[v0] API response status:", res.status)
+
       if (!res.ok) {
-        throw new Error(await res.text())
+        const errorText = await res.text()
+        console.error("[v0] API error response:", errorText)
+        throw new Error(`HTTP ${res.status}: ${errorText}`)
+      }
+
+      const modeNames: Record<string, string> = {
+        preparation: "Zubereitung",
+        finished: "Fertig",
+        idle: "Idle",
+        off: "Aus",
       }
 
       toast({
         title: "Angewendet",
-        description: `${mode === "preparation" ? "Zubereitung" : mode === "finished" ? "Fertig" : mode === "idle" ? "Idle" : "Aus"} Beleuchtung wurde dauerhaft aktiviert.`,
+        description: `${modeNames[mode] || mode} Beleuchtung wurde dauerhaft aktiviert.`,
       })
+      console.log("[v0] Lighting applied successfully")
     } catch (error) {
       console.error("[v0] Error applying lighting:", error)
+      const errorMessage = error instanceof Error ? error.message : "Unbekannter Fehler"
       toast({
-        title: "Fehler",
-        description: "Beleuchtung konnte nicht angewendet werden.",
+        title: "Fehler beim Anwenden",
+        description: `Beleuchtung konnte nicht angewendet werden: ${errorMessage}`,
         variant: "destructive",
       })
+    } finally {
+      setApplying(null)
     }
   }
 
@@ -248,48 +258,6 @@ export default function LightingControl() {
         </div>
       )}
 
-      <Card className="bg-gradient-to-br from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-card-bg))]/80 border-[hsl(var(--cocktail-card-border))]/50 shadow-lg">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-xl text-[hsl(var(--cocktail-text))]">
-            <Sparkles className="h-6 w-6 text-[hsl(var(--cocktail-primary))]" />
-            Globale Helligkeit
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <label className="text-base font-semibold text-[hsl(var(--cocktail-text))]">Helligkeit</label>
-              <Badge className="bg-[hsl(var(--cocktail-primary))] text-black font-bold text-lg px-4 py-1">
-                {Math.round(((config.brightness || 255) / 255) * 100)}%
-              </Badge>
-            </div>
-            <div className="relative">
-              <input
-                type="range"
-                min="0"
-                max="255"
-                value={config.brightness || 255}
-                onChange={(e) => updateConfig("brightness", Number.parseInt(e.target.value))}
-                className="w-full h-3 bg-gradient-to-r from-[hsl(var(--cocktail-card-border))] to-[hsl(var(--cocktail-primary))]/30 rounded-full appearance-none cursor-pointer accent-[hsl(var(--cocktail-primary))]"
-                style={{
-                  background: `linear-gradient(to right, hsl(var(--cocktail-primary)) 0%, hsl(var(--cocktail-primary)) ${((config.brightness || 255) / 255) * 100}%, hsl(var(--cocktail-card-border)) ${((config.brightness || 255) / 255) * 100}%, hsl(var(--cocktail-card-border)) 100%)`,
-                }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-[hsl(var(--cocktail-text-muted))] px-1">
-              <span>0%</span>
-              <span>25%</span>
-              <span>50%</span>
-              <span>75%</span>
-              <span>100%</span>
-            </div>
-          </div>
-          <p className="text-sm text-[hsl(var(--cocktail-text-muted))] bg-[hsl(var(--cocktail-card-bg))]/50 p-3 rounded-lg border border-[hsl(var(--cocktail-card-border))]/30">
-            💡 Die Helligkeit wird auf alle LED-Modi angewendet
-          </p>
-        </CardContent>
-      </Card>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <Card className="bg-gradient-to-br from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-card-bg))]/80 border-[hsl(var(--cocktail-card-border))]/50 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="pb-4">
@@ -343,10 +311,20 @@ export default function LightingControl() {
             <div className="pt-2">
               <Button
                 onClick={() => applyLighting("preparation")}
-                className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4"
+                disabled={applying !== null}
+                className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
-                <Play className="h-5 w-5 mr-2" />
-                Anwenden
+                {applying === "preparation" ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Wird angewendet...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5 mr-2" />
+                    Anwenden
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
@@ -402,10 +380,20 @@ export default function LightingControl() {
             <div className="pt-2">
               <Button
                 onClick={() => applyLighting("finished")}
-                className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4"
+                disabled={applying !== null}
+                className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
-                <Play className="h-5 w-5 mr-2" />
-                Anwenden
+                {applying === "finished" ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Wird angewendet...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5 mr-2" />
+                    Anwenden
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
@@ -441,9 +429,17 @@ export default function LightingControl() {
                 ))}
               </div>
             </div>
-            {config.idleMode.scheme === "static" && (
+            {(config.idleMode.scheme === "static" ||
+              config.idleMode.scheme === "pulse" ||
+              config.idleMode.scheme === "blink") && (
               <div className="space-y-3">
-                <label className="text-sm font-semibold text-[hsl(var(--cocktail-text))]">Statische Farbe</label>
+                <label className="text-sm font-semibold text-[hsl(var(--cocktail-text))]">
+                  {config.idleMode.scheme === "static"
+                    ? "Statische Farbe"
+                    : config.idleMode.scheme === "pulse"
+                      ? "Pulsier-Farbe"
+                      : "Blitz-Farbe"}
+                </label>
                 <div className="grid grid-cols-5 gap-2">
                   {colorPresets.map((preset) => (
                     <button
@@ -470,10 +466,20 @@ export default function LightingControl() {
             <div className="pt-2">
               <Button
                 onClick={() => applyLighting("idle")}
-                className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4"
+                disabled={applying !== null}
+                className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
-                <Play className="h-5 w-5 mr-2" />
-                Anwenden
+                {applying === "idle" ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Wird angewendet...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5 mr-2" />
+                    Anwenden
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
