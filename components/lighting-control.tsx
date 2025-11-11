@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Lightbulb, Zap, Palette, Save, RotateCcw, Play, Loader2 } from "lucide-react"
+import { Lightbulb, Zap, Palette, RotateCcw, Play, Loader2 } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { type LightingConfig, defaultConfig } from "@/lib/lighting-config-types"
 
@@ -32,10 +32,7 @@ const idleSchemes = [
 export default function LightingControl() {
   const [config, setConfig] = useState<LightingConfig>(defaultConfig)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [applying, setApplying] = useState<string | null>(null)
-  const [hasChanges, setHasChanges] = useState(false)
-  const [originalConfig, setOriginalConfig] = useState<LightingConfig>(defaultConfig)
 
   useEffect(() => {
     loadConfig()
@@ -48,82 +45,33 @@ export default function LightingControl() {
       if (response.ok) {
         const loadedConfig = await response.json()
         setConfig(loadedConfig)
-        setOriginalConfig(JSON.parse(JSON.stringify(loadedConfig)))
       } else {
         setConfig(defaultConfig)
-        setOriginalConfig(JSON.parse(JSON.stringify(defaultConfig)))
       }
-      setHasChanges(false)
     } catch (error) {
       console.error("[v0] Error loading lighting config:", error)
       setConfig(defaultConfig)
-      setOriginalConfig(JSON.parse(JSON.stringify(defaultConfig)))
     } finally {
       setLoading(false)
     }
-  }
-
-  const saveConfig = async () => {
-    try {
-      setSaving(true)
-      console.log("[v0] Saving config:", config)
-
-      const response = await fetch("/api/lighting-config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(config),
-      })
-
-      if (response.ok) {
-        setOriginalConfig(JSON.parse(JSON.stringify(config)))
-        setHasChanges(false)
-        toast({
-          title: "Gespeichert",
-          description: "Beleuchtungseinstellungen wurden erfolgreich gespeichert.",
-        })
-        console.log("[v0] Config saved successfully")
-      } else {
-        throw new Error("Failed to save config")
-      }
-    } catch (error) {
-      console.error("[v0] Error saving lighting config:", error)
-      toast({
-        title: "Fehler",
-        description: "Beleuchtungseinstellungen konnten nicht gespeichert werden.",
-        variant: "destructive",
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const resetToDefault = () => {
-    setConfig(defaultConfig)
-    setHasChanges(JSON.stringify(defaultConfig) !== JSON.stringify(originalConfig))
-  }
-
-  const updateConfig = (path: string, value: any) => {
-    setConfig((prev) => {
-      const newConfig = JSON.parse(JSON.stringify(prev))
-      const keys = path.split(".")
-      let current = newConfig
-
-      for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]]
-      }
-      current[keys[keys.length - 1]] = value
-
-      setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
-      return newConfig
-    })
   }
 
   const applyLighting = async (mode: "preparation" | "finished" | "idle" | "off") => {
     setApplying(mode)
     try {
       console.log("[v0] Applying lighting mode:", mode)
+
+      console.log("[v0] Saving config before applying:", config)
+      const saveResponse = await fetch("/api/lighting-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      })
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save configuration")
+      }
+      console.log("[v0] Config saved successfully")
 
       let body: any = {}
 
@@ -179,10 +127,10 @@ export default function LightingControl() {
       }
 
       toast({
-        title: "Angewendet",
-        description: `${modeNames[mode] || mode} Beleuchtung wurde dauerhaft aktiviert.`,
+        title: "Angewendet & Gespeichert",
+        description: `${modeNames[mode] || mode} Beleuchtung wurde dauerhaft aktiviert und gespeichert.`,
       })
-      console.log("[v0] Lighting applied successfully")
+      console.log("[v0] Lighting applied and saved successfully")
     } catch (error) {
       console.error("[v0] Error applying lighting:", error)
       const errorMessage = error instanceof Error ? error.message : "Unbekannter Fehler"
@@ -194,6 +142,25 @@ export default function LightingControl() {
     } finally {
       setApplying(null)
     }
+  }
+
+  const resetToDefault = () => {
+    setConfig(defaultConfig)
+  }
+
+  const updateConfig = (path: string, value: any) => {
+    setConfig((prev) => {
+      const newConfig = JSON.parse(JSON.stringify(prev))
+      const keys = path.split(".")
+      let current = newConfig
+
+      for (let i = 0; i < keys.length - 1; i++) {
+        current = current[keys[i]]
+      }
+      current[keys[keys.length - 1]] = value
+
+      return newConfig
+    })
   }
 
   if (loading) {
@@ -225,17 +192,8 @@ export default function LightingControl() {
         </div>
         <div className="flex gap-3">
           <Button
-            onClick={saveConfig}
-            disabled={saving || !hasChanges}
-            className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold flex-1 lg:flex-none h-12 px-6"
-          >
-            <Save className="h-5 w-5 mr-2" />
-            {saving ? "Speichert..." : "Speichern"}
-          </Button>
-          <Button
             variant="outline"
             onClick={resetToDefault}
-            disabled={saving}
             className="bg-[hsl(var(--cocktail-button-bg))] hover:bg-[hsl(var(--cocktail-button-hover))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] flex-1 lg:flex-none h-12 px-6"
           >
             <RotateCcw className="h-5 w-5 mr-2" />
@@ -243,20 +201,6 @@ export default function LightingControl() {
           </Button>
         </div>
       </div>
-
-      {hasChanges && (
-        <div className="relative overflow-hidden rounded-2xl border border-[hsl(var(--cocktail-primary))]/30 bg-gradient-to-r from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-primary))]/5 p-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-3 h-3 rounded-full bg-[hsl(var(--cocktail-primary))] animate-pulse" />
-              <div className="absolute inset-0 w-3 h-3 rounded-full bg-[hsl(var(--cocktail-primary))] animate-ping" />
-            </div>
-            <p className="text-base font-medium text-[hsl(var(--cocktail-text))]">
-              Ungespeicherte Änderungen vorhanden
-            </p>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <Card className="bg-gradient-to-br from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-card-bg))]/80 border-[hsl(var(--cocktail-card-border))]/50 shadow-lg hover:shadow-xl transition-shadow">
