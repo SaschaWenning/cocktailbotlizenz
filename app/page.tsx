@@ -518,6 +518,17 @@ export default function Home() {
         })
       }, progressInterval)
 
+      console.log("[v0] Activating preparation lighting mode")
+      try {
+        await fetch("/api/lighting-control", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "cocktailPreparation" }),
+        })
+      } catch (error) {
+        console.error("[v0] Error activating preparation lighting:", error)
+      }
+
       const category = activeTab === "virgin" ? "virgin" : activeTab === "shots" ? "shots" : "cocktails"
       await makeCocktail(cocktail, currentPumpConfig, selectedSize, category)
 
@@ -534,7 +545,6 @@ export default function Home() {
       } catch (error) {
         console.error("[v0] Error activating finished lighting:", error)
       }
-      // </CHANGE>
 
       if (manualRecipeItems.length > 0) {
         setStatusMessage(
@@ -566,7 +576,6 @@ export default function Home() {
         setShowSuccess(false)
         setSelectedCocktail(null)
 
-        // Return to saved idle mode
         console.log("[v0] Returning to idle lighting mode")
         fetch("/api/lighting-control", {
           method: "POST",
@@ -574,7 +583,6 @@ export default function Home() {
           body: JSON.stringify({ mode: "idle" }),
         }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
       }, displayDuration)
-      // </CHANGE>
     } catch (error) {
       let intervalId: NodeJS.Timeout
       clearInterval(intervalId)
