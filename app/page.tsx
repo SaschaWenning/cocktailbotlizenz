@@ -520,11 +520,13 @@ export default function Home() {
 
       console.log("[v0] Activating preparation lighting mode")
       try {
-        await fetch("/api/lighting-control", {
+        console.log("[v0] Sending preparation lighting request to API")
+        const prepResponse = await fetch("/api/lighting-control", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mode: "cocktailPreparation" }),
         })
+        console.log("[v0] Preparation lighting response:", prepResponse.status, await prepResponse.text())
       } catch (error) {
         console.error("[v0] Error activating preparation lighting:", error)
       }
@@ -537,11 +539,13 @@ export default function Home() {
 
       console.log("[v0] Activating finished lighting mode")
       try {
-        await fetch("/api/lighting-control", {
+        console.log("[v0] Sending finished lighting request to API")
+        const finishedResponse = await fetch("/api/lighting-control", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mode: "cocktailFinished" }),
         })
+        console.log("[v0] Finished lighting response:", finishedResponse.status, await finishedResponse.text())
       } catch (error) {
         console.error("[v0] Error activating finished lighting:", error)
       }
@@ -577,11 +581,16 @@ export default function Home() {
         setSelectedCocktail(null)
 
         console.log("[v0] Returning to idle lighting mode")
+        console.log("[v0] Sending idle lighting request to API")
         fetch("/api/lighting-control", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mode: "idle" }),
-        }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
+        })
+          .then(async (response) => {
+            console.log("[v0] Idle lighting response:", response.status, await response.text())
+          })
+          .catch((error) => console.error("[v0] Error returning to idle lighting:", error))
       }, displayDuration)
     } catch (error) {
       let intervalId: NodeJS.Timeout
