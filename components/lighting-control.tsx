@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Lightbulb, Zap, Palette, RotateCcw, Play, Loader2 } from "lucide-react"
+import { Lightbulb, Zap, Palette, RotateCcw, Play, Loader2, Sun } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { type LightingConfig, defaultConfig } from "@/lib/lighting-config-types"
 
@@ -33,9 +33,11 @@ export default function LightingControl() {
   const [config, setConfig] = useState<LightingConfig>(defaultConfig)
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState<string | null>(null)
+  const [brightness, setBrightness] = useState(128) // 0-255, default 50%
 
   useEffect(() => {
     loadConfig()
+    loadBrightness()
   }, [])
 
   const loadConfig = async () => {
@@ -53,6 +55,17 @@ export default function LightingControl() {
       setConfig(defaultConfig)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadBrightness = () => {
+    try {
+      const saved = localStorage.getItem("led-brightness")
+      if (saved) {
+        setBrightness(Number.parseInt(saved))
+      }
+    } catch (error) {
+      console.error("[v0] Error loading brightness:", error)
     }
   }
 
@@ -161,6 +174,35 @@ export default function LightingControl() {
     }
   }
 
+  const applyBrightness = async (value: number) => {
+    try {
+      setBrightness(value)
+      localStorage.setItem("led-brightness", value.toString())
+
+      const response = await fetch("/api/lighting-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "brightness",
+          brightness: value,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to set brightness")
+      }
+
+      console.log("[v0] Brightness set to:", value)
+    } catch (error) {
+      console.error("[v0] Error setting brightness:", error)
+      toast({
+        title: "Fehler",
+        description: "Helligkeit konnte nicht angewendet werden",
+        variant: "destructive",
+      })
+    }
+  }
+
   const resetToDefault = () => {
     setConfig(defaultConfig)
   }
@@ -219,6 +261,38 @@ export default function LightingControl() {
         </div>
       </div>
 
+      <Card className="bg-gradient-to-br from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-card-bg))]/80 border-[hsl(var(--cocktail-card-border))]/50 shadow-lg">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3 text-lg text-[hsl(var(--cocktail-text))]">
+            <div className="p-2 rounded-lg bg-[hsl(var(--cocktail-primary))]/10">
+              <Sun className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+            </div>
+            Globale Helligkeit
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-semibold text-[hsl(var(--cocktail-text))] w-16">
+                {Math.round((brightness / 255) * 100)}%
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="255"
+                value={brightness}
+                onChange={(e) => applyBrightness(Number.parseInt(e.target.value))}
+                className="flex-1 h-3 bg-[hsl(var(--cocktail-card-bg))] rounded-lg appearance-none cursor-pointer accent-[hsl(var(--cocktail-primary))]"
+              />
+              <span className="text-sm text-[hsl(var(--cocktail-text-muted))] w-16 text-right">{brightness}/255</span>
+            </div>
+            <p className="text-xs text-[hsl(var(--cocktail-text-muted))]">
+              Steuert die Helligkeit aller LED-Modi (0-255)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <Card className="bg-gradient-to-br from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-card-bg))]/80 border-[hsl(var(--cocktail-card-border))]/50 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="pb-4">
@@ -271,7 +345,7 @@ export default function LightingControl() {
             </div>
             <div className="pt-2">
               <Button
-                onClick={() => applyLighting("preparation", true)}
+                onClick={() => applyLighting("preparation", false)}
                 disabled={applying !== null}
                 className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
@@ -283,7 +357,7 @@ export default function LightingControl() {
                 ) : (
                   <>
                     <Play className="h-5 w-5 mr-2" />
-                    Testen (3s)
+                    Anwenden
                   </>
                 )}
               </Button>
@@ -340,7 +414,7 @@ export default function LightingControl() {
             </div>
             <div className="pt-2">
               <Button
-                onClick={() => applyLighting("finished", true)}
+                onClick={() => applyLighting("finished", false)}
                 disabled={applying !== null}
                 className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
@@ -352,7 +426,7 @@ export default function LightingControl() {
                 ) : (
                   <>
                     <Play className="h-5 w-5 mr-2" />
-                    Testen (3s)
+                    Anwenden
                   </>
                 )}
               </Button>
@@ -446,33 +520,6 @@ export default function LightingControl() {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="bg-gradient-to-br from-[hsl(var(--cocktail-card-bg))] to-[hsl(var(--cocktail-card-bg))]/80 border-[hsl(var(--cocktail-card-border))]/50 shadow-lg">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg text-[hsl(var(--cocktail-text))]">Hardware-Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { label: "Controller", value: "Raspberry Pico 2", icon: "🎛️" },
-              { label: "Verbindung", value: "Raspberry Pi 5", icon: "🔌" },
-              { label: "Protokoll", value: "Serial/USB", icon: "📡" },
-              { label: "LED-Typ", value: "WS2812B/NeoPixel", icon: "💡" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center gap-3 p-3 rounded-xl bg-[hsl(var(--cocktail-card-bg))]/50 border border-[hsl(var(--cocktail-card-border))]/30"
-              >
-                <span className="text-2xl">{item.icon}</span>
-                <div>
-                  <div className="text-xs text-[hsl(var(--cocktail-text-muted))]">{item.label}</div>
-                  <div className="text-sm font-semibold text-[hsl(var(--cocktail-text))]">{item.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
