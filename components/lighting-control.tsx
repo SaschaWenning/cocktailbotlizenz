@@ -56,10 +56,10 @@ export default function LightingControl() {
     }
   }
 
-  const applyLighting = async (mode: "preparation" | "finished" | "idle" | "off") => {
+  const applyLighting = async (mode: "preparation" | "finished" | "idle" | "off", isTest = false) => {
     setApplying(mode)
     try {
-      console.log("[v0] Applying lighting mode:", mode)
+      console.log("[v0] Applying lighting mode:", mode, "isTest:", isTest)
 
       console.log("[v0] Saving config before applying:", config)
       const saveResponse = await fetch("/api/lighting-config", {
@@ -126,10 +126,27 @@ export default function LightingControl() {
         off: "Aus",
       }
 
-      toast({
-        title: "Angewendet & Gespeichert",
-        description: `${modeNames[mode] || mode} Beleuchtung wurde dauerhaft aktiviert und gespeichert.`,
-      })
+      if (isTest && (mode === "preparation" || mode === "finished")) {
+        toast({
+          title: "Test-Modus",
+          description: `${modeNames[mode]} wird für 3 Sekunden angezeigt, dann zurück zum Idle-Modus.`,
+        })
+
+        setTimeout(async () => {
+          console.log("[v0] Test complete, returning to idle mode")
+          await fetch("/api/lighting-control", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ mode: "idle" }),
+          })
+        }, 3000)
+      } else {
+        toast({
+          title: "Angewendet & Gespeichert",
+          description: `${modeNames[mode] || mode} Beleuchtung wurde dauerhaft aktiviert und gespeichert.`,
+        })
+      }
+
       console.log("[v0] Lighting applied and saved successfully")
     } catch (error) {
       console.error("[v0] Error applying lighting:", error)
@@ -254,7 +271,7 @@ export default function LightingControl() {
             </div>
             <div className="pt-2">
               <Button
-                onClick={() => applyLighting("preparation")}
+                onClick={() => applyLighting("preparation", true)}
                 disabled={applying !== null}
                 className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
@@ -266,7 +283,7 @@ export default function LightingControl() {
                 ) : (
                   <>
                     <Play className="h-5 w-5 mr-2" />
-                    Anwenden
+                    Testen (3s)
                   </>
                 )}
               </Button>
@@ -323,7 +340,7 @@ export default function LightingControl() {
             </div>
             <div className="pt-2">
               <Button
-                onClick={() => applyLighting("finished")}
+                onClick={() => applyLighting("finished", true)}
                 disabled={applying !== null}
                 className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
@@ -335,7 +352,7 @@ export default function LightingControl() {
                 ) : (
                   <>
                     <Play className="h-5 w-5 mr-2" />
-                    Anwenden
+                    Testen (3s)
                   </>
                 )}
               </Button>
@@ -409,7 +426,7 @@ export default function LightingControl() {
             )}
             <div className="pt-2">
               <Button
-                onClick={() => applyLighting("idle")}
+                onClick={() => applyLighting("idle", false)}
                 disabled={applying !== null}
                 className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
