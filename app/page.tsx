@@ -136,7 +136,28 @@ export default function Home() {
     }
 
     loadData()
+
+    loadAndApplyIdleLighting()
   }, [])
+
+  const loadAndApplyIdleLighting = async () => {
+    try {
+      console.log("[v0] Loading and applying idle LED configuration...")
+      const response = await fetch("/api/lighting-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "idle" }),
+      })
+
+      if (response.ok) {
+        console.log("[v0] Idle LED configuration applied successfully")
+      } else {
+        console.error("[v0] Failed to apply idle LED configuration:", response.status)
+      }
+    } catch (error) {
+      console.error("[v0] Error applying idle LED configuration:", error)
+    }
+  }
 
   useEffect(() => {
     const handleRefresh = () => {

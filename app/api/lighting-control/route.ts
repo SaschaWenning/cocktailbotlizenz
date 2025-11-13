@@ -30,11 +30,11 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const { mode, color, brightness, blinking } = await request.json()
+    const { mode, color, brightness, blinking, scheme } = await request.json()
 
-    console.log("[v0] Lighting control POST request:", { mode, color, brightness, blinking })
+    console.log("[v0] Lighting control POST request:", { mode, color, brightness, blinking, scheme })
 
-    await sendLightingControlCommand(mode, color, brightness, blinking)
+    await sendLightingControlCommand(mode, color, brightness, blinking, scheme)
 
     console.log("[v0] Lighting control command sent successfully")
     return NextResponse.json({ success: true })
@@ -55,7 +55,27 @@ export async function GET() {
   }
 }
 
-async function sendLightingControlCommand(mode: string, color?: string, brightness?: number, blinking?: boolean) {
+async function loadIdleConfig() {
+  try {
+    const configResponse = await fetch("http://localhost:3000/api/lighting-config")
+    if (configResponse.ok) {
+      const config = await configResponse.json()
+      return config.idleMode
+    }
+  } catch (error) {
+    console.error("[v0] Error loading idle config:", error)
+  }
+  // Fallback to rainbow
+  return { scheme: "rainbow", colors: [] }
+}
+
+async function sendLightingControlCommand(
+  mode: string,
+  color?: string,
+  brightness?: number,
+  blinking?: boolean,
+  scheme?: string,
+) {
   try {
     if (typeof brightness === "number" && brightness >= 0 && brightness <= 255) {
       await runLed("BRIGHT", String(brightness))
@@ -64,32 +84,56 @@ async function sendLightingControlCommand(mode: string, color?: string, brightne
     switch (mode) {
       case "cocktailPreparation":
       case "preparation":
-        // Zubereitung: rotes Blinken (BUSY)
         await runLed("BUSY")
         console.log("[v0] LED Modus: Zubereitung (BUSY)")
         break
 
       case "cocktailFinished":
       case "finished":
-        // Fertig: grün für 3s, dann Idle
         await runLed("READY")
         console.log("[v0] LED Modus: Fertig (READY)")
         break
 
       case "idle":
-        // Idle: Regenbogen-Effekt
-        await runLed("IDLE")
-        console.log("[v0] LED Modus: Idle")
+        const idleConfig = await loadIdleConfig()
+        console.log("[v0] Applying saved idle config:", idleConfig)
+
+        if (idleConfig.scheme === "rainbow") {
+          await runLed("RAINBOW", "30")
+          console.log("[v0] LED Modus: Idle (Regenbogen)")
+        } else if (idleConfig.scheme === "static" && idleConfig.colors.length > 0) {
+          const rgb = hexToRgb(idleConfig.colors[0])
+          if (rgb) {
+            await runLed("COLOR", String(rgb.r), String(rgb.g), String(rgb.b))
+            console.log(`[v0] LED Modus: Idle (Statisch RGB ${rgb.r}, ${rgb.g}, ${rgb.b})`)
+          }
+        } else if (idleConfig.scheme === "pulse" && idleConfig.colors.length > 0) {
+          const rgb = hexToRgb(idleConfig.colors[0])
+          if (rgb) {
+            await runLed("PULSE", String(rgb.r), String(rgb.g), String(rgb.b))
+            console.log(`[v0] LED Modus: Idle (Pulsieren RGB ${rgb.r}, ${rgb.g}, ${rgb.b})`)
+          }
+        } else if (idleConfig.scheme === "blink" && idleConfig.colors.length > 0) {
+          const rgb = hexToRgb(idleConfig.colors[0])
+          if (rgb) {
+            await runLed("BLINK", String(rgb.r), String(rgb.g), String(rgb.b), "300")
+            console.log(`[v0] LED Modus: Idle (Blitz RGB ${rgb.r}, ${rgb.g}, ${rgb.b})`)
+          }
+        } else if (idleConfig.scheme === "off") {
+          await runLed("OFF")
+          console.log("[v0] LED Modus: Idle (Aus)")
+        } else {
+          await runLed("RAINBOW", "30")
+          console.log("[v0] LED Modus: Idle (Fallback Regenbogen)")
+        }
         break
 
       case "off":
-        // Aus: alle LEDs aus
         await runLed("OFF")
         console.log("[v0] LED Modus: Aus")
         break
 
       case "color":
-        // Benutzerdefinierte Farbe
         if (color) {
           const rgb = hexToRgb(color)
           if (rgb) {
