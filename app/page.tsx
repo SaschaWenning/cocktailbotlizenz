@@ -522,7 +522,7 @@ export default function Home() {
         await fetch("/api/lighting-control", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.JSON.stringify({ mode: "cocktailPreparation" }),
+          body: JSON.stringify({ mode: "cocktailPreparation" }),
         })
       } catch (error) {
         console.error("[v0] Error activating preparation lighting:", error)
@@ -538,7 +538,7 @@ export default function Home() {
         await fetch("/api/lighting-control", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.JSON.stringify({ mode: "cocktailFinished" }),
+          body: JSON.stringify({ mode: "cocktailFinished" }),
         })
       } catch (error) {
         console.error("[v0] Error activating finished lighting:", error)
@@ -577,7 +577,7 @@ export default function Home() {
         fetch("/api/lighting-control", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.JSON.stringify({ mode: "idle" }),
+          body: JSON.stringify({ mode: "idle" }),
         }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
       }, displayDuration)
     } catch (error) {
