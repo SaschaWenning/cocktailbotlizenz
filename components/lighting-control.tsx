@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Lightbulb, Zap, Palette, RotateCcw, Play, Loader2, Sun } from "lucide-react"
+import { Lightbulb, Zap, Palette, RotateCcw, Play, Loader2, Sun } from 'lucide-react'
 import { toast } from "@/components/ui/use-toast"
 import { type LightingConfig, defaultConfig } from "@/lib/lighting-config-types"
 
@@ -34,6 +34,7 @@ export default function LightingControl() {
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState<string | null>(null)
   const [brightness, setBrightness] = useState(128) // 0-255, default 50%
+  const [tempBrightness, setTempBrightness] = useState(128)
 
   useEffect(() => {
     loadConfig()
@@ -62,7 +63,9 @@ export default function LightingControl() {
     try {
       const saved = localStorage.getItem("led-brightness")
       if (saved) {
-        setBrightness(Number.parseInt(saved))
+        const value = Number.parseInt(saved)
+        setBrightness(value)
+        setTempBrightness(value)
       }
     } catch (error) {
       console.error("[v0] Error loading brightness:", error)
@@ -203,6 +206,43 @@ export default function LightingControl() {
     }
   }
 
+  const handleApplyBrightness = async () => {
+    setApplying("brightness")
+    try {
+      setBrightness(tempBrightness)
+      localStorage.setItem("led-brightness", tempBrightness.toString())
+
+      const response = await fetch("/api/lighting-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "brightness",
+          brightness: tempBrightness,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to set brightness")
+      }
+
+      toast({
+        title: "Helligkeit angewendet",
+        description: `Helligkeit auf ${Math.round((tempBrightness / 255) * 100)}% eingestellt.`,
+      })
+
+      console.log("[v0] Brightness set to:", tempBrightness)
+    } catch (error) {
+      console.error("[v0] Error setting brightness:", error)
+      toast({
+        title: "Fehler",
+        description: "Helligkeit konnte nicht angewendet werden",
+        variant: "destructive",
+      })
+    } finally {
+      setApplying(null)
+    }
+  }
+
   const resetToDefault = () => {
     setConfig(defaultConfig)
   }
@@ -274,18 +314,35 @@ export default function LightingControl() {
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <span className="text-sm font-semibold text-[hsl(var(--cocktail-text))] w-16">
-                {Math.round((brightness / 255) * 100)}%
+                {Math.round((tempBrightness / 255) * 100)}%
               </span>
               <input
                 type="range"
                 min="0"
                 max="255"
-                value={brightness}
-                onChange={(e) => applyBrightness(Number.parseInt(e.target.value))}
+                value={tempBrightness}
+                onChange={(e) => setTempBrightness(Number.parseInt(e.target.value))}
                 className="flex-1 h-3 bg-[hsl(var(--cocktail-card-bg))] rounded-lg appearance-none cursor-pointer accent-[hsl(var(--cocktail-primary))]"
               />
-              <span className="text-sm text-[hsl(var(--cocktail-text-muted))] w-16 text-right">{brightness}/255</span>
+              <span className="text-sm text-[hsl(var(--cocktail-text-muted))] w-16 text-right">{tempBrightness}/255</span>
             </div>
+            <Button
+              onClick={handleApplyBrightness}
+              disabled={applying !== null || tempBrightness === brightness}
+              className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-12 text-base px-4 disabled:opacity-50"
+            >
+              {applying === "brightness" ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Wird angewendet...
+                </>
+              ) : (
+                <>
+                  <Play className="h-5 w-5 mr-2" />
+                  Anwenden
+                </>
+              )}
+            </Button>
             <p className="text-xs text-[hsl(var(--cocktail-text-muted))]">
               Steuert die Helligkeit aller LED-Modi (0-255)
             </p>
@@ -345,7 +402,7 @@ export default function LightingControl() {
             </div>
             <div className="pt-2">
               <Button
-                onClick={() => applyLighting("preparation", false)}
+                onClick={() => applyLighting("preparation", true)} // isTest = true for 3 second preview
                 disabled={applying !== null}
                 className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
@@ -414,7 +471,7 @@ export default function LightingControl() {
             </div>
             <div className="pt-2">
               <Button
-                onClick={() => applyLighting("finished", false)}
+                onClick={() => applyLighting("finished", true)} // isTest = true for 3 second preview
                 disabled={applying !== null}
                 className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold h-14 text-base px-4 disabled:opacity-50"
               >
