@@ -629,5 +629,13 @@ export async function makeShotAction(ingredient: string, pumpConfig: PumpConfig[
     console.error("Error updating levels after shot:", error)
   }
 
-  return { success: true }
+  return {
+    success: true,
+    ingredientUsage: [
+      {
+        ingredientId: ingredient,
+        amount: size,
+      },
+    ],
+  }
 }

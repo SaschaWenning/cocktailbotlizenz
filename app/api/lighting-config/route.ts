@@ -53,13 +53,14 @@ export async function POST(request: NextRequest) {
         const color = config.idleMode.colors[0]
         const rgb = await hexToRgb(color)
         if (rgb) {
-          await runLed("BLINK", String(rgb.r), String(rgb.g), String(rgb.b))
+          await runLed("BLINK", String(rgb.r), String(rgb.g), String(rgb.b), "300")
         }
       } else if (config.idleMode.scheme === "off") {
         await runLed("OFF")
       } else {
         await runLed("IDLE")
       }
+      console.log("[v0] Idle mode applied successfully after save")
     } catch (ledError) {
       console.error("[v0] Error applying LED config:", ledError)
     }

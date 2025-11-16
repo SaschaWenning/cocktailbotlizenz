@@ -71,7 +71,21 @@ export async function makeSingleShot(ingredientId: string, amount = 40, pumpConf
     throw new Error(`Failed to make shot: ${response.statusText}`)
   }
 
-  return await response.json()
+  const result = await response.json()
+
+  if (result.success && result.ingredientUsage) {
+    // Create a simple shot "cocktail" object for statistics
+    const shotCocktail = {
+      id: `shot-${ingredientId}`,
+      name: ingredientId.replace(/^custom-\d+-/, "").replace(/-/g, " "),
+      category: "shots" as const,
+      ingredients: [ingredientId],
+      recipe: [{ ingredientId, amount }],
+    }
+    saveStatistics(shotCocktail, amount, result.ingredientUsage, "shots")
+  }
+
+  return result
 }
 
 export async function testPump(pumpId: number) {
