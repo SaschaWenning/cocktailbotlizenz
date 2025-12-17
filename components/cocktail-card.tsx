@@ -51,7 +51,7 @@ export default function CocktailCard({ cocktail, onClick, onEdit }: CocktailCard
       console.log("[v0] CocktailCard: Auto-refreshing data...")
       loadData()
       setRefreshTrigger((prev) => prev + 1)
-    }, 5000) // Alle 5 Sekunden aktualisieren
+    }, 5000) // Refresh every 5 seconds
 
     return () => clearInterval(interval)
   }, [])
@@ -97,7 +97,7 @@ export default function CocktailCard({ cocktail, onClick, onEdit }: CocktailCard
     )
 
     for (const recipeItem of cocktail.recipe) {
-      if (recipeItem.manual) {
+      if (recipeItem.manual || recipeItem.type === "manual") {
         continue
       }
 
@@ -259,7 +259,7 @@ export default function CocktailCard({ cocktail, onClick, onEdit }: CocktailCard
         <LowLevelWarning availability={availability} />
 
         <Badge className="absolute top-3 right-3 bg-[hsl(var(--cocktail-primary))] text-black font-medium shadow-lg">
-          {cocktail.alcoholic ? "Alkoholisch" : "Alkoholfrei"}
+          {cocktail.alcoholic ? "Alcoholic" : "Non-Alcoholic"}
         </Badge>
 
         {process.env.NODE_ENV === "development" && (

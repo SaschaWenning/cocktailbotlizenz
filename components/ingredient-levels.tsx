@@ -99,7 +99,7 @@ export function IngredientLevels() {
 
         if (data.success && data.levels) {
           setLevels(data.levels)
-          await setIngredientLevels(data.levels)
+          await setIngredientLevels(data.levels, true)
           return
         }
       }
@@ -122,6 +122,7 @@ export function IngredientLevels() {
     }
 
     return ingredientId
+      .replace(/^custom-\d+-/, "")
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ")
@@ -246,13 +247,13 @@ export function IngredientLevels() {
     <div className="min-h-screen bg-[hsl(var(--cocktail-bg))] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-4xl font-bold text-[hsl(var(--cocktail-text))]">Füllstände</h1>
+          <h1 className="text-4xl font-bold text-[hsl(var(--cocktail-text))]">Fill Levels</h1>
           <div className="flex gap-3">
             <Button
               onClick={handleFillAll}
               className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black px-6 py-3 rounded-xl font-semibold"
             >
-              Alle auffüllen
+              Fill All
             </Button>
           </div>
         </div>
@@ -269,7 +270,7 @@ export function IngredientLevels() {
               <div className="bg-black rounded-lg p-4 max-h-60 overflow-y-auto">
                 <div className="font-mono text-sm space-y-1">
                   {debugLogs.length === 0 ? (
-                    <div className="text-gray-500">Keine Debug-Logs verfügbar</div>
+                    <div className="text-gray-500">No debug logs available</div>
                   ) : (
                     debugLogs.map((log, index) => (
                       <div key={index} className="text-green-400">
@@ -280,7 +281,7 @@ export function IngredientLevels() {
                 </div>
               </div>
               <div className="mt-4 text-sm text-[hsl(var(--cocktail-text-muted))]">
-                Aktuelle Levels: {levels.length} | Letzte Aktualisierung: {new Date().toLocaleTimeString()}
+                Current Levels: {levels.length} | Last Update: {new Date().toLocaleTimeString()}
               </div>
             </CardContent>
           </Card>
@@ -304,14 +305,14 @@ export function IngredientLevels() {
                       onClick={() => handleFillSingle(level.pumpId)}
                       className="h-8 px-3 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black text-xs font-semibold"
                     >
-                      Auffüllen
+                      Fill
                     </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
-                      <span>Füllstand:</span>
+                      <span>Fill Level:</span>
                       <div className="flex items-center gap-2 ml-auto">
                         <Button
                           size="sm"
@@ -335,7 +336,7 @@ export function IngredientLevels() {
                   </div>
 
                   <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
-                    <span>Behältergröße:</span>
+                    <span>Container Size:</span>
                     <div className="ml-auto">
                       <Button
                         size="sm"
@@ -349,7 +350,7 @@ export function IngredientLevels() {
                   </div>
 
                   <div className="text-xs text-[hsl(var(--cocktail-text-muted))] text-center">
-                    Aktualisiert: {new Date(level.lastUpdated).toLocaleString()}
+                    Updated: {new Date(level.lastUpdated).toLocaleString()}
                   </div>
                 </CardContent>
               </Card>
@@ -362,9 +363,9 @@ export function IngredientLevels() {
             <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-xl shadow-2xl max-w-sm w-full mx-1 max-h-[95vh] overflow-hidden flex flex-col">
               <div className="bg-[hsl(var(--cocktail-primary))] p-3 flex-shrink-0">
                 <h3 className="text-base font-bold text-black">
-                  {editingLevel && "Füllstand bearbeiten"}
-                  {editingSize && "Behältergröße bearbeiten"}
-                  {editingName && "Zutat bearbeiten"}
+                  {editingLevel && "Edit Fill Level"}
+                  {editingSize && "Edit Container Size"}
+                  {editingName && "Edit Ingredient"}
                 </h3>
               </div>
 
@@ -412,30 +413,30 @@ export function IngredientLevels() {
                     <Button
                       onClick={() => setTempValue("")}
                       className="flex-1 h-8 text-sm bg-red-600 text-white hover:bg-red-700"
-                      title="Löschen"
+                      title="Delete"
                     >
                       <X className="h-4 w-4" />
                     </Button>
                     <Button
                       onClick={() => setTempValue(tempValue.slice(0, -1))}
                       className="flex-1 h-8 text-sm bg-gray-600 text-white hover:bg-gray-700"
-                      title="Zurück"
+                      title="Back"
                     >
                       <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <Button
                       onClick={handleCancel}
                       className="flex-1 h-8 text-sm bg-orange-600 text-white hover:bg-orange-700"
-                      title="Abbrechen"
+                      title="Cancel"
                     >
-                      Abb
+                      Cancel
                     </Button>
                     <Button
                       onClick={handleSave}
                       className="flex-1 h-8 text-sm bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-bold"
-                      title="Speichern"
+                      title="Save"
                     >
-                      Speichern
+                      Save
                     </Button>
                   </div>
                 </div>

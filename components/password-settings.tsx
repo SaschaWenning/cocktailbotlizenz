@@ -26,7 +26,7 @@ export default function PasswordSettings() {
           setCustomPassword(savedPassword)
         }
       } catch (error) {
-        console.error("Fehler beim Laden des benutzerdefinierten Passworts:", error)
+        console.error("Error loading custom password:", error)
       }
     }
 
@@ -41,14 +41,14 @@ export default function PasswordSettings() {
       setIsEditing(false)
       setShowKeyboardModal(false)
       toast({
-        title: "Passwort gespeichert",
-        description: "Das benutzerdefinierte Passwort wurde erfolgreich gespeichert.",
+        title: "Password saved",
+        description: "Your custom password has been successfully saved.",
       })
     } catch (error) {
-      console.error("Fehler beim Speichern des Passworts:", error)
+      console.error("Error saving password:", error)
       toast({
-        title: "Fehler",
-        description: "Das Passwort konnte nicht gespeichert werden.",
+        title: "Error",
+        description: "The password could not be saved.",
         variant: "destructive",
       })
     }
@@ -90,19 +90,19 @@ export default function PasswordSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[hsl(var(--cocktail-text))]">
             <Key className="h-5 w-5" />
-            Passwort-Einstellungen
+            Password Settings
           </CardTitle>
           <CardDescription className="text-[hsl(var(--cocktail-text-muted))]">
-            Verwalte dein benutzerdefiniertes Passwort für den Zugriff auf Einstellungen.
+            Manage your custom password for access to settings.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-[hsl(var(--cocktail-text))]">Aktuelles benutzerdefiniertes Passwort:</Label>
+            <Label className="text-[hsl(var(--cocktail-text))]">Current Custom Password:</Label>
             <div className="flex items-center gap-2">
               <Input
                 type={showPassword ? "text" : "password"}
-                value={customPassword || "Kein benutzerdefiniertes Passwort gesetzt"}
+                value={customPassword || "No custom password set"}
                 readOnly
                 className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
               />
@@ -122,15 +122,15 @@ export default function PasswordSettings() {
             onClick={handleStartEdit}
             className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
           >
-            Passwort eingeben
+            Enter Password
           </Button>
 
           <div className="mt-6 p-4 bg-[hsl(var(--cocktail-bg))] rounded-lg border border-[hsl(var(--cocktail-card-border))]">
-            <h4 className="text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2">Wichtige Hinweise:</h4>
+            <h4 className="text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2">Important Notes:</h4>
             <ul className="text-sm text-[hsl(var(--cocktail-text-muted))] space-y-1">
-              <li>• Das Master-Passwort "cocktail" funktioniert immer als Fallback</li>
-              <li>• Dein benutzerdefiniertes Passwort wird zusätzlich akzeptiert</li>
-              <li>• Bewahre dein Passwort sicher auf</li>
+              <li>• The master password "cocktail" always works as a fallback</li>
+              <li>• Your custom password will be accepted additionally</li>
+              <li>• Keep your password safe</li>
             </ul>
           </div>
         </CardContent>
@@ -141,17 +141,17 @@ export default function PasswordSettings() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Key className="h-5 w-5" />
-              Passwort eingeben
+              Enter Password
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-[hsl(var(--cocktail-text))]">Neues Passwort:</Label>
+              <Label className="text-[hsl(var(--cocktail-text))]">New Password:</Label>
               <Input
                 type="password"
                 value={newPassword}
-                placeholder="Neues Passwort eingeben"
+                placeholder="Enter new password"
                 className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
                 readOnly
               />

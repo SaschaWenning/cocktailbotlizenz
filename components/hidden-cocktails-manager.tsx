@@ -76,7 +76,7 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--cocktail-primary))]" />
-        <span className="ml-2 text-[hsl(var(--cocktail-text))]">Lade ausgeblendete Cocktails...</span>
+        <span className="ml-2 text-[hsl(var(--cocktail-text))]">Loading hidden cocktails...</span>
       </div>
     )
   }
@@ -86,17 +86,15 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">Ausgeblendete Cocktails verwalten</h3>
+        <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">Manage Hidden Cocktails</h3>
       </div>
 
       {hiddenCocktailsWithDetails.length === 0 ? (
         <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
           <CardContent className="py-12 text-center">
             <EyeOff className="h-12 w-12 mx-auto mb-4 text-[hsl(var(--cocktail-text-muted))]" />
-            <p className="text-[hsl(var(--cocktail-text-muted))] text-lg">Keine ausgeblendeten Cocktails vorhanden</p>
-            <p className="text-[hsl(var(--cocktail-text-muted))] text-sm mt-2">
-              Cocktails können über den Bearbeiten-Modus ausgeblendet werden
-            </p>
+            <p className="text-[hsl(var(--cocktail-text-muted))] text-lg">No hidden cocktails available</p>
+            <p className="text-[hsl(var(--cocktail-text-muted))] text-sm mt-2">Cocktails can be hidden via edit mode</p>
           </CardContent>
         </Card>
       ) : (
@@ -114,7 +112,7 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-[hsl(var(--cocktail-text-muted))] text-sm">
-                  {cocktail.description || "Keine Beschreibung"}
+                  {cocktail.description || "No description"}
                 </p>
                 <div className="flex items-center gap-2 text-xs text-[hsl(var(--cocktail-text-muted))]">
                   <span
@@ -122,9 +120,9 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
                       cocktail.alcoholic ? "bg-red-900/30 text-red-300" : "bg-green-900/30 text-green-300"
                     }`}
                   >
-                    {cocktail.alcoholic ? "Mit Alkohol" : "Alkoholfrei"}
+                    {cocktail.alcoholic ? "With Alcohol" : "Non-Alcoholic"}
                   </span>
-                  <span>{cocktail.recipe.length} Zutaten</span>
+                  <span>{cocktail.recipe.length} Ingredients</span>
                 </div>
                 <Button
                   onClick={() => handleShowCocktail(cocktail.id)}
@@ -134,12 +132,12 @@ export default function HiddenCocktailsManager({ onClose }: HiddenCocktailsManag
                   {updating === cocktail.id ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Wird eingeblendet...
+                      Unhiding...
                     </>
                   ) : (
                     <>
                       <Eye className="mr-2 h-4 w-4" />
-                      Wieder einblenden
+                      Unhide
                     </>
                   )}
                 </Button>
