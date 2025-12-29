@@ -508,7 +508,7 @@ export default function Home() {
       const scaleFactor = selectedSize / totalRecipeVolume
 
       const manualRecipeItems = cocktail.recipe
-        .filter((item) => item?.manual === true)
+        .filter((item) => item?.manual === true || item?.type === "manual")
         .map((item) => ({
           ingredientId: item.ingredientId,
           amount: Math.round(item.amount * scaleFactor),
@@ -651,7 +651,7 @@ export default function Home() {
     )
 
     for (const recipeItem of cocktail.recipe) {
-      if (recipeItem.manual) {
+      if (recipeItem.manual || recipeItem.type === "manual") {
         continue
       }
 
@@ -890,7 +890,7 @@ export default function Home() {
     )
 
     const manualRecipeItems = cocktail.recipe
-      .filter((item) => item?.manual === true)
+      .filter((item) => item?.manual === true || item?.type === "manual")
       .map((item) => {
         const ingredientName =
           ingredientLookup?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "")
@@ -944,17 +944,17 @@ export default function Home() {
                         ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
                       }
 
+                      const isManual = item.manual === true || item.type === "manual"
+
                       return (
-                        <li key={index} className={`flex items-center ${item.manual === true ? "opacity-60" : ""}`}>
+                        <li key={index} className={`flex items-center ${isManual ? "opacity-60" : ""}`}>
                           <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
-                          <span>
+                          <span className={isManual ? "italic text-gray-400" : ""}>
                             {Math.round(
                               item.amount * (selectedSize / (cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1)),
                             )}
                             ml {ingredientName}
-                            {item.manual === true && (
-                              <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>
-                            )}
+                            {isManual && <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>}
                           </span>
                         </li>
                       )
