@@ -4,13 +4,14 @@ export interface TabConfig {
   icon?: string
   location: "main" | "service"
   passwordProtected?: boolean
-  alwaysVisible?: boolean // Comment translated: For tabs that must always be visible (e.g. Service menu)
+  alwaysVisible?: boolean // Für Tabs, die immer sichtbar sein müssen (z.B. Servicemenü)
 }
 
 export interface AppConfig {
   tabs: TabConfig[]
 }
 
+// Standard-Konfiguration
 export const defaultTabConfig: AppConfig = {
   tabs: [
     {
@@ -21,7 +22,7 @@ export const defaultTabConfig: AppConfig = {
     },
     {
       id: "virgin",
-      name: "Non-Alcoholic",
+      name: "Alkoholfrei",
       location: "main",
       passwordProtected: false,
     },
@@ -33,55 +34,61 @@ export const defaultTabConfig: AppConfig = {
     },
     {
       id: "recipe-creator",
-      name: "New Recipe",
+      name: "Neues Rezept",
       location: "service",
       passwordProtected: true,
     },
     {
       id: "levels",
-      name: "Fill Levels",
+      name: "Füllstände",
       location: "service",
       passwordProtected: true,
     },
     {
       id: "ingredients",
-      name: "Ingredients",
+      name: "Zutaten",
       location: "service",
       passwordProtected: true,
     },
     {
       id: "calibration",
-      name: "Calibration",
+      name: "Kalibrierung",
       location: "service",
       passwordProtected: true,
     },
     {
       id: "cleaning",
-      name: "Cleaning",
+      name: "Reinigung",
       location: "service",
       passwordProtected: true,
     },
     {
       id: "venting",
-      name: "Venting",
+      name: "Entlüften",
       location: "service",
       passwordProtected: true,
     },
     {
       id: "hidden-cocktails",
-      name: "Hidden Cocktails",
+      name: "Ausgeblendete Cocktails",
       location: "service",
       passwordProtected: true,
     },
     {
-      id: "lighting",
-      name: "Lighting",
+      id: "beleuchtung",
+      name: "Beleuchtung",
+      location: "service",
+      passwordProtected: true,
+    },
+    {
+      id: "statistics",
+      name: "Statistik",
       location: "service",
       passwordProtected: true,
     },
     {
       id: "service",
-      name: "Service Menu",
+      name: "Servicemenü",
       location: "main",
       passwordProtected: false,
       alwaysVisible: true,

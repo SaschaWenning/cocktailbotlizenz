@@ -1,38 +1,38 @@
 import type { Ingredient } from "@/types/pump"
 
 export const ingredients: Ingredient[] = [
-  // Alcoholic Beverages - Spirits (currently in use)
+  // Alkoholische Getränke - Spirituosen (currently in use)
   { id: "vodka", name: "Vodka", alcoholic: true },
-  { id: "dark-rum", name: "Dark Rum", alcoholic: true },
+  { id: "dark-rum", name: "Brauner Rum", alcoholic: true },
   { id: "gin", name: "Gin", alcoholic: true },
   { id: "tequila", name: "Tequila", alcoholic: true },
 
-  // Alcoholic Beverages - Liqueurs (currently in use)
+  // Alkoholische Getränke - Liköre (currently in use)
   { id: "malibu", name: "Malibu", alcoholic: true },
-  { id: "peach-liqueur", name: "Peach Liqueur", alcoholic: true },
+  { id: "peach-liqueur", name: "Pfirsichlikör", alcoholic: true },
   { id: "blue-curacao", name: "Blue Curaçao", alcoholic: true },
   { id: "triple-sec", name: "Triple Sec", alcoholic: true },
 
-  // Non-Alcoholic Beverages - Fruit Juices (currently in use)
-  { id: "orange-juice", name: "Orange Juice", alcoholic: false },
-  { id: "pineapple-juice", name: "Pineapple Juice", alcoholic: false },
-  { id: "cranberry-juice", name: "Cranberry Juice", alcoholic: false },
-  { id: "passion-fruit-juice", name: "Passion Fruit Juice", alcoholic: false },
+  // Nicht-alkoholische Getränke - Fruchtsäfte (currently in use)
+  { id: "orange-juice", name: "Orangensaft", alcoholic: false },
+  { id: "pineapple-juice", name: "Ananassaft", alcoholic: false },
+  { id: "cranberry-juice", name: "Cranberrysaft", alcoholic: false },
+  { id: "passion-fruit-juice", name: "Maracujasaft", alcoholic: false },
 
-  // Non-Alcoholic Beverages - Citrus Fruits (currently in use)
-  { id: "lime-juice", name: "Lime Juice", alcoholic: false },
-  { id: "lemon-juice", name: "Lemon Juice", alcoholic: false },
+  // Nicht-alkoholische Getränke - Zitrusfrüchte (currently in use)
+  { id: "lime-juice", name: "Limettensaft", alcoholic: false },
+  { id: "lemon-juice", name: "Zitronensaft", alcoholic: false },
 
-  // Non-Alcoholic Beverages - Carbonated Drinks
+  // Nicht-alkoholische Getränke - Kohlensäurehaltige Getränke
   { id: "cola", name: "Cola", alcoholic: false },
-  { id: "soda-water", name: "Soda Water", alcoholic: false },
+  { id: "soda-water", name: "Sodawasser", alcoholic: false },
 
-  // Non-Alcoholic Beverages - Dairy Products
+  // Nicht-alkoholische Getränke - Milchprodukte
   { id: "creme-of-coconut", name: "Cream of Coconut", alcoholic: false },
 
-  // Syrups (currently in use)
-  { id: "vanilla-syrup", name: "Vanilla Syrup", alcoholic: false },
-  { id: "almond-syrup", name: "Almond Syrup", alcoholic: false },
+  // Sirupe (currently in use)
+  { id: "vanilla-syrup", name: "Vanillesirup", alcoholic: false },
+  { id: "almond-syrup", name: "Mandelsirup", alcoholic: false },
   { id: "grenadine", name: "Grenadine", alcoholic: false },
-  { id: "coconut-syrup", name: "Coconut Syrup", alcoholic: false },
+  { id: "coconut-syrup", name: "Kokossirup", alcoholic: false },
 ]
