@@ -23,6 +23,7 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
   const [isDeleting, setIsDeleting] = useState(false)
   const [showKeyboard, setShowKeyboard] = useState(true)
 
+  // Reset password when dialog opens
   useEffect(() => {
     if (isOpen) {
       setPassword("")
@@ -43,7 +44,7 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
         setPassword("")
         onClose()
       } catch (error) {
-        console.error("Error deleting:", error)
+        console.error("Fehler beim Löschen:", error)
       } finally {
         setIsDeleting(false)
       }
@@ -73,32 +74,33 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-[hsl(var(--cocktail-error))]" />
-            Delete Cocktail
+            Cocktail löschen
           </DialogTitle>
         </DialogHeader>
 
         <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
           <AlertDescription className="text-[hsl(var(--cocktail-text))]">
-            Are you sure you want to delete the cocktail <strong>{cocktailName}</strong>? This action cannot be undone.
+            Möchtest du den Cocktail <strong>{cocktailName}</strong> wirklich löschen? Diese Aktion kann nicht
+            rückgängig gemacht werden.
           </AlertDescription>
         </Alert>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Please enter the password to confirm deletion:</Label>
+            <Label htmlFor="password">Bitte gib das Passwort ein, um das Löschen zu bestätigen:</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${error ? "border-[hsl(var(--cocktail-error))]" : ""}`}
-              placeholder="Enter password"
+              placeholder="Passwort eingeben"
               autoComplete="off"
               readOnly
               onFocus={() => setShowKeyboard(true)}
             />
             {error && (
-              <p className="text-[hsl(var(--cocktail-error))] text-sm">Incorrect password. Please try again.</p>
+              <p className="text-[hsl(var(--cocktail-error))] text-sm">Falsches Passwort. Bitte versuche es erneut.</p>
             )}
           </div>
 
@@ -117,7 +119,7 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
           {isDeleting && (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              <span>Deleting...</span>
+              <span>Wird gelöscht...</span>
             </div>
           )}
         </div>

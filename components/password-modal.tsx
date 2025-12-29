@@ -31,7 +31,7 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
         const savedPassword = localStorage.getItem("customPassword")
         setCustomPassword(savedPassword || "")
       } catch (error) {
-        console.error("Error loading custom password:", error)
+        console.error("Fehler beim Laden des benutzerdefinierten Passworts:", error)
       }
     }
   }, [isOpen])
@@ -69,26 +69,26 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
-            Password Required
+            Passwort erforderlich
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Please enter the password to edit recipes:</Label>
+            <Label htmlFor="password">Bitte gib das Passwort ein, um Rezepte zu bearbeiten:</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${error ? "border-[hsl(var(--cocktail-error))]" : ""}`}
-              placeholder="Enter password"
+              placeholder="Passwort eingeben"
               autoComplete="off"
               readOnly
               onFocus={() => setShowKeyboard(true)}
             />
             {error && (
-              <p className="text-[hsl(var(--cocktail-error))] text-sm">Incorrect password. Please try again.</p>
+              <p className="text-[hsl(var(--cocktail-error))] text-sm">Falsches Passwort. Bitte versuche es erneut.</p>
             )}
           </div>
 

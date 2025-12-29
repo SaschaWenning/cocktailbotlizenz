@@ -64,7 +64,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       setRecipe(
         cocktail.recipe.map((item) => ({
           ...item,
-          type: item.type || "automatic",
+          type: item.type || (item.manual === true ? "manual" : "automatic"),
           instruction: item.instruction || "",
           delayed: item.delayed || false,
         })),
@@ -224,11 +224,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const handleTypeChange = (index: number, type: "automatic" | "manual") => {
     const updatedRecipe = [...recipe]
-    updatedRecipe[index] = {
-      ...updatedRecipe[index],
-      type,
-      manual: type === "manual" ? true : undefined,
-    }
+    updatedRecipe[index] = { ...updatedRecipe[index], type }
     setRecipe(updatedRecipe)
   }
 
@@ -280,12 +276,18 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         description: description.trim(),
         image: imageUrl || "/placeholder.svg?height=200&width=400",
         alcoholic,
-        recipe: recipe,
+        recipe: recipe.map((item) => ({
+          ingredientId: item.ingredientId,
+          amount: item.amount,
+          type: item.type,
+          instruction: item.instruction,
+          delayed: item.delayed,
+        })),
         sizes: sizes.length > 0 ? sizes : [200, 300, 400],
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
           const ingredientName = ingredient?.name || item.ingredientId.replace(/^custom-\d+-/, "")
-          return `${item.amount}ml ${ingredientName} ${item.type === "manual" ? "(manuell)" : ""}`
+          return `${item.amount}ml ${ingredientName}${item.type === "manual" ? " (manuell)" : ""}`
         }),
       }
 
@@ -295,7 +297,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (error) {
-      console.error("Error saving recipe:", error)
+      console.error("Fehler beim Speichern des Rezepts:", error)
     } finally {
       setSaving(false)
     }
@@ -336,7 +338,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       // Trigger a refresh of the cocktail list
       window.location.reload()
     } catch (error) {
-      console.error("Error hiding cocktail:", error)
+      console.error("Fehler beim Ausblenden des Cocktails:", error)
     } finally {
       setHidingCocktail(false)
     }
@@ -366,10 +368,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const keys = isNumericKeyboard ? numericKeys : alphaKeys
 
   const renderFormView = () => (
-    <div className="space-y-6 my-4 max-h-[50vh] overflow-y-auto pr-2">
+    <div className="space-y-6 my-4 max-h-[60vh] overflow-y-auto pr-2">
       <div className="space-y-2">
         <Label htmlFor="name" className="text-white">
-          Cocktail Name
+          Name des Cocktails
         </Label>
         <Input
           id="name"
@@ -377,13 +379,13 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           onClick={() => openKeyboard("name", name)}
           readOnly
           className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
-          placeholder="e.g. My Cocktail"
+          placeholder="z.B. Mein Cocktail"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="description" className="text-white">
-          Description
+          Beschreibung
         </Label>
         <Input
           id="description"
@@ -391,12 +393,12 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           onClick={() => openKeyboard("description", description)}
           readOnly
           className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
-          placeholder="Describe your cocktail..."
+          placeholder="Beschreibe deinen Cocktail..."
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-white">Type</Label>
+        <Label className="text-white">Typ</Label>
         <Select
           value={alcoholic ? "alcoholic" : "virgin"}
           onValueChange={(value) => setAlcoholic(value === "alcoholic")}
@@ -406,10 +408,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           </SelectTrigger>
           <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
             <SelectItem value="alcoholic" className="text-black hover:bg-gray-100 cursor-pointer">
-              With Alcohol
+              Mit Alkohol
             </SelectItem>
             <SelectItem value="virgin" className="text-black hover:bg-gray-100 cursor-pointer">
-              Virgin
+              Alkoholfrei
             </SelectItem>
           </SelectContent>
         </Select>
@@ -418,7 +420,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       <div className="space-y-2">
         <Label className="flex items-center gap-2 text-white">
           <ImageIcon className="h-4 w-4" />
-          Image (optional)
+          Bild (optional)
         </Label>
         <div className="flex gap-2">
           <Input
@@ -426,7 +428,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             onClick={() => openKeyboard("imageUrl", imageUrl)}
             readOnly
             className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer flex-1"
-            placeholder="Image URL or choose from gallery"
+            placeholder="Bild-URL oder aus Galerie wählen"
           />
           <Button
             type="button"
@@ -439,14 +441,14 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       </div>
 
       <div className="space-y-2">
-        <Label className="text-white">Cocktail Sizes for this Recipe</Label>
+        <Label className="text-white">Cocktailgrößen für dieses Rezept</Label>
         <div className="flex gap-2 items-center">
           <Input
             value={newSizeInput}
             onClick={() => openKeyboard("newSize", newSizeInput, true)}
             readOnly
             className="bg-white border-[hsl(var(--cocktail-card-border))] text-black h-10 flex-1 cursor-pointer"
-            placeholder="enter ml"
+            placeholder="ml eingeben"
           />
         </div>
         {sizes.length > 0 && (
@@ -474,7 +476,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <Label className="text-white">Ingredients</Label>
+          <Label className="text-white">Zutaten</Label>
           <Button
             type="button"
             size="sm"
@@ -483,7 +485,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             disabled={recipe.length >= ingredients.length}
           >
             <Plus className="h-4 w-4 mr-1" />
-            Add Ingredient
+            Zutat hinzufügen
           </Button>
         </div>
 
@@ -527,7 +529,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                   onCheckedChange={(checked) => handleDelayedChange(index, checked as boolean)}
                   className="!w-1.5 !h-1.5 border-white data-[state=checked]:bg-[hsl(var(--cocktail-primary))] data-[state=checked]:border-[hsl(var(--cocktail-primary))]"
                 />
-                <span className="text-xs text-white">Delayed</span>
+                <span className="text-xs text-white">Verzögert</span>
               </div>
             </div>
             <div className="col-span-3">
@@ -540,10 +542,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 </SelectTrigger>
                 <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
                   <SelectItem value="automatic" className="text-black hover:bg-gray-100 cursor-pointer">
-                    Automatic
+                    Automatisch
                   </SelectItem>
                   <SelectItem value="manual" className="text-black hover:bg-gray-100 cursor-pointer">
-                    Manual
+                    Manuell
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -567,7 +569,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                   onClick={() => openInstructionKeyboard(index, item.instruction || "")}
                   readOnly
                   className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
-                  placeholder="Instructions (e.g. 'fill with ice cubes')"
+                  placeholder="Anleitung (z.B. 'mit Eiswürfeln auffüllen')"
                 />
               </div>
             )}
@@ -578,19 +580,19 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   )
 
   const renderKeyboardView = () => (
-    <div className="flex gap-3 my-2 h-[50vh]">
+    <div className="flex gap-3 my-2 h-[80vh]">
       <div className="flex-1 flex flex-col">
         <div className="text-center mb-2">
-          <h3 className="text-sm font-semibold text-white mb-1">
-            {keyboardMode === "name" && "Enter Name"}
-            {keyboardMode === "description" && "Enter Description"}
-            {keyboardMode === "imageUrl" && "Enter Image URL"}
-            {keyboardMode === "newSize" && "Enter New Cocktail Size (ml)"}
-            {keyboardMode.startsWith("amount-") && "Enter Amount (ml)"}
-            {keyboardMode.startsWith("instruction-") && "Enter Instructions"}
+          <h3 className="text-base font-semibold text-white mb-1">
+            {keyboardMode === "name" && "Name eingeben"}
+            {keyboardMode === "description" && "Beschreibung eingeben"}
+            {keyboardMode === "imageUrl" && "Bild-URL eingeben"}
+            {keyboardMode === "newSize" && "Neue Cocktailgröße eingeben (ml)"}
+            {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
+            {keyboardMode.startsWith("instruction-") && "Anleitung eingeben"}
           </h3>
-          <div className="bg-white text-black text-base p-2 rounded mb-2 min-h-[40px] break-all border-2 border-[hsl(var(--cocktail-primary))]">
-            {keyboardValue || <span className="text-gray-400">Input...</span>}
+          <div className="bg-white text-black text-lg p-4 rounded mb-4 min-h-[60px] break-all border-2 border-[hsl(var(--cocktail-primary))]">
+            {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
           </div>
         </div>
 
@@ -688,12 +690,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white w-screen h-screen max-w-none max-h-screen overflow-hidden flex flex-col p-0">
-          {!showKeyboard && (
-            <DialogHeader className="px-6 pt-4 pb-2 border-b border-[hsl(var(--cocktail-card-border))]">
-              <DialogTitle>Edit Recipe: {cocktail?.name}</DialogTitle>
-            </DialogHeader>
-          )}
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white w-[95vw] h-[95vh] max-w-none max-h-none overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Rezept bearbeiten: {cocktail?.name}</DialogTitle>
+          </DialogHeader>
 
           {!showKeyboard ? renderFormView() : renderKeyboardView()}
 
@@ -702,7 +702,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
               <div className="flex gap-2">
                 <Button variant="destructive" onClick={handleDeleteRequest} type="button">
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  Löschen
                 </Button>
                 <Button
                   onClick={handleHideCocktail}
@@ -714,12 +714,12 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                   {hidingCocktail ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Hiding...
+                      Wird ausgeblendet...
                     </>
                   ) : (
                     <>
                       <EyeOff className="mr-2 h-4 w-4" />
-                      Hide
+                      Ausblenden
                     </>
                   )}
                 </Button>
@@ -731,7 +731,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                   onClick={onClose}
                   className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
                 >
-                  Cancel
+                  Abbrechen
                 </Button>
                 <Button
                   onClick={handleSave}
@@ -741,10 +741,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      Speichern...
                     </>
                   ) : (
-                    "Save"
+                    "Speichern"
                   )}
                 </Button>
               </div>

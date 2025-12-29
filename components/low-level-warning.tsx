@@ -25,7 +25,7 @@ export default function LowLevelWarning({ availability }: LowLevelWarningProps) 
     return (
       <Badge className="absolute top-2 left-2 bg-red-600 text-white font-medium shadow-lg flex items-center gap-1 text-xs px-2 py-1">
         <AlertTriangle className="h-3 w-3" />
-        Low Level
+        Niedriger Füllstand
       </Badge>
     )
   }
@@ -36,7 +36,7 @@ export default function LowLevelWarning({ availability }: LowLevelWarningProps) 
     return (
       <Badge className="absolute top-2 left-2 bg-orange-500 text-white font-medium shadow-lg flex items-center gap-1 text-xs px-2 py-1">
         <AlertTriangle className="h-3 w-3" />
-        Low Level
+        Niedriger Füllstand
       </Badge>
     )
   }

@@ -53,7 +53,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
         {row3.map((key) => (
           <Button
             key={key}
-            className="h-6 text-xs font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
+            className="h-6 text-xs font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
             onClick={() => onKeyPress(key)}
           >
             {key.toUpperCase()}
@@ -68,7 +68,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
           className="col-span-6 h-6 text-xs font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] active:bg-[hsl(var(--cocktail-primary))] active:text-black transition-colors"
           onClick={() => onKeyPress(" ")}
         >
-          SPACE
+          LEERZEICHEN
         </Button>
         <div className="col-span-2"></div>
       </div>
@@ -79,7 +79,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
           onClick={onClear}
         >
           <X className="h-2 w-2 mr-1" />
-          Clear
+          Löschen
         </Button>
 
         <Button
@@ -87,7 +87,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
           onClick={onBackspace}
         >
           <Backspace className="h-2 w-2 mr-1" />
-          Back
+          Zurück
         </Button>
 
         {onCancel && (
@@ -95,7 +95,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
             className="h-6 text-xs font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] active:bg-[hsl(var(--cocktail-error))] active:text-white transition-colors"
             onClick={onCancel}
           >
-            Cancel
+            Abbrechen
           </Button>
         )}
 
@@ -104,7 +104,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
           onClick={onConfirm}
         >
           <Check className="h-3 w-3 mr-1" />
-          Confirm
+          Bestätigen
         </Button>
       </div>
     </div>

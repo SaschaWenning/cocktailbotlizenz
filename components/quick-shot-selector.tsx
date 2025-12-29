@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
-import { Check, AlertCircle, GlassWater } from "lucide-react"
+import { Check, AlertCircle, GlassWater } from 'lucide-react'
 import type { PumpConfig } from "@/types/pump"
 import { getAllIngredients } from "@/lib/ingredients"
 import type { IngredientLevel } from "@/types/ingredient-level"
@@ -73,7 +73,7 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
     setCurrentIngredient(ingredientName)
     setIsMaking(true)
     setProgress(0)
-    setStatusMessage(`Venting ${ingredientName}...`)
+    setStatusMessage(`Entlüfte ${ingredientName}...`)
     setErrorMessage(null)
 
     console.log("[v0] Shot preparation starting, activating LED mode: cocktailPreparation")
@@ -101,7 +101,7 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
 
       clearInterval(intervalId)
       setProgress(100)
-      setStatusMessage(`${ingredientName} ready!`)
+      setStatusMessage(`${ingredientName} fertig!`)
       setShowSuccess(true)
 
       console.log("[v0] Shot finished, activating LED mode: cocktailFinished")
@@ -130,8 +130,8 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
     } catch (error) {
       clearInterval(intervalId)
       setProgress(0)
-      setStatusMessage("Error during preparation!")
-      setErrorMessage(error instanceof Error ? error.message : "Unknown error")
+      setStatusMessage("Fehler bei der Zubereitung!")
+      setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
       setTimeout(() => {
         setIsMaking(false)
         setCurrentIngredient("")
@@ -173,7 +173,7 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Vent Alcoholic Ingredients</h2>
+        <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Alkoholische Zutaten entlüften</h2>
         <div className="grid grid-cols-4 gap-3">
           {alcoholicIngredients.map((ingredient) => {
             const isAvailable = checkIngredientAvailable(ingredient.id)
@@ -192,7 +192,7 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
               >
                 <div className="flex flex-col items-center">
                   <span className="font-medium text-sm">{ingredient.name}</span>
-                  {!isAvailable && <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Empty</span>}
+                  {!isAvailable && <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Leer</span>}
                 </div>
               </Button>
             )
@@ -203,7 +203,7 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
       {nonAlcoholicIngredients.length > 0 && (
         <div>
           <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">
-            Vent Non-Alcoholic Ingredients
+            Alkoholfreie Zutaten entlüften
           </h2>
           <div className="grid grid-cols-4 gap-3">
             {nonAlcoholicIngredients.map((ingredient) => {
@@ -223,7 +223,7 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
                 >
                   <div className="flex flex-col items-center">
                     <span className="font-medium text-sm">{ingredient.name}</span>
-                    {!isAvailable && <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Empty</span>}
+                    {!isAvailable && <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Leer</span>}
                   </div>
                 </Button>
               )

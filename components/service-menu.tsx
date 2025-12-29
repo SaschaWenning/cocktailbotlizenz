@@ -16,6 +16,7 @@ import RecipeCreator from "@/components/recipe-creator"
 import HiddenCocktailsManager from "@/components/hidden-cocktails-manager"
 import PasswordModal from "@/components/password-modal"
 import LightingControl from "@/components/lighting-control"
+import Statistics from "@/components/statistics"
 import type { AppConfig } from "@/lib/tab-config"
 import type { PumpConfig } from "@/types/pump"
 import type { IngredientLevel } from "@/types/ingredient-level"
@@ -57,67 +58,15 @@ export default function ServiceMenu({
   const [serviceTabs, setServiceTabs] = useState<string[]>([])
   const [showInfoModal, setShowInfoModal] = useState(false)
 
-  const migrateTabConfig = (config: AppConfig): AppConfig => {
-    const germanToEnglishMap: Record<string, { id: string; name: string }> = {
-      Alkoholfrei: { id: "virgin", name: "Non-Alcoholic" },
-      "Neues Rezept": { id: "recipe-creator", name: "New Recipe" },
-      Füllstände: { id: "levels", name: "Fill Levels" },
-      Zutaten: { id: "ingredients", name: "Ingredients" },
-      Kalibrierung: { id: "calibration", name: "Calibration" },
-      Reinigung: { id: "cleaning", name: "Cleaning" },
-      Entlüften: { id: "venting", name: "Venting" },
-      "Ausgeblendete Cocktails": { id: "hidden-cocktails", name: "Hidden Cocktails" },
-      Beleuchtung: { id: "lighting", name: "Lighting" },
-      Servicemenü: { id: "service", name: "Service Menu" },
-    }
-
-    const migratedTabs = config.tabs.map((tab) => {
-      // Check if the tab name is German
-      if (germanToEnglishMap[tab.name]) {
-        const englishTab = germanToEnglishMap[tab.name]
-        console.log(`[v0] Service menu: Migrating tab "${tab.name}" to "${englishTab.name}"`)
-        return {
-          ...tab,
-          id: englishTab.id,
-          name: englishTab.name,
-        }
-      }
-      return tab
-    })
-
-    return {
-      ...config,
-      tabs: migratedTabs,
-    }
-  }
-
   useEffect(() => {
     const loadTabConfig = async () => {
       try {
-        console.log("[v0] Service menu: Loading tab config from localStorage...")
-        const stored = localStorage.getItem("tab-config")
-        let config: AppConfig
+        const response = await fetch("/api/tab-config")
+        if (!response.ok) throw new Error("Failed to load tab config")
 
-        if (stored) {
-          console.log("[v0] Service menu: Tab config found in localStorage")
-          const parsedConfig = JSON.parse(stored)
-
-          config = migrateTabConfig(parsedConfig)
-
-          // Save the migrated config back to localStorage
-          localStorage.setItem("tab-config", JSON.stringify(config))
-          console.log("[v0] Service menu: Migrated and saved tab config:", config)
-        } else {
-          console.log("[v0] Service menu: No localStorage config, using default config")
-          const { defaultTabConfig } = await import("@/lib/tab-config")
-          config = defaultTabConfig
-          localStorage.setItem("tab-config", JSON.stringify(config))
-          console.log("[v0] Service menu: Saved default config to localStorage")
-        }
-
+        const config: AppConfig = await response.json()
         const serviceTabIds = config.tabs.filter((tab) => tab.location === "service").map((tab) => tab.id)
 
-        console.log("[v0] Service menu: Service tab IDs:", serviceTabIds)
         setTabConfig(config)
         setServiceTabs(serviceTabIds)
 
@@ -146,7 +95,8 @@ export default function ServiceMenu({
           "shots",
           "recipe-creator",
           "hidden-cocktails",
-          "lighting",
+          "beleuchtung",
+          "statistics",
         ])
         setActiveServiceTab("levels")
       }
@@ -191,7 +141,7 @@ export default function ServiceMenu({
       case "recipe-creator":
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">Create New Recipe</h3>
+            <h3 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">Neues Rezept erstellen</h3>
             <RecipeCreator
               isOpen={true}
               asTab={true}
@@ -207,17 +157,25 @@ export default function ServiceMenu({
             />
           </div>
         )
-      case "lighting":
+      case "beleuchtung":
         return <LightingControl />
+      case "statistics":
+      case "statistik":
+        return <Statistics cocktails={cocktails} pumpConfig={pumpConfig} />
       case "venting":
+      case "entlueften":
         return <PumpVenting pumpConfig={pumpConfig} />
       case "levels":
+      case "fuellstaende":
         return <IngredientLevels pumpConfig={pumpConfig} onLevelsUpdated={onLevelsUpdated} />
       case "cleaning":
+      case "reinigung":
         return <PumpCleaning pumpConfig={pumpConfig} />
       case "calibration":
+      case "kalibrierung":
         return <PumpCalibration pumpConfig={pumpConfig} onConfigUpdate={onConfigUpdate} />
       case "ingredients":
+      case "zutaten":
         return (
           <IngredientManager
             onClose={() => {
@@ -228,6 +186,7 @@ export default function ServiceMenu({
           />
         )
       case "settings":
+      case "einstellungen":
         return (
           <div className="space-y-6">
             <PasswordSettings />
@@ -235,26 +194,17 @@ export default function ServiceMenu({
               onClose={() => {
                 const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"
                 setActiveServiceTab(firstTab)
+                // Reload tab config in parent component
                 onTabConfigReload?.()
+                // Reload local service menu config
                 const loadTabConfig = async () => {
                   try {
-                    console.log("[v0] Service menu: Reloading tab config from localStorage...")
-                    const stored = localStorage.getItem("tab-config")
-                    let config: AppConfig
+                    const response = await fetch("/api/tab-config")
+                    if (!response.ok) throw new Error("Failed to load tab config")
 
-                    if (stored) {
-                      console.log("[v0] Service menu: Reloaded config from localStorage")
-                      const parsedConfig = JSON.parse(stored)
-                      config = migrateTabConfig(parsedConfig)
-                    } else {
-                      console.log("[v0] Service menu: No config in localStorage after save, using default")
-                      const { defaultTabConfig } = await import("@/lib/tab-config")
-                      config = defaultTabConfig
-                    }
-
+                    const config: AppConfig = await response.json()
                     const serviceTabIds = config.tabs.filter((tab) => tab.location === "service").map((tab) => tab.id)
 
-                    console.log("[v0] Service menu: Reloaded service tab IDs:", serviceTabIds)
                     setTabConfig(config)
                     setServiceTabs(serviceTabIds)
                   } catch (error) {
@@ -267,6 +217,7 @@ export default function ServiceMenu({
           </div>
         )
       case "hidden-cocktails":
+      case "ausgeblendete-cocktails":
         return (
           <HiddenCocktailsManager
             onClose={() => {
@@ -298,16 +249,16 @@ export default function ServiceMenu({
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <Lock className="h-16 w-16 text-[hsl(var(--cocktail-text-muted))]" />
-        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Service Menu Locked</h2>
+        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Servicemenü gesperrt</h2>
         <p className="text-[hsl(var(--cocktail-text-muted))] text-center">
-          Please enter the password to access the service menu.
+          Bitte geben Sie das Passwort ein, um auf das Servicemenü zuzugreifen.
         </p>
         <Button
           onClick={handleUnlockClick}
           className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold px-8 py-3"
         >
           <Lock className="h-4 w-4 mr-2" />
-          Unlock
+          Entsperren
         </Button>
 
         {showPasswordModal && (
@@ -324,7 +275,7 @@ export default function ServiceMenu({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Service Menu</h2>
+        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Servicemenü</h2>
         <div className="flex gap-3">
           <Button
             variant="outline"
@@ -332,7 +283,7 @@ export default function ServiceMenu({
             className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
           >
             <Settings className="h-4 w-4 mr-2" />
-            Settings
+            Einstellungen
           </Button>
           <Button
             variant="outline"
@@ -364,22 +315,22 @@ export default function ServiceMenu({
           <div className="bg-[hsl(var(--cocktail-card-bg))] p-8 rounded-2xl shadow-2xl max-w-md mx-4 border border-[hsl(var(--cocktail-card-border))]">
             <div className="flex flex-col items-center space-y-4">
               <Info className="h-12 w-12 text-[hsl(var(--cocktail-primary))]" />
-              <h3 className="text-xl font-bold text-[hsl(var(--cocktail-text))]">License Notice</h3>
+              <h3 className="text-xl font-bold text-[hsl(var(--cocktail-text))]">Lizenzhinweis</h3>
               <p className="text-[hsl(var(--cocktail-text-muted))] text-center text-sm leading-relaxed">
-                This software and the associated building instructions are intended for private use only.
+                Diese Software und die dazugehörige Bauanleitung sind ausschließlich für den privaten Gebrauch bestimmt.
                 <br />
                 <br />
-                Any commercial use - especially the construction and sale of the Cocktailbot, use in gastronomy or at
-                events, as well as commercial use of the software - is not permitted without prior written license
-                agreement with the author.
+                Jegliche gewerbliche Nutzung – insbesondere der Bau und Verkauf vom Cocktailbot, die Nutzung in
+                Gastronomie oder auf Events sowie die kommerzielle Verwendung der Software – ist ohne vorherige
+                schriftliche Lizenzvereinbarung mit dem Urheber nicht gestattet.
                 <br />
-                <br />📧 Contact for license inquiries: printcore@outlook.de
+                <br />📧 Kontakt für Lizenzanfragen: printcore@outlook.de
               </p>
               <Button
                 onClick={() => setShowInfoModal(false)}
                 className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold px-6 py-2"
               >
-                Understood
+                Verstanden
               </Button>
             </div>
           </div>
