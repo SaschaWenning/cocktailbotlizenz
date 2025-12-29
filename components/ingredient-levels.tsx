@@ -121,8 +121,17 @@ export function IngredientLevels() {
       return ingredient.name
     }
 
+    // Handle custom ingredients - remove the custom-timestamp- prefix
+    if (ingredientId.startsWith("custom-")) {
+      const withoutPrefix = ingredientId.replace(/^custom-\d+-/, "")
+      return withoutPrefix
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+    }
+
+    // Handle regular ingredient IDs
     return ingredientId
-      .replace(/^custom-\d+-/, "") // Remove custom-123456- prefix
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ")

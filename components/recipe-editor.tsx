@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -369,7 +369,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const renderFormView = () => (
     <div className="space-y-6 my-4 max-h-[60vh] overflow-y-auto pr-2">
-      <div className="space-y-2">
+      <div className="space-y-2 max-w-md">
         <Label htmlFor="name" className="text-white">
           Name des Cocktails
         </Label>
@@ -689,67 +689,284 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white w-[95vw] h-[95vh] max-w-none max-h-none overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>Rezept bearbeiten: {cocktail?.name}</DialogTitle>
-          </DialogHeader>
+      <Dialog open={isOpen && !showFileBrowser && !showKeyboard} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-[hsl(var(--cocktail-bg-start))] to-[hsl(var(--cocktail-bg-end))]">
+          <div className="space-y-6 my-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="space-y-2 max-w-md">
+              <Label htmlFor="name" className="text-white">
+                Name des Cocktails
+              </Label>
+              <Input
+                id="name"
+                value={name}
+                onClick={() => openKeyboard("name", name)}
+                readOnly
+                className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+                placeholder="z.B. Mein Cocktail"
+              />
+            </div>
 
-          {!showKeyboard ? renderFormView() : renderKeyboardView()}
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-white">
+                Beschreibung
+              </Label>
+              <Input
+                id="description"
+                value={description}
+                onClick={() => openKeyboard("description", description)}
+                readOnly
+                className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+                placeholder="Beschreibe deinen Cocktail..."
+              />
+            </div>
 
-          {!showKeyboard && (
-            <DialogFooter className="flex justify-between items-center">
+            <div className="space-y-2">
+              <Label className="text-white">Typ</Label>
+              <Select
+                value={alcoholic ? "alcoholic" : "virgin"}
+                onValueChange={(value) => setAlcoholic(value === "alcoholic")}
+              >
+                <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
+                  <SelectItem value="alcoholic" className="text-black hover:bg-gray-100 cursor-pointer">
+                    Mit Alkohol
+                  </SelectItem>
+                  <SelectItem value="virgin" className="text-black hover:bg-gray-100 cursor-pointer">
+                    Alkoholfrei
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-white">
+                <ImageIcon className="h-4 w-4" />
+                Bild (optional)
+              </Label>
               <div className="flex gap-2">
-                <Button variant="destructive" onClick={handleDeleteRequest} type="button">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Löschen
-                </Button>
+                <Input
+                  value={imageUrl}
+                  onClick={() => openKeyboard("imageUrl", imageUrl)}
+                  readOnly
+                  className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer flex-1"
+                  placeholder="Bild-URL oder aus Galerie wählen"
+                />
                 <Button
-                  onClick={handleHideCocktail}
-                  disabled={hidingCocktail}
-                  variant="outline"
-                  className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-warning))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
                   type="button"
+                  onClick={() => setShowFileBrowser(true)}
+                  className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
                 >
-                  {hidingCocktail ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Wird ausgeblendet...
-                    </>
-                  ) : (
-                    <>
-                      <EyeOff className="mr-2 h-4 w-4" />
-                      Ausblenden
-                    </>
-                  )}
+                  <FolderOpen className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="flex gap-2">
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-white">Cocktailgrößen für dieses Rezept</Label>
+              <div className="flex gap-2 items-center">
+                <Input
+                  value={newSizeInput}
+                  onClick={() => openKeyboard("newSize", newSizeInput, true)}
+                  readOnly
+                  className="bg-white border-[hsl(var(--cocktail-card-border))] text-black h-10 flex-1 cursor-pointer"
+                  placeholder="ml eingeben"
+                />
+              </div>
+              {sizes.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {sizes.map((size) => (
+                    <div
+                      key={size}
+                      className="flex items-center gap-1 bg-[hsl(var(--cocktail-card-bg))] px-3 py-1 rounded border border-[hsl(var(--cocktail-card-border))]"
+                    >
+                      <span className="text-white text-sm">{size}ml</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeSize(size)}
+                        className="h-4 w-4 p-0 text-red-400 hover:text-red-300"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label className="text-white">Zutaten</Label>
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={onClose}
-                  className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  size="sm"
+                  onClick={addIngredient}
+                  className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+                  disabled={recipe.length >= ingredients.length}
                 >
-                  Abbrechen
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={saving || !name.trim() || recipe.length === 0}
-                  className="bg-[#00ff00] text-black hover:bg-[#00cc00]"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Speichern...
-                    </>
-                  ) : (
-                    "Speichern"
-                  )}
+                  <Plus className="h-4 w-4 mr-1" />
+                  Zutat hinzufügen
                 </Button>
               </div>
-            </DialogFooter>
-          )}
+
+              {recipe.map((item, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-12 gap-2 items-center p-3 bg-[hsl(var(--cocktail-card-bg))] rounded-lg border border-[hsl(var(--cocktail-card-border))]"
+                >
+                  <div className="col-span-5">
+                    <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
+                      <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))] max-h-48 overflow-y-auto">
+                        {ingredients.map((ingredient) => (
+                          <SelectItem
+                            key={ingredient.id}
+                            value={ingredient.id}
+                            className="text-black hover:bg-gray-100 cursor-pointer"
+                          >
+                            {ingredient.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-1">
+                    <Input
+                      type="text"
+                      value={item.amount}
+                      onClick={() => openKeyboard(`amount-${index}`, item.amount.toString(), true)}
+                      readOnly
+                      className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
+                    />
+                  </div>
+                  <div className="col-span-2 flex items-center gap-2">
+                    <span className="text-sm text-white">ml</span>
+                    <div className="flex flex-col items-center gap-1">
+                      <Checkbox
+                        checked={item.delayed || false}
+                        onCheckedChange={(checked) => handleDelayedChange(index, checked as boolean)}
+                        className="!w-1.5 !h-1.5 border-white data-[state=checked]:bg-[hsl(var(--cocktail-primary))] data-[state=checked]:border-[hsl(var(--cocktail-primary))]"
+                      />
+                      <span className="text-xs text-white">Verzögert</span>
+                    </div>
+                  </div>
+                  <div className="col-span-3">
+                    <Select
+                      value={item.type}
+                      onValueChange={(value: "automatic" | "manual") => handleTypeChange(index, value)}
+                    >
+                      <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
+                        <SelectItem value="automatic" className="text-black hover:bg-gray-100 cursor-pointer">
+                          Automatisch
+                        </SelectItem>
+                        <SelectItem value="manual" className="text-black hover:bg-gray-100 cursor-pointer">
+                          Manuell
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => removeIngredient(index)}
+                      disabled={recipe.length <= 1}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {item.type === "manual" && (
+                    <div className="col-span-12 mt-2">
+                      <Input
+                        value={item.instruction || ""}
+                        onClick={() => openInstructionKeyboard(index, item.instruction || "")}
+                        readOnly
+                        className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+                        placeholder="Anleitung (z.B. 'mit Eiswürfeln auffüllen')"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-row justify-between items-center gap-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={handleDeleteRequest}
+                disabled={saving}
+                variant="destructive"
+                size="sm"
+                className="h-9"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Löschen
+              </Button>
+              <Button
+                type="button"
+                onClick={handleHideCocktail}
+                disabled={hidingCocktail}
+                variant="outline"
+                size="sm"
+                className="h-9 bg-orange-500/20 border-orange-500/50 text-white hover:bg-orange-500/30"
+              >
+                {hidingCocktail ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Wird ausgeblendet...
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="h-4 w-4 mr-2" />
+                    Ausblenden
+                  </>
+                )}
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={onClose}
+                variant="outline"
+                size="sm"
+                disabled={saving}
+                className="h-9 bg-transparent"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSave}
+                disabled={!name.trim() || recipe.length === 0 || saving}
+                size="sm"
+                className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))] h-9"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Wird gespeichert...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Speichern
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
