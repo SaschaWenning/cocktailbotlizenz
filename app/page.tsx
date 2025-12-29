@@ -507,15 +507,33 @@ export default function Home() {
       const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
       const scaleFactor = selectedSize / totalRecipeVolume
 
+      const freshIngredients = await getAllIngredients() // Directly fetch ingredients here
+      const ingredientLookup = freshIngredients.reduce(
+        (acc, ingredient) => {
+          acc[ingredient.id] = { name: ingredient.name }
+          return acc
+        },
+        {} as Record<string, { name: string }>,
+      )
+
       const manualRecipeItems = cocktail.recipe
         .filter((item) => item?.manual === true || item?.type === "manual")
-        .map((item) => ({
-          ingredientId: item.ingredientId,
-          amount: Math.round(item.amount * scaleFactor),
-          instructions: undefined,
-        }))
+        .map((item) => {
+          const ingredientName =
+            ingredientLookup?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "").trim()
+          const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + (Number(it?.amount) || 0), 0) || 1
+          const scaleFactor = selectedSize / totalRecipeVolume
+          const ml = Math.round((Number(item.amount) || 0) * scaleFactor)
+          return { ingredientName, ml }
+        })
 
-      setManualIngredients(manualRecipeItems)
+      if (manualRecipeItems.length > 0) {
+        setManualIngredients(cocktail.recipe.filter((item) => item?.manual === true || item?.type === "manual"))
+        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fast fertig!\nBitte manuelle Zutaten hinzufügen.`)
+      } else {
+        setManualIngredients([])
+        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
+      }
 
       const estimatedDuration = calculateCocktailDuration(cocktail, currentPumpConfig, selectedSize)
       const progressInterval = Math.max(100, estimatedDuration / 100)
@@ -565,20 +583,8 @@ export default function Home() {
         console.error("[v0] Error activating finished lighting:", error)
       }
 
-      if (manualRecipeItems.length > 0) {
-        setStatusMessage(
-          `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
-        )
-        setTimeout(() => {
-          setShowManualIngredientsModal(true)
-          setTimeout(() => {
-            setShowManualIngredientsModal(false)
-            setManualIngredients([])
-          }, 6000)
-        }, 2000)
-      } else {
-        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
-      }
+      // The status message is set above, so no need to set it again here.
+      // The setShowManualIngredientsModal is also handled above.
 
       setShowSuccess(true)
 
@@ -881,7 +887,8 @@ export default function Home() {
 
     const isCompleted = progress === 100
 
-    const ingredientLookup = allIngredients.reduce(
+    const freshIngredients = getAllIngredients()
+    const ingredientLookup = freshIngredients.reduce(
       (acc, ingredient) => {
         acc[ingredient.id] = { name: ingredient.name }
         return acc
@@ -893,7 +900,7 @@ export default function Home() {
       .filter((item) => item?.manual === true || item?.type === "manual")
       .map((item) => {
         const ingredientName =
-          ingredientLookup?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "")
+          ingredientLookup?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "").trim()
         const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + (Number(it?.amount) || 0), 0) || 1
         const scaleFactor = selectedSize / totalRecipeVolume
         const ml = Math.round((Number(item.amount) || 0) * scaleFactor)
@@ -937,11 +944,11 @@ export default function Home() {
                   <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
                   <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
                     {cocktail.recipe.map((item, index) => {
-                      const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
+                      const ingredient = freshIngredients.find((i) => i.id === item.ingredientId)
                       let ingredientName = ingredient ? ingredient.name : item.ingredientId
 
                       if (!ingredient && item.ingredientId.startsWith("custom-")) {
-                        ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
+                        ingredientName = item.ingredientId.replace(/^custom-\d+-/, "").trim()
                       }
 
                       const isManual = item.manual === true || item.type === "manual"
