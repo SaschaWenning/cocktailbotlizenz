@@ -378,7 +378,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           value={name}
           onClick={() => openKeyboard("name", name)}
           readOnly
-          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer h-10"
           placeholder="z.B. Mein Cocktail"
         />
       </div>
@@ -392,7 +392,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           value={description}
           onClick={() => openKeyboard("description", description)}
           readOnly
-          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer h-16"
+          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer h-10"
           placeholder="Beschreibe deinen Cocktail..."
         />
       </div>
@@ -591,7 +591,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
             {keyboardMode.startsWith("instruction-") && "Anleitung eingeben"}
           </h3>
-          <div className="bg-white text-black text-lg p-4 rounded mb-4 min-h-[40px] break-all border-2 border-[hsl(var(--cocktail-primary))]">
+          <div className="bg-white text-black text-lg p-1 rounded mb-4 h-8 break-all border-2 border-[hsl(var(--cocktail-primary))] overflow-auto">
             {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
           </div>
         </div>
