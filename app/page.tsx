@@ -22,7 +22,7 @@ import RecipeCreator from "@/components/recipe-creator"
 import DeleteConfirmation from "@/components/delete-confirmation"
 import ImageEditor from "@/components/image-editor"
 import QuickShotSelector from "@/components/quick-shot-selector"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import ServiceMenu from "@/components/service-menu"
 import { getAllIngredients } from "@/lib/ingredients"
 import type { AppConfig } from "@/lib/tab-config"
@@ -60,7 +60,7 @@ export default function Home() {
   const [showImageEditor, setShowImageEditor] = useState(false)
   const [allIngredientsData, setAllIngredientsData] = useState<any[]>([])
   const [manualIngredients, setManualIngredients] = useState<
-    Array<{ ingredientId: string; amount: number; instructions?: string }>
+    Array<{ ingredientId: string; amount: number; instructions?: string; name?: string }>
   >([])
   const [showManualIngredientsModal, setShowManualIngredientsModal] = useState(false)
   const [showImageEditorPasswordModal, setShowImageEditorPasswordModal] = useState(false)
@@ -528,7 +528,26 @@ export default function Home() {
         })
 
       if (manualRecipeItems.length > 0) {
-        setManualIngredients(cocktail.recipe.filter((item) => item?.manual === true || item?.type === "manual"))
+        const freshIngredients = await getAllIngredients()
+        const ingredientLookupMap = new Map(freshIngredients.map((ing) => [ing.id, ing.name]))
+
+        const manualIngredientsWithNames = cocktail.recipe
+          .filter((item) => item?.manual === true || item?.type === "manual")
+          .map((item) => {
+            let name = ingredientLookupMap.get(item.ingredientId)
+
+            // If not found in lookup, try to extract name from custom ingredient ID
+            if (!name && item.ingredientId.startsWith("custom-")) {
+              name = item.ingredientId.replace(/^custom-\d+-/, "").trim()
+            }
+
+            return {
+              ...item,
+              name: name || item.ingredientId,
+            }
+          })
+
+        setManualIngredients(manualIngredientsWithNames)
         setStatusMessage(`${cocktail.name} (${selectedSize}ml) fast fertig!\nBitte manuelle Zutaten hinzufügen.`)
       } else {
         setManualIngredients([])
@@ -596,17 +615,40 @@ export default function Home() {
       window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
 
       const displayDuration = manualRecipeItems.length > 0 ? 8000 : 3000
-      setTimeout(() => {
-        setIsMaking(false)
-        setShowSuccess(false)
-        setSelectedCocktail(null)
 
-        fetch("/api/lighting-control", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "idle" }),
-        }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
-      }, displayDuration)
+      if (manualRecipeItems.length > 0) {
+        // Show success dialog for 3 seconds, then show manual ingredients modal for 8 seconds
+        setTimeout(() => {
+          setShowSuccess(false)
+          setShowManualIngredientsModal(true)
+
+          // Hide manual ingredients modal after 8 seconds and return to idle
+          setTimeout(() => {
+            setShowManualIngredientsModal(false)
+            setIsMaking(false)
+            setSelectedCocktail(null)
+
+            fetch("/api/lighting-control", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mode: "idle" }),
+            }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
+          }, 8000)
+        }, 3000)
+      } else {
+        // No manual ingredients, just hide success dialog after 3 seconds
+        setTimeout(() => {
+          setIsMaking(false)
+          setShowSuccess(false)
+          setSelectedCocktail(null)
+
+          fetch("/api/lighting-control", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: "idle" }),
+          }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
+        }, displayDuration)
+      }
     } catch (error) {
       let intervalId: NodeJS.Timeout
       clearInterval(intervalId)
@@ -1381,7 +1423,11 @@ export default function Home() {
 
                   <div className="space-y-4">
                     {manualIngredients.map((item, index) => {
-                      const ingredient = allIngredientsData.find((ing) => ing.id === item.ingredientId)
+                      const totalRecipeVolume =
+                        selectedCocktail?.recipe.reduce((t, it) => t + (Number(it?.amount) || 0), 0) || 1
+                      const scaleFactor = selectedSize / totalRecipeVolume
+                      const scaledAmount = Math.round((Number(item.amount) || 0) * scaleFactor)
+
                       return (
                         <div
                           key={index}
@@ -1389,20 +1435,14 @@ export default function Home() {
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-3 h-3 rounded-full bg-[hsl(var(--cocktail-primary))]"></div>
-                            <span className="font-medium text-[hsl(var(--cocktail-text))]">
-                              {ingredient?.name || item.ingredientId}
-                            </span>
+                            <span className="font-medium text-[hsl(var(--cocktail-text))]">{item.name}</span>
                           </div>
                           <span className="text-lg font-semibold text-[hsl(var(--cocktail-primary))]">
-                            {item.amount}ml
+                            {scaledAmount}ml
                           </span>
                         </div>
                       )
                     })}
-                  </div>
-
-                  <div className="text-center text-sm text-[hsl(var(--cocktail-text-muted))]">
-                    Dieses Fenster schließt sich automatisch...
                   </div>
                 </CardContent>
               </Card>
