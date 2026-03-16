@@ -318,8 +318,76 @@ async function activatePump(pin: number, durationMs: number) {
   }
 }
 
-export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
+// Hilfsfunktion: Finde alle Pumpen für eine Zutat, sortiert nach Priorität
+function getPumpsForIngredient(ingredientId: string, pumpConfig: PumpConfig[]): PumpConfig[] {
+  return pumpConfig
+    .filter((p) => p.ingredient === ingredientId && p.enabled)
+    .sort((a, b) => (a.priority || 999) - (b.priority || 999))
+}
+
+// Hilfsfunktion: Verteile die benötigte Menge auf mehrere Pumpen basierend auf Füllstand
+async function distributeToPumps(
+  ingredientId: string,
+  amountNeeded: number,
+  pumpConfig: PumpConfig[],
+  ingredientLevels: Map<number, number>
+): Promise<{ pumpId: number; pin: number; amount: number; flowRate: number }[]> {
+  const pumps = getPumpsForIngredient(ingredientId, pumpConfig)
+  
+  if (pumps.length === 0) {
+    console.error(`Keine Pumpe für Zutat ${ingredientId} konfiguriert!`)
+    return []
+  }
+
+  const distribution: { pumpId: number; pin: number; amount: number; flowRate: number }[] = []
+  let remainingAmount = amountNeeded
+
+  for (const pump of pumps) {
+    if (remainingAmount <= 0) break
+
+    const currentLevel = ingredientLevels.get(pump.id) || 0
+    
+    if (currentLevel <= 0) {
+      console.log(`[v0] Pumpe ${pump.id} (${pump.ingredient}) ist leer, überspringe...`)
+      continue
+    }
+
+    const amountFromThisPump = Math.min(remainingAmount, currentLevel)
+    
+    distribution.push({
+      pumpId: pump.id,
+      pin: pump.pin,
+      amount: amountFromThisPump,
+      flowRate: pump.flowRate
+    })
+
+    console.log(`[v0] Pumpe ${pump.id} (Priorität ${pump.priority || 999}): ${amountFromThisPump}ml von ${currentLevel}ml verfügbar`)
+    
+    remainingAmount -= amountFromThisPump
+  }
+
+  if (remainingAmount > 0) {
+    console.warn(`[v0] WARNUNG: ${remainingAmount}ml von ${ingredientId} konnten nicht verteilt werden!`)
+  }
+
+  return distribution
+}
+
+export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300, ingredientLevelsData?: { pumpId: number; currentLevel: number }[]) {
   console.log(`Bereite Cocktail zu: ${cocktail.name} (${size}ml)`)
+
+  // Erstelle eine Map der Füllstände für schnellen Zugriff
+  const ingredientLevels = new Map<number, number>()
+  if (ingredientLevelsData) {
+    for (const level of ingredientLevelsData) {
+      ingredientLevels.set(level.pumpId, level.currentLevel)
+    }
+  } else {
+    // Fallback: Setze alle Pumpen auf "genug" wenn keine Levels übergeben werden
+    for (const pump of pumpConfig) {
+      ingredientLevels.set(pump.id, 10000)
+    }
+  }
 
   // Skaliere das Rezept auf die gewünschte Größe
   const currentTotal = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
@@ -337,26 +405,31 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
   // Sammle Pumpen-Updates für Level-Reduktion
   const levelUpdates: { pumpId: number; amount: number }[] = []
 
-  const immediatePumpPromises = immediateItems.map((item) => {
-    // Finde die Pumpe, die diese Zutat enthält
-    const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId)
+  // Verarbeite sofortige Zutaten mit Multi-Pumpen-Unterstützung
+  const immediatePumpPromises: Promise<void>[] = []
+  
+  for (const item of immediateItems) {
+    const distribution = await distributeToPumps(
+      item.ingredientId,
+      item.amount,
+      pumpConfig,
+      ingredientLevels
+    )
 
-    if (!pump) {
-      console.error(`Keine Pumpe für Zutat ${item.ingredientId} konfiguriert!`)
-      return Promise.resolve()
+    for (const dist of distribution) {
+      const pumpTimeMs = (dist.amount / dist.flowRate) * 1000
+      
+      console.log(`[v0] Sofort: Pumpe ${dist.pumpId}: ${dist.amount}ml für ${pumpTimeMs}ms aktivieren`)
+      
+      levelUpdates.push({ pumpId: dist.pumpId, amount: dist.amount })
+      
+      // Aktualisiere den lokalen Füllstand für weitere Berechnungen
+      const currentLevel = ingredientLevels.get(dist.pumpId) || 0
+      ingredientLevels.set(dist.pumpId, currentLevel - dist.amount)
+      
+      immediatePumpPromises.push(activatePump(dist.pin, pumpTimeMs).then(() => {}))
     }
-
-    // Berechne, wie lange die Pumpe laufen muss
-    const pumpTimeMs = (item.amount / pump.flowRate) * 1000
-
-    console.log(`[v0] Sofort: Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
-
-    // Füge zur Level-Update-Liste hinzu
-    levelUpdates.push({ pumpId: pump.id, amount: item.amount })
-
-    // Aktiviere die Pumpe
-    return activatePump(pump.pin, pumpTimeMs)
-  })
+  }
 
   // Warte, bis alle sofortigen Pumpen aktiviert wurden
   await Promise.all(immediatePumpPromises)
@@ -365,27 +438,28 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     console.log(`[v0] Warte 2 Sekunden vor dem Hinzufügen von ${delayedItems.length} verzögerten Zutaten...`)
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    // Füge verzögerte Zutaten hinzu
+    // Füge verzögerte Zutaten mit Multi-Pumpen-Unterstützung hinzu
     for (const item of delayedItems) {
-      const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId)
-
-      if (!pump) {
-        console.error(`Keine Pumpe für Zutat ${item.ingredientId} konfiguriert!`)
-        continue
-      }
-
-      // Berechne, wie lange die Pumpe laufen muss
-      const pumpTimeMs = (item.amount / pump.flowRate) * 1000
-
-      console.log(
-        `[v0] Verzögert: Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`,
+      const distribution = await distributeToPumps(
+        item.ingredientId,
+        item.amount,
+        pumpConfig,
+        ingredientLevels
       )
 
-      // Füge zur Level-Update-Liste hinzu
-      levelUpdates.push({ pumpId: pump.id, amount: item.amount })
-
-      // Aktiviere die Pumpe
-      await activatePump(pump.pin, pumpTimeMs)
+      for (const dist of distribution) {
+        const pumpTimeMs = (dist.amount / dist.flowRate) * 1000
+        
+        console.log(`[v0] Verzögert: Pumpe ${dist.pumpId}: ${dist.amount}ml für ${pumpTimeMs}ms aktivieren`)
+        
+        levelUpdates.push({ pumpId: dist.pumpId, amount: dist.amount })
+        
+        // Aktualisiere den lokalen Füllstand
+        const currentLevel = ingredientLevels.get(dist.pumpId) || 0
+        ingredientLevels.set(dist.pumpId, currentLevel - dist.amount)
+        
+        await activatePump(dist.pin, pumpTimeMs)
+      }
     }
   }
 

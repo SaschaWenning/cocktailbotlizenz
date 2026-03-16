@@ -3,10 +3,11 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const { cocktail, pumpConfig, size } = await request.json()
+    const { cocktail, pumpConfig, size, ingredientLevels } = await request.json()
 
     // Verwende die ursprüngliche Server Action für Raspberry Pi
-    const result = await makeCocktailAction(cocktail, pumpConfig, size)
+    // ingredientLevels wird für die Multi-Pumpen-Verteilung benötigt
+    const result = await makeCocktailAction(cocktail, pumpConfig, size, ingredientLevels)
 
     return NextResponse.json(result)
   } catch (error) {

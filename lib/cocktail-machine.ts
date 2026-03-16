@@ -40,11 +40,12 @@ export async function makeCocktail(
   pumpConfig: PumpConfig[],
   size = 300,
   category: "cocktails" | "virgin" | "shots" = "cocktails",
+  ingredientLevels?: { pumpId: number; currentLevel: number }[],
 ) {
   const response = await fetch("/api/make-cocktail", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cocktail, pumpConfig, size }),
+    body: JSON.stringify({ cocktail, pumpConfig, size, ingredientLevels }),
   })
 
   if (!response.ok) {
