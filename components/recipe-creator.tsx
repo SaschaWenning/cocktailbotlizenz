@@ -18,9 +18,12 @@ interface RecipeCreatorProps {
   onClose: () => void
   onSave: (newCocktail: Cocktail) => void
   asTab?: boolean
+  cocktail?: Cocktail  // Optional: wenn gesetzt, wird bearbeitet statt neu erstellt
+  onRequestDelete?: (id: string) => void
 }
 
-export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }: RecipeCreatorProps) {
+export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, cocktail, onRequestDelete }: RecipeCreatorProps) {
+  const isEditMode = !!cocktail
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [recipe, setRecipe] = useState<
@@ -48,8 +51,34 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
   useEffect(() => {
     if (isOpen) {
       setIngredients(getAllIngredients())
+      
+      // Im Bearbeitungsmodus: Daten vom Cocktail laden
+      if (cocktail) {
+        setName(cocktail.name)
+        setDescription(cocktail.description || "")
+        setAlcoholic(cocktail.alcoholic)
+        setSizes(cocktail.sizes || [200, 300, 400])
+        setRecipe(
+          cocktail.recipe.map((item) => ({
+            ...item,
+            type: item.type || (item.manual === true ? "manual" : "automatic"),
+            instruction: item.instruction || "",
+            delayed: item.delayed || false,
+          })),
+        )
+        let imagePath = cocktail.image || ""
+        if (imagePath.startsWith("/placeholder")) {
+          setImageUrl("")
+        } else {
+          if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
+            imagePath = `/${imagePath}`
+          }
+          imagePath = imagePath.split("?")[0]
+          setImageUrl(imagePath)
+        }
+      }
     }
-  }, [isOpen])
+  }, [isOpen, cocktail])
 
   useEffect(() => {
     if (recipe.length === 0) {
@@ -97,10 +126,12 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
 
     setSaving(true)
     try {
-      const newCocktailId = `custom-${Date.now()}`
+      // Im Bearbeitungsmodus: vorhandene ID verwenden, sonst neue erstellen
+      const cocktailId = isEditMode && cocktail ? cocktail.id : `custom-${Date.now()}`
 
       const newCocktail: Cocktail = {
-        id: newCocktailId,
+        ...(isEditMode && cocktail ? cocktail : {}),
+        id: cocktailId,
         name: name.trim(),
         description: description.trim(),
         image: imageUrl || "/placeholder.svg?height=200&width=400",
@@ -126,13 +157,16 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
 
       window.scrollTo({ top: 0, behavior: "smooth" })
 
-      setName("")
-      setDescription("")
-      setRecipe([]) // Reset to empty, useEffect will add default
-      setImageUrl("")
-      setAlcoholic(true)
-      setSizes([200, 300, 400])
-      setErrors({})
+      // Nur im Erstellungsmodus zurücksetzen
+      if (!isEditMode) {
+        setName("")
+        setDescription("")
+        setRecipe([]) // Reset to empty, useEffect will add default
+        setImageUrl("")
+        setAlcoholic(true)
+        setSizes([200, 300, 400])
+        setErrors({})
+      }
     } catch (error) {
       console.error("Fehler beim Speichern:", error)
     } finally {
@@ -320,8 +354,12 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
         <div className="space-y-5 my-2 max-h-[65vh] overflow-y-auto pr-2">
           {/* Header */}
           <div className="text-center pb-2 border-b border-gray-700">
-            <h2 className="text-xl font-bold text-[#00ff00]">Neues Rezept erstellen</h2>
-            <p className="text-gray-400 text-sm mt-1">Erstelle deinen eigenen Cocktail</p>
+            <h2 className="text-xl font-bold text-[#00ff00]">
+              {isEditMode ? "Rezept bearbeiten" : "Neues Rezept erstellen"}
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">
+              {isEditMode ? `Bearbeite "${cocktail?.name}"` : "Erstelle deinen eigenen Cocktail"}
+            </p>
           </div>
 
           {/* Basis-Informationen */}
@@ -696,7 +734,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
                   Speichern...
                 </>
               ) : (
-                "Rezept speichern"
+                isEditMode ? "Änderungen speichern" : "Rezept speichern"
               )}
             </Button>
           </div>
