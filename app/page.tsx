@@ -32,7 +32,6 @@ import { Progress } from "@/components/ui/progress"
 import { Check, GlassWater } from "lucide-react"
 
 import LightingControl from "@/components/lighting-control"
-import Footer from "@/components/footer"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -1493,7 +1492,6 @@ export default function Home() {
           </div>
         )}
       </div>
-      <Footer />
     </div>
   )
 }
