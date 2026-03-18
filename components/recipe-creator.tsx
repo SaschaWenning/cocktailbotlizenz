@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import type { Cocktail } from "@/types/cocktail"
 import { getAllIngredients } from "@/lib/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X, ArrowLeft, Check, ArrowUp, Lock } from "lucide-react"
+import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X, ArrowLeft, Check, ArrowUp, Lock, EyeOff } from "lucide-react"
 import FileBrowser from "./file-browser"
 
 interface RecipeCreatorProps {
@@ -33,6 +33,31 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
   const [alcoholic, setAlcoholic] = useState(true)
   const [sizes, setSizes] = useState<number[]>([200, 300, 400])
   const [saving, setSaving] = useState(false)
+  const [hidingCocktail, setHidingCocktail] = useState(false)
+
+  const handleHideCocktail = async () => {
+    if (!cocktail) return
+    try {
+      setHidingCocktail(true)
+      const response = await fetch("/api/hidden-cocktails")
+      const data = await response.json()
+      const hiddenCocktails: string[] = data.hiddenCocktails || []
+      if (!hiddenCocktails.includes(cocktail.id)) {
+        hiddenCocktails.push(cocktail.id)
+        await fetch("/api/hidden-cocktails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hiddenCocktails }),
+        })
+      }
+      onClose()
+      window.location.reload()
+    } catch (error) {
+      console.error("Fehler beim Ausblenden:", error)
+    } finally {
+      setHidingCocktail(false)
+    }
+  }
   const [ingredients, setIngredients] = useState(getAllIngredients())
   const [errors, setErrors] = useState<{
     name?: string
@@ -715,6 +740,18 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
         <div className="flex justify-between items-center gap-3 mt-4 pt-4 border-t border-gray-700">
           <p className="text-gray-500 text-xs">* Pflichtfeld</p>
           <div className="flex gap-3">
+            {isEditMode && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleHideCocktail}
+                disabled={hidingCocktail}
+                className="bg-transparent text-yellow-400 border-yellow-700 hover:bg-yellow-900/30 px-4 h-11"
+              >
+                <EyeOff className="mr-2 h-4 w-4" />
+                {hidingCocktail ? "..." : "Ausblenden"}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -723,9 +760,9 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
             >
               Abbrechen
             </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={saving} 
+            <Button
+              onClick={handleSave}
+              disabled={saving}
               className="bg-[#00ff00] text-black hover:bg-[#00cc00] font-semibold px-8 h-11"
             >
               {saving ? (
