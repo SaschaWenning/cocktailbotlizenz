@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import type { Cocktail } from "@/types/cocktail"
 import { getAllIngredients } from "@/lib/ingredients"
+import type { Ingredient } from "@/types/pump"
 import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X, ArrowLeft, Check, ArrowUp, Lock, EyeOff } from "lucide-react"
 import FileBrowser from "./file-browser"
@@ -83,14 +84,30 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
         setDescription(cocktail.description || "")
         setAlcoholic(cocktail.alcoholic)
         setSizes(cocktail.sizes || [200, 300, 400])
-        setRecipe(
-          cocktail.recipe.map((item) => ({
-            ...item,
-            type: item.type || (item.manual === true ? "manual" : "automatic"),
-            instruction: item.instruction || "",
-            delayed: item.delayed || false,
-          })),
-        )
+        const loadedRecipe = cocktail.recipe.map((item) => ({
+          ...item,
+          type: item.type || (item.manual === true ? "manual" : "automatic"),
+          instruction: item.instruction || "",
+          delayed: item.delayed || false,
+        }))
+        setRecipe(loadedRecipe)
+        
+        // Stelle sicher dass alle Zutaten aus dem Rezept in der verfügbaren Liste sind
+        const allIngredients = getAllIngredients()
+        const missingIngredients: Ingredient[] = []
+        for (const item of cocktail.recipe) {
+          if (!allIngredients.find(ing => ing.id === item.ingredientId)) {
+            // Zutat nicht gefunden - füge sie als unbekannte Zutat hinzu
+            missingIngredients.push({
+              id: item.ingredientId,
+              name: item.ingredientId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+              alcoholic: cocktail.alcoholic,
+            })
+          }
+        }
+        if (missingIngredients.length > 0) {
+          setIngredients([...allIngredients, ...missingIngredients])
+        }
         let imagePath = cocktail.image || ""
         if (imagePath.startsWith("/placeholder")) {
           setImageUrl("")
@@ -101,15 +118,25 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
           imagePath = imagePath.split("?")[0]
           setImageUrl(imagePath)
         }
+      } else {
+        // Im Erstellungsmodus: Felder zurücksetzen
+        setName("")
+        setDescription("")
+        setAlcoholic(true)
+        setSizes([200, 300, 400])
+        setRecipe([])
+        setImageUrl("")
+        setErrors({})
       }
     }
   }, [isOpen, cocktail])
 
   useEffect(() => {
-    if (recipe.length === 0) {
+    // Nur im Erstellungsmodus eine leere Zutat hinzufügen, nicht im Bearbeitungsmodus
+    if (recipe.length === 0 && !isEditMode) {
       addIngredient()
     }
-  }, [recipe])
+  }, [recipe, isEditMode])
 
   const openKeyboard = (
     mode: "name" | "description" | "imageUrl" | "instruction" | "newSize" | string,
