@@ -32,7 +32,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
   >([])
   const [imageUrl, setImageUrl] = useState("")
   const [alcoholic, setAlcoholic] = useState(true)
-  const [sizes, setSizes] = useState<number[]>([200, 300, 400])
+  const [sizes, setSizes] = useState<number[]>([200])
   const [saving, setSaving] = useState(false)
   const [hidingCocktail, setHidingCocktail] = useState(false)
 
@@ -83,7 +83,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
         setName(cocktail.name)
         setDescription(cocktail.description || "")
         setAlcoholic(cocktail.alcoholic)
-        setSizes(cocktail.sizes || [200, 300, 400])
+        setSizes(cocktail.sizes || [200])
         const loadedRecipe = cocktail.recipe.map((item) => ({
           ...item,
           type: item.type || (item.manual === true ? "manual" : "automatic"),
@@ -98,9 +98,18 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
         for (const item of cocktail.recipe) {
           if (!allIngredients.find(ing => ing.id === item.ingredientId)) {
             // Zutat nicht gefunden - füge sie als unbekannte Zutat hinzu
+            // Custom-Zutaten haben das Format: custom-TIMESTAMP-name
+            let ingredientName = item.ingredientId
+            if (item.ingredientId.startsWith("custom-")) {
+              ingredientName = item.ingredientId.replace(/^custom-\d+-/, "").trim()
+              // Bindestriche durch Leerzeichen ersetzen und großschreiben
+              ingredientName = ingredientName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+            }
+            if (!ingredientName) ingredientName = "Unbekannte Zutat"
+            
             missingIngredients.push({
               id: item.ingredientId,
-              name: item.ingredientId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+              name: ingredientName,
               alcoholic: cocktail.alcoholic,
             })
           }
@@ -123,7 +132,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
         setName("")
         setDescription("")
         setAlcoholic(true)
-        setSizes([200, 300, 400])
+        setSizes([200])
         setRecipe([])
         setImageUrl("")
         setErrors({})
@@ -195,7 +204,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
           instruction: item.instruction,
           delayed: item.delayed,
         })),
-        sizes: sizes.length > 0 ? sizes : [200, 300, 400],
+        sizes: sizes.length > 0 ? sizes : [200],
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
           const ingredientName = ingredient?.name || item.ingredientId.replace(/^custom-\d+-/, "")
@@ -216,7 +225,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false, 
         setRecipe([]) // Reset to empty, useEffect will add default
         setImageUrl("")
         setAlcoholic(true)
-        setSizes([200, 300, 400])
+        setSizes([200])
         setErrors({})
       }
     } catch (error) {

@@ -91,18 +91,12 @@ export function IngredientLevels() {
 
     loadLevels()
     unsubscribeRef.current = onIngredientLevelsUpdated(loadLevels)
-    intervalRef.current = setInterval(loadLevels, 10000)
+    // Kein auto-polling - Füllstände werden nur beim Öffnen und nach Zubereitung geladen
 
     return () => {
       if (unsubscribeRef.current) {
-        try {
-          unsubscribeRef.current()
-        } catch {}
+        try { unsubscribeRef.current() } catch {}
         unsubscribeRef.current = null
-      }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
       }
     }
   }, [editingLevel, editingSize, editingName, isFilling])
@@ -198,8 +192,6 @@ export function IngredientLevels() {
       }
 
       await loadLevels()
-
-      console.log("[v0] Ingredient-Levels: Triggering cocktail data refresh")
       window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
 
       handleCancel()
