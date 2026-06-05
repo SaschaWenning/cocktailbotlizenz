@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
-import { Loader2, Wind, Play } from "lucide-react"
-import type { PumpConfig } from "@/types/pump"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Loader2, Wind, Play, Settings } from "lucide-react"
+import type { PumpConfig, VentingConfig } from "@/types/pump"
 import { cleanPump } from "@/lib/cocktail-machine"
 import { getAllIngredients } from "@/lib/ingredients"
 
@@ -20,24 +22,77 @@ export default function PumpVenting({ pumpConfig }: PumpVentingProps) {
   const [progress, setProgress] = useState(0)
   const [pumpsDone, setPumpsDone] = useState<number[]>([])
   const [manualVentingPumps, setManualVentingPumps] = useState<Set<number>>(new Set())
+  const [ventingConfig, setVentingConfig] = useState<VentingConfig>({})
+  const [editingConfig, setEditingConfig] = useState<VentingConfig>({})
+  const [showSettings, setShowSettings] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
 
   const enabledPumps = pumpConfig.filter((pump) => pump.enabled)
 
-  // Automatische Entlüftung aller Pumpen
+  // Lade Entlüftungs-Konfiguration beim Start
+  useEffect(() => {
+    loadVentingConfig()
+  }, [])
+
+  // Lade Konfiguration von API
+  const loadVentingConfig = async () => {
+    try {
+      const response = await fetch("/api/venting-config")
+      const config: VentingConfig = await response.json()
+      setVentingConfig(config)
+      setEditingConfig(config)
+    } catch (error) {
+      console.error("Error loading venting config:", error)
+      // Setze Standard-Zeiten
+      const defaultConfig: VentingConfig = {}
+      enabledPumps.forEach((pump) => {
+        defaultConfig[pump.id] = 2000
+      })
+      setVentingConfig(defaultConfig)
+      setEditingConfig(defaultConfig)
+    }
+  }
+
+  // Speichere Entlüftungs-Konfiguration
+  const saveVentingConfig = async () => {
+    setSaveStatus("saving")
+    try {
+      const response = await fetch("/api/venting-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingConfig),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save configuration")
+      }
+
+      setVentingConfig(editingConfig)
+      setSaveStatus("saved")
+      setTimeout(() => setSaveStatus("idle"), 2000)
+      setShowSettings(false)
+    } catch (error) {
+      console.error("Error saving venting config:", error)
+      setSaveStatus("idle")
+      alert("Fehler beim Speichern der Konfiguration")
+    }
+  }
+
+  // Automatische Entlüftung aller Pumpen mit gespeicherten Zeiten
   const startAutoVenting = async () => {
     setAutoVentingStatus("venting")
     setProgress(0)
     setPumpsDone([])
     setCurrentPump(null)
 
-    // Jede Pumpe nacheinander für 2 Sekunden entlüften
+    // Jede Pumpe nacheinander mit der konfigurierten Zeit entlüften
     for (let i = 0; i < enabledPumps.length; i++) {
       const pump = enabledPumps[i]
       setCurrentPump(pump.id)
+      const duration = ventingConfig[pump.id] || 2000
 
       try {
-        // Pumpe für 2 Sekunden laufen lassen
-        await cleanPump(pump.id, 2000)
+        await cleanPump(pump.id, duration)
         setPumpsDone((prev) => [...prev, pump.id])
 
         // Fortschritt aktualisieren
@@ -99,15 +154,106 @@ export default function PumpVenting({ pumpConfig }: PumpVentingProps) {
 
   return (
     <div className="space-y-4">
+      {/* Einstellungen für Entlüftungszeiten */}
+      {showSettings && (
+        <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Settings className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+              Entlüftungszeiten einstellen
+            </CardTitle>
+            <CardDescription className="text-[hsl(var(--cocktail-text-muted))]">
+              Stelle die Entlüftungszeit für jede Pumpe ein (100-10000 ms)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
+              <AlertDescription className="text-[hsl(var(--cocktail-text))] text-sm">
+                Die hier eingestellten Zeiten werden bei der automatischen Entlüftung verwendet.
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {enabledPumps.map((pump) => (
+                <div key={pump.id} className="space-y-2">
+                  <div className="flex flex-col">
+                    <Label className="text-[hsl(var(--cocktail-text))] text-sm font-medium">
+                      Pumpe {pump.id}
+                    </Label>
+                    <span className="text-xs text-[hsl(var(--cocktail-text-muted))]">
+                      {getIngredientDisplayName(pump.ingredient)}
+                    </span>
+                  </div>
+                  <Input
+                    type="number"
+                    min="100"
+                    max="10000"
+                    step="100"
+                    value={editingConfig[pump.id] || 2000}
+                    onChange={(e) =>
+                      setEditingConfig({
+                        ...editingConfig,
+                        [pump.id]: parseInt(e.target.value, 10),
+                      })
+                    }
+                    className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
+                  />
+                  <span className="text-xs text-[hsl(var(--cocktail-text-muted))]">
+                    {editingConfig[pump.id] || 2000} ms
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={saveVentingConfig}
+                disabled={saveStatus === "saving"}
+                className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black"
+              >
+                {saveStatus === "saving" ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Speichern...
+                  </>
+                ) : saveStatus === "saved" ? (
+                  "✓ Gespeichert"
+                ) : (
+                  "Speichern"
+                )}
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowSettings(false)
+                  setEditingConfig(ventingConfig)
+                }}
+                className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+              >
+                Abbrechen
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Automatische Entlüftung */}
       <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Wind className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
-            Automatische Entlüftung
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Wind className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+              Automatische Entlüftung
+            </CardTitle>
+            <Button
+              onClick={() => setShowSettings(!showSettings)}
+              size="sm"
+              className="bg-[hsl(var(--cocktail-card-bg))] hover:bg-[hsl(var(--cocktail-primary))]/20 text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
           <CardDescription className="text-[hsl(var(--cocktail-text-muted))]">
-            Entlüfte alle Pumpen nacheinander für 2 Sekunden
+            Entlüfte alle Pumpen nacheinander mit individualisierten Zeiten
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -192,13 +338,13 @@ export default function PumpVenting({ pumpConfig }: PumpVentingProps) {
             Manuelle Entlüftung
           </CardTitle>
           <CardDescription className="text-[hsl(var(--cocktail-text-muted))]">
-            Entlüfte einzelne Pumpen für 1 Sekunde
+            Entlüfte einzelne Pumpen mit 1 Sekunde
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <Alert className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
             <AlertDescription className="text-[hsl(var(--cocktail-text))] text-sm">
-              Klicke auf eine Pumpe um sie für 1 Sekunde zu entlüften. Die Pumpe startet sofort ohne Ladebildschirm.
+              Klicke auf eine Pumpe um sie zu entlüften. Die Pumpe startet sofort ohne Ladebildschirm.
             </AlertDescription>
           </Alert>
 

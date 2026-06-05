@@ -200,6 +200,8 @@ export default function LightingControl() {
       setBrightness(tempBrightness)
       localStorage.setItem("led-brightness", tempBrightness.toString())
 
+      console.log("[v0] Sending brightness command:", tempBrightness)
+      
       const response = await fetch("/api/lighting-control", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -209,11 +211,19 @@ export default function LightingControl() {
         }),
       })
 
+      console.log("[v0] Brightness response status:", response.status)
+      
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error("[v0] Brightness error:", errorText)
         throw new Error("Failed to set brightness")
       }
 
+      // Kurz warten damit der Pico die Helligkeit verarbeiten kann
+      await new Promise(r => setTimeout(r, 200))
+      
       // Re-apply current idle lighting mode to make brightness change visible immediately
+      console.log("[v0] Re-applying idle mode after brightness change")
       await applyLighting("idle", false)
 
       toast({
@@ -222,7 +232,7 @@ export default function LightingControl() {
       })
 
     } catch (error) {
-      console.error("Error setting brightness:", error)
+      console.error("[v0] Error setting brightness:", error)
       toast({
         title: "Fehler",
         description: "Helligkeit konnte nicht angewendet werden",

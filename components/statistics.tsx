@@ -107,9 +107,21 @@ export default function Statistics() {
     const ingredientConsumption = Array.from(ingredientMap.entries())
       .map(([id, data]) => {
         const ingredientInfo = allIngredients.find((ing) => ing.id === id)
+        let name = ingredientInfo?.name || ""
+        
+        // Falls keine Info gefunden und es eine custom-Zutat ist, Namen aus ID extrahieren
+        if (!name && id.startsWith("custom-")) {
+          name = id.replace(/^custom-\d+-/, "").trim()
+          // Bindestriche durch Leerzeichen ersetzen und ersten Buchstaben großschreiben
+          if (name) {
+            name = name.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+          }
+        }
+        if (!name) name = id // Fallback auf ID
+        
         return {
           ingredientId: id,
-          ingredientName: ingredientInfo?.name || id,
+          ingredientName: name,
           totalAmount: data.amount,
           usageCount: data.count,
         }
