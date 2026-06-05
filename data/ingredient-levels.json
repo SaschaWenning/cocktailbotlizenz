@@ -1,0 +1,146 @@
+[
+  {
+    "pumpId": 1,
+    "ingredient": "vodka",
+    "ingredientId": "vodka",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 2,
+    "ingredient": "dark-rum",
+    "ingredientId": "dark-rum",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 3,
+    "ingredient": "malibu",
+    "ingredientId": "malibu",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 4,
+    "ingredient": "peach-liqueur",
+    "ingredientId": "peach-liqueur",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 5,
+    "ingredient": "tequila",
+    "ingredientId": "tequila",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 6,
+    "ingredient": "triple-sec",
+    "ingredientId": "triple-sec",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 7,
+    "ingredient": "blue-curacao",
+    "ingredientId": "blue-curacao",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 8,
+    "ingredient": "gin",
+    "ingredientId": "gin",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 9,
+    "ingredient": "lime-juice",
+    "ingredientId": "lime-juice",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 10,
+    "ingredient": "grenadine",
+    "ingredientId": "grenadine",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 11,
+    "ingredient": "vanilla-syrup",
+    "ingredientId": "vanilla-syrup",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 12,
+    "ingredient": "orange-juice",
+    "ingredientId": "orange-juice",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 13,
+    "ingredient": "pineapple-juice",
+    "ingredientId": "pineapple-juice",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 14,
+    "ingredient": "passion-fruit-juice",
+    "ingredientId": "passion-fruit-juice",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 15,
+    "ingredient": "almond-syrup",
+    "ingredientId": "almond-syrup",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 16,
+    "ingredient": "coconut-syrup",
+    "ingredientId": "coconut-syrup",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 17,
+    "ingredient": "cranberry-juice",
+    "ingredientId": "cranberry-juice",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  },
+  {
+    "pumpId": 18,
+    "ingredient": "lemon-juice",
+    "ingredientId": "lemon-juice",
+    "currentLevel": 1000,
+    "containerSize": 1000,
+    "lastUpdated": "2026-06-05T07:25:39.035Z"
+  }
+]

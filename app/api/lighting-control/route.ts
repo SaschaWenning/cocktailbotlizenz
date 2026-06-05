@@ -35,6 +35,17 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Lighting control POST request:", { mode, color, brightness, blinking, scheme })
 
     if (mode === "brightness" && brightness !== undefined) {
+      // Helligkeit persistent speichern
+      try {
+        const fs = await import("fs/promises")
+        const pathModule = await import("path")
+        const brightnessFile = pathModule.join(process.cwd(), "data", "brightness.json")
+        await fs.writeFile(brightnessFile, JSON.stringify({ brightness }), "utf-8")
+        console.log(`[v0] Brightness saved to file: ${brightness}`)
+      } catch (e) {
+        console.error("[v0] Error saving brightness to file:", e)
+      }
+      
       await runLed("BRIGHT", String(brightness))
       console.log(`[v0] LED Brightness set to: ${brightness}`)
       return NextResponse.json({ success: true })
@@ -88,6 +99,22 @@ async function sendLightingControlCommand(
   scheme?: string,
 ) {
   try {
+    // Lade gespeicherte Helligkeit und sende sie VOR jedem Befehl
+    try {
+      const fs = await import("fs/promises")
+      const path = await import("path")
+      const brightnessFile = path.join(process.cwd(), "data", "brightness.json")
+      const data = await fs.readFile(brightnessFile, "utf-8")
+      const { brightness: savedBrightness } = JSON.parse(data)
+      if (savedBrightness !== undefined) {
+        await runLed("BRIGHT", String(savedBrightness))
+        console.log(`[v0] Applied saved brightness: ${savedBrightness}`)
+      }
+    } catch (e) {
+      // Kein gespeicherter Wert, Standard verwenden
+      console.log("[v0] No saved brightness found, using default")
+    }
+    
     switch (mode) {
       case "cocktailPreparation":
       case "preparation":

@@ -32,10 +32,20 @@ def set_all(color):
     np.write()
 
 def rainbow_cycle(wait=10):
-    """Regenbogen-Animation"""
+    """Regenbogen-Animation mit Unterbrechungsmöglichkeit"""
+    global current_mode
     for j in range(256):
         if current_mode != "RAINBOW":
             break
+        # Prüfe auf neue Befehle vor jedem Frame
+        events = poll.poll(0)
+        if events:
+            line = sys.stdin.readline()
+            if line:
+                handle_command(line.strip())
+                if current_mode != "RAINBOW":
+                    break
+        # LEDs setzen
         for i in range(NUM_LEDS):
             pixel_index = (i * 256 // NUM_LEDS) + j
             np[i] = wheel(pixel_index & 255)

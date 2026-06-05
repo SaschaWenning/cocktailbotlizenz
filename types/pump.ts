@@ -12,3 +12,7 @@ export interface Ingredient {
   name: string
   alcoholic: boolean
 }
+
+export interface VentingConfig {
+  [pumpId: number]: number // pumpId -> duration in milliseconds
+}
